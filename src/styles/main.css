@@ -1,0 +1,94 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-[#0F172A] text-white;
+    font-family: 'Inter', sans-serif;
+  }
+
+  /* 自定义滚动条样式 */
+  ::-webkit-scrollbar {
+    width: 4px;
+  }
+
+  ::-webkit-scrollbar-track {
+    @apply bg-transparent;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    @apply bg-gray-700 rounded-full;
+  }
+}
+
+@layer components {
+  .glass-effect {
+    @apply backdrop-blur-md bg-white/10;
+  }
+
+  .price-chart {
+    @apply h-[120px] w-full;
+  }
+
+  /* 按钮样式 */
+  .btn {
+    @apply px-4 py-2 rounded-lg font-medium transition-colors duration-200 cursor-pointer;
+  }
+
+  .btn-primary {
+    @apply btn bg-blue-600 hover:bg-blue-700 text-white;
+  }
+
+  .btn-secondary {
+    @apply btn bg-gray-600 hover:bg-gray-700 text-white;
+  }
+
+  .btn-danger {
+    @apply btn bg-red-600 hover:bg-red-700 text-white;
+  }
+
+  .btn-success {
+    @apply btn bg-green-600 hover:bg-green-700 text-white;
+  }
+
+  /* 表单样式 */
+  .form-input {
+    @apply w-full px-4 py-3 bg-gray-800 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors;
+  }
+
+  .form-label {
+    @apply block text-sm font-medium text-gray-300 mb-2;
+  }
+
+  .form-group {
+    @apply mb-4;
+  }
+
+  /* 卡片样式 */
+  .card {
+    @apply bg-gray-800 rounded-lg shadow-lg p-6 border border-gray-700;
+  }
+
+  /* 菜单项样式 */
+  .menu-item {
+    @apply flex items-center justify-between w-full px-4 py-3 bg-gray-800 hover:bg-gray-700 rounded-lg transition-colors duration-200 cursor-pointer border border-gray-700;
+  }
+
+  .menu-item-icon {
+    @apply w-5 h-5 mr-3 text-gray-400;
+  }
+
+  .menu-item-text {
+    @apply flex-1 text-left text-gray-200;
+  }
+
+  .menu-item-arrow {
+    @apply w-4 h-4 text-gray-400;
+  }
+
+  /* 用户头像样式 */
+  .user-avatar {
+    @apply w-12 h-12 bg-blue-600 rounded-lg flex items-center justify-center text-white font-bold text-lg;
+  }
+}
