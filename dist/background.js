@@ -5,13 +5,21 @@ let envConfig = {
   token: null
 };
 
+// 存储当前交易对信息
+let currentTradingSymbol = 'BTCUSDT'; // 默认值
+
 // 监听来自content script的消息
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  console.log('Background script 收到消息:', message.type, message.data);
+
   if (message.type === 'RELOAD_RESOURCES') {
     // 重新加载扩展资源
     chrome.runtime.reload()
   } else if (message.type === 'TRADING_PAGE_LOADED') {
-    handleTradingPage(message.data, sender.tab.id)
+    console.log('Background script 处理 TRADING_PAGE_LOADED 消息:', message.data);
+    const tabId = sender.tab?.id || null;
+    console.log('Sender tab ID:', tabId);
+    handleTradingPage(message.data, tabId)
     sendResponse({ status: 'success' })
   } else if (message.type === 'GET_RESOURCE_URL') {
     try {
@@ -24,6 +32,27 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     // 设置环境配置
     envConfig = { ...envConfig, ...message.data };
     sendResponse({ status: 'success' });
+  } else if (message.type === 'GET_CURRENT_SYMBOL') {
+    // 响应获取当前交易对的请求
+    console.log('Background script 响应 GET_CURRENT_SYMBOL 请求:', currentTradingSymbol);
+    sendResponse({ symbol: currentTradingSymbol });
+  } else if (message.type === 'MANUAL_SET_SYMBOL') {
+    // 手动设置交易对（用于调试）
+    const { symbol } = message.data;
+    if (symbol) {
+      console.log('Background script 手动设置交易对:', symbol);
+      currentTradingSymbol = symbol;
+      // 通知前端更新
+      try {
+        chrome.runtime.sendMessage({
+          type: 'SYMBOL_UPDATED',
+          data: { symbol: currentTradingSymbol }
+        });
+      } catch (error) {
+        console.error('发送 SYMBOL_UPDATED 消息失败:', error);
+      }
+    }
+    sendResponse({ status: 'success', symbol: currentTradingSymbol });
   } else if (message.type === 'PROXY_API_REQUEST') {
     // 处理API代理请求
     handleApiProxyRequest(message.data, sendResponse)
@@ -94,34 +123,62 @@ function checkRateLimit(tabId) {
 async function handleTradingPage(data, tabId) {
   try {
     const { symbol } = data
-    // console.log(`处理交易页面: ${symbol}`)
+    console.log(`Background script 处理交易页面: ${symbol}`);
 
-    // 检查请求限制
-    checkRateLimit(tabId);
+    // 更新当前交易对
+    if (symbol) {
+      let formattedSymbol = symbol;
+      if (symbol && !symbol.includes('USDT') && !symbol.includes('BTC') && symbol !== 'BTC') {
+        formattedSymbol = symbol + 'USDT';
+        console.log('Background script 格式化交易对:', symbol, '->', formattedSymbol);
+      }
+      currentTradingSymbol = formattedSymbol;
+      console.log('Background script 更新 currentTradingSymbol:', currentTradingSymbol);
 
-    // 通知content script更新页面
-    try {
-      chrome.tabs.sendMessage(tabId, {
-        type: 'PAGE_UPDATED',
-        data: { symbol }
-      }, (response) => {
-        if (chrome.runtime.lastError) {
-          // console.log('发送更新消息时出错:', chrome.runtime.lastError.message);
-          return;
-        }
+      // 通知所有打开的扩展页面更新交易对
+      try {
+        chrome.runtime.sendMessage({
+          type: 'SYMBOL_UPDATED',
+          data: { symbol: currentTradingSymbol }
+        });
+        console.log('Background script 发送 SYMBOL_UPDATED 消息:', currentTradingSymbol);
+      } catch (error) {
+        console.error('Background script 发送 SYMBOL_UPDATED 消息失败:', error);
+      }
+    } else {
+      console.log('Background script 收到空的交易对信息');
+    }
 
-        if (response) {
-          // console.log('更新消息已接收:', response);
-        }
-      });
-    } catch (error) {
-      // console.error('发送更新消息失败:', error);
+    // 检查请求限制（只有在有 tabId 时才检查）
+    if (tabId) {
+      checkRateLimit(tabId);
+
+      // 通知content script更新页面
+      try {
+        chrome.tabs.sendMessage(tabId, {
+          type: 'PAGE_UPDATED',
+          data: { symbol }
+        }, (response) => {
+          if (chrome.runtime.lastError) {
+            // console.log('发送更新消息时出错:', chrome.runtime.lastError.message);
+            return;
+          }
+
+          if (response) {
+            // console.log('更新消息已接收:', response);
+          }
+        });
+      } catch (error) {
+        // console.error('发送更新消息失败:', error);
+      }
+    } else {
+      console.log('没有 tabId，跳过 content script 通知');
     }
 
   } catch (error) {
     // console.error('处理交易页面失败:', error)
-    // 如果是请求限制错误，通知前端
-    if (error.message.includes('请求过于频繁')) {
+    // 如果是请求限制错误，通知前端（只有在有 tabId 时）
+    if (error.message.includes('请求过于频繁') && tabId) {
       chrome.tabs.sendMessage(tabId, {
         type: 'RATE_LIMIT_ERROR',
         data: { message: error.message }
@@ -136,6 +193,7 @@ function isSupportedExchange(url) {
     'binance.com',
     'okx.com',
     'gate.io',
+    'gate.com',
     'kucoin.com',
     'huobi.com',
     'bybit.com',

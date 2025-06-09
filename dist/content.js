@@ -1,11 +1,11 @@
-interface ExchangeInfo {
-  name: string;
-  baseUrl: string;
-  tradeUrlPatterns: string[];
-  symbolRegexes: RegExp[];
-}
+// 注入到交易所页面的脚本
+// console.log('K线军师插件已加载');
 
-const exchanges: ExchangeInfo[] = [
+// 导入交易对解析函数
+// 由于 content script 无法直接导入 ES 模块，我们需要内联这些函数
+
+// 交易所配置
+const exchanges = [
   {
     name: 'Gate.io',
     baseUrl: 'gate.io',
@@ -14,6 +14,17 @@ const exchanges: ExchangeInfo[] = [
       /\/trade\/([A-Z0-9]+)_USDT/i,
       /\/[a-z]{2}\/trade\/([A-Z0-9]+)_USDT/i,
       /\/([A-Z0-9]+)_USDT$/i
+    ]
+  },
+  {
+    name: 'Gate.com',
+    baseUrl: 'gate.com',
+    tradeUrlPatterns: ['/zh/trade/', '/en/trade/', '/trade/'],
+    symbolRegexes: [
+      /\/trade\/([A-Z0-9]+)_USDT/i,
+      /\/[a-z]{2}\/trade\/([A-Z0-9]+)_USDT/i,
+      /\/([A-Z0-9]+)_USDT$/i,
+      /\/([A-Z0-9]+)_([A-Z0-9]+)/i  // 添加通用的交易对格式
     ]
   },
   {
@@ -149,7 +160,7 @@ const exchanges: ExchangeInfo[] = [
     tradeUrlPatterns: ['/exchange/', '/futures/'],
     symbolRegexes: [
       /\/exchange\/([A-Z0-9_]+)/i,
-      /\/futures\/([A-Z0-9_]+)/i  // 简化正则表达式，不依赖查询参数
+      /\/futures\/([A-Z0-9_]+)/i
     ]
   },
   {
@@ -183,32 +194,19 @@ const exchanges: ExchangeInfo[] = [
     symbolRegexes: [
       /\/exchange\/([a-z0-9]+)\/\?type=spot/i
     ]
-  },
-  {
-    name: 'Gate.com',
-    baseUrl: 'gate.com',
-    tradeUrlPatterns: ['/trade/'],
-    symbolRegexes: [
-      /\/trade\/([A-Z0-9]+)_([A-Z0-9]+)/i
-    ]
   }
 ];
 
-/**
- * 从交易所URL中解析交易对符号
- * @param url 交易所URL
- * @returns 交易对符号，例如 'BTCUSDT'
- */
-export const parseSymbolFromUrl = (url: string): string | null => {
+// 从交易所URL中解析交易对符号
+function parseSymbolFromUrl(url) {
   try {
+    console.log('解析 URL:', url);
+
     // 特殊处理MEXC期货URL
     if (url.includes('mexc.com') && url.includes('/futures/')) {
-      // 尝试直接从URL路径中提取交易对
       const pathMatch = url.match(/\/futures\/([A-Z0-9_]+)/i);
       if (pathMatch) {
-        // 从URL中提取交易对，格式为 /futures/BTC_USDT
         const tradingPair = pathMatch[1];
-
         if (tradingPair.includes('_')) {
           const symbol = tradingPair.split('_')[0].toUpperCase();
           return symbol + 'USDT';
@@ -219,31 +217,47 @@ export const parseSymbolFromUrl = (url: string): string | null => {
     // 常规处理逻辑
     for (const ex of exchanges) {
       if (url.includes(ex.baseUrl)) {
+        console.log('匹配到交易所:', ex.name, ex.baseUrl);
         for (const regex of ex.symbolRegexes) {
+          console.log('尝试正则:', regex);
           const matches = url.match(regex);
           if (matches) {
-            // 特殊处理 Gate.io 的 _USDT 格式
-            if (ex.name === 'Gate.io' && regex.source.includes('_USDT')) {
-              // 对于 Gate.io 的 _USDT 格式，只取第一个捕获组并添加 USDT
-              const baseSymbol = matches[1].toUpperCase();
-              return baseSymbol + 'USDT';
+            console.log('正则匹配成功:', matches);
+            // 合并所有捕获组为 symbol
+            let symbol = matches.slice(1).map(s => s.toUpperCase()).join('');
+
+            // 特殊处理不同的匹配情况
+            if (matches.length === 2 && !symbol.includes('USDT')) {
+              // 只有一个捕获组且不包含USDT，添加USDT后缀
+              symbol = symbol + 'USDT';
+            } else if (matches.length === 3) {
+              // 两个捕获组，通常是 BASE/QUOTE 格式
+              const base = matches[1].toUpperCase();
+              const quote = matches[2].toUpperCase();
+              if (quote === 'USDT') {
+                symbol = base + 'USDT';
+              } else {
+                symbol = base + quote;
+              }
             }
 
-            // 合并所有捕获组为 symbol
-            const symbol = matches.slice(1).map(s => s.toUpperCase()).join('');
+            console.log('解析出的交易对:', symbol);
             return symbol;
           }
         }
       }
     }
 
+    console.log('未能解析出交易对');
     return null;
   } catch (e) {
-    return null
+    console.error('解析交易对时出错:', e);
+    return null;
   }
 }
 
-export function isExchangeUrl(url: string): boolean {
+// 检查URL是否是交易所页面
+function isExchangeUrl(url) {
   try {
     const urlObj = new URL(url);
 
@@ -271,16 +285,125 @@ export function isExchangeUrl(url: string): boolean {
       return false;
     });
 
-
-
     return result;
   } catch (error) {
     return false;
   }
 }
 
-// 导出交易所信息，以便其他模块使用
-export const supportedExchanges = exchanges.map(ex => ({
-  name: ex.name,
-  baseUrl: ex.baseUrl
-}));
+// 检查当前页面是否是交易所的交易页面
+function isExchangeTradingPage() {
+  return isExchangeUrl(window.location.href);
+}
+
+// 从URL中获取交易对信息
+function getSymbolFromUrl() {
+  return parseSymbolFromUrl(window.location.href);
+}
+
+// 防止重复执行
+let lastProcessedUrl = '';
+let isProcessing = false;
+
+// 简化后的初始化函数
+async function initializePlugin(forceRefresh = false) {
+  try {
+    const currentUrl = window.location.href;
+
+    // 防止重复处理相同的URL（除非强制刷新）
+    if (!forceRefresh && (isProcessing || currentUrl === lastProcessedUrl)) {
+      console.log('跳过重复处理，URL:', currentUrl, 'lastProcessedUrl:', lastProcessedUrl);
+      return;
+    }
+
+    isProcessing = true;
+    console.log('=== Content Script 初始化 ===');
+    console.log('当前 URL:', currentUrl);
+    console.log('强制刷新:', forceRefresh);
+
+    const isExchangePage = isExchangeTradingPage();
+    console.log('是否为交易所页面:', isExchangePage);
+
+    if (!isExchangePage) {
+      console.log('不是交易所页面，跳过初始化');
+      isProcessing = false;
+      return;
+    }
+
+    const symbol = getSymbolFromUrl();
+    console.log('解析到的交易对:', symbol, '当前URL:', window.location.href);
+
+    if (!symbol) {
+      console.log('未能解析到交易对，跳过初始化');
+      isProcessing = false;
+      return;
+    }
+
+    console.log('发送交易对信息到 background script:', symbol);
+    chrome.runtime.sendMessage({
+      type: 'TRADING_PAGE_LOADED',
+      data: { symbol }
+    }, (response) => {
+      console.log('Background script 响应:', response);
+      lastProcessedUrl = currentUrl;
+      isProcessing = false;
+    });
+
+  } catch (error) {
+    console.error('插件初始化失败:', error);
+    isProcessing = false;
+  }
+}
+
+// 简化的URL变化监听
+function setupPageChangeListener() {
+  let lastUrl = window.location.href;
+  
+  const handleUrlChange = () => {
+    const currentUrl = window.location.href;
+    if (currentUrl !== lastUrl) {
+      lastUrl = currentUrl;
+      if (isExchangeTradingPage()) {
+        initializePlugin();
+      }
+    }
+  };
+
+  window.addEventListener('popstate', handleUrlChange);
+  window.addEventListener('hashchange', handleUrlChange);
+
+  // 新增：定时检测 URL 变化，兼容前端路由和局部刷新
+  setInterval(() => {
+    handleUrlChange();
+  }, 1000);
+}
+
+// 监听来自background script和popup的消息
+chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
+  if (message.type === 'PAGE_UPDATED') {
+    console.log('收到 PAGE_UPDATED 消息，强制重新检测页面...');
+    initializePlugin(true); // 强制刷新
+    sendResponse({ status: 'success' });
+    return true;
+  }
+  // 新增：响应 popup 主动请求 symbol
+  if (message.type === 'GET_SYMBOL_FROM_CONTENT') {
+    const symbol = getSymbolFromUrl();
+    console.log('Content script 收到 GET_SYMBOL_FROM_CONTENT，返回 symbol:', symbol);
+    sendResponse({ symbol });
+    return true;
+  }
+  sendResponse({ status: 'success' });
+  return true;
+});
+
+// 在页面加载完成后初始化
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', () => {
+    initializePlugin();
+    setupPageChangeListener();
+  });
+} else {
+  initializePlugin();
+  setupPageChangeListener();
+}

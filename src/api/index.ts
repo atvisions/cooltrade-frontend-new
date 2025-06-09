@@ -552,9 +552,10 @@ const getCurrentLanguage = (): string => {
   return 'zh-CN'
 }
 
-// 获取技术分析数据
+// 获取技术分析数据 - 添加更详细的错误处理和日志
 export const getTechnicalAnalysis = async (
-  symbol: string
+  symbol: string,
+  forceRefresh: boolean = false
 ): Promise<FormattedTechnicalAnalysisData> => {
   try {
     // 确保symbol是大写的
@@ -565,18 +566,23 @@ export const getTechnicalAnalysis = async (
       ? normalizedSymbol
       : `${normalizedSymbol}USDT`;
 
-    // 构建请求路径 - 获取已存在的报告
+    // 构建请求路径
     const path = `/crypto/technical-indicators/${fullSymbol}/`
 
     // 准备查询参数
     const params: Record<string, any> = {}
+    if (forceRefresh) {
+      params.force_refresh = true
+    }
 
     // 添加语言参数
     const currentLanguage = getCurrentLanguage()
     params.language = currentLanguage
 
-    // 使用基础 URL
-    const url = `${getBaseUrl()}${path}`;
+    // 在开发环境中使用代理
+    const url = isDevelopment()
+      ? `/api${path}`
+      : `${getBaseUrl()}${path}`;
 
     // 发送请求
     // 获取认证令牌并确保格式正确
@@ -603,13 +609,13 @@ export const getTechnicalAnalysis = async (
         }
 
         if (data.status === 'success' && 'data' in data) {
-          return formatTechnicalAnalysisData(data.data)
+          return data.data
         }
       }
     }
 
     // 假设响应是直接的技术分析数据，则格式化并返回
-    return formatTechnicalAnalysisData(data)
+    return data
   } catch (error: any) {
     // 错误处理
 

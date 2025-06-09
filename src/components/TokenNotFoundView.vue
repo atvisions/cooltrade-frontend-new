@@ -5,20 +5,20 @@
     </div>
     <h2 class="text-xl font-semibold text-white mb-2">
       {{ getTranslation('tokenNotFound.title',
-         currentLang.value === 'zh-CN' ? `${formattedSymbol} 数据未找到` :
-         currentLang.value === 'en-US' ? `${formattedSymbol} Data Not Found` :
-         currentLang.value === 'ja-JP' ? `${formattedSymbol} データが見つかりません` :
-         currentLang.value === 'ko-KR' ? `${formattedSymbol} 데이터를 찾을 수 없습니다` :
+         currentLang === 'zh-CN' ? `${formattedSymbol} 数据未找到` :
+         currentLang === 'en-US' ? `${formattedSymbol} Data Not Found` :
+         currentLang === 'ja-JP' ? `${formattedSymbol} データが見つかりません` :
+         currentLang === 'ko-KR' ? `${formattedSymbol} 데이터를 찾을 수 없습니다` :
          `${formattedSymbol} Data Not Found`,
          { symbol: formattedSymbol })
       }}
     </h2>
     <p class="text-gray-300 mb-6">
       {{ getTranslation('tokenNotFound.description',
-         currentLang.value === 'zh-CN' ? '该代币尚未在我们的数据库中，点击下方按钮获取最新数据' :
-         currentLang.value === 'en-US' ? 'This token is not yet in our database. Click the button below to get the latest data.' :
-         currentLang.value === 'ja-JP' ? 'このトークンはまだデータベースにありません。下のボタンをクリックして最新データを取得してください。' :
-         currentLang.value === 'ko-KR' ? '이 토큰은 아직 데이터베이스에 없습니다. 아래 버튼을 클릭하여 최신 데이터를 가져오세요.' :
+         currentLang === 'zh-CN' ? '该代币尚未在我们的数据库中，点击下方按钮获取最新数据' :
+         currentLang === 'en-US' ? 'This token is not yet in our database. Click the button below to get the latest data.' :
+         currentLang === 'ja-JP' ? 'このトークンはまだデータベースにありません。下のボタンをクリックして最新データを取得してください。' :
+         currentLang === 'ko-KR' ? '이 토큰은 아직 데이터베이스에 없습니다. 아래 버튼을 클릭하여 최신 데이터를 가져오세요.' :
          'This token is not yet in our database. Click the button below to get the latest data.')
       }}
     </p>
@@ -31,10 +31,10 @@
       <span class="flex items-center justify-center">
         <i class="ri-refresh-line mr-2" :class="{ 'animate-spin': showRefreshModal }"></i>
         {{ getTranslation('tokenNotFound.refreshButton',
-           currentLang.value === 'zh-CN' ? '获取最新市场数据' :
-           currentLang.value === 'en-US' ? 'Get Latest Market Data' :
-           currentLang.value === 'ja-JP' ? '最新の市場データを取得' :
-           currentLang.value === 'ko-KR' ? '최신 시장 데이터 가져오기' :
+           currentLang === 'zh-CN' ? '获取最新市场数据' :
+           currentLang === 'en-US' ? 'Get Latest Market Data' :
+           currentLang === 'ja-JP' ? '最新の市場データを取得' :
+           currentLang === 'ko-KR' ? '최신 시장 데이터 가져오기' :
            'Get Latest Market Data')
         }}
       </span>
@@ -45,10 +45,10 @@
       <div class="bg-gray-900 rounded-xl p-6 w-[320px] shadow-xl border border-gray-800">
         <h3 class="text-lg font-medium text-center mb-4">
           {{ getTranslation('analysis.refreshing_data',
-             currentLang.value === 'zh-CN' ? '正在刷新数据' :
-             currentLang.value === 'en-US' ? 'Refreshing Data' :
-             currentLang.value === 'ja-JP' ? 'データを更新中' :
-             currentLang.value === 'ko-KR' ? '데이터 새로고침 중' :
+             currentLang === 'zh-CN' ? '正在刷新数据' :
+             currentLang === 'en-US' ? 'Refreshing Data' :
+             currentLang === 'ja-JP' ? 'データを更新中' :
+             currentLang === 'ko-KR' ? '데이터 새로고침 중' :
              'Refreshing Data')
           }}
         </h3>
@@ -79,13 +79,12 @@
 import { ref, watch, computed, onUnmounted, onMounted } from 'vue'
 import { getTechnicalAnalysis } from '@/api'
 import { useEnhancedI18n } from '@/utils/i18n-helper'
-import directI18n, { t as directT } from '@/i18n/direct-loader'
 import { useI18n } from 'vue-i18n'
 
 // 使用增强的翻译函数
 const { t } = useEnhancedI18n()
 // 使用原始的 vue-i18n 翻译函数
-const { t: vueT, locale } = useI18n()
+const { locale } = useI18n()
 
 // 当前语言
 const currentLang = ref(localStorage.getItem('language') || 'en-US')
@@ -128,7 +127,8 @@ const props = defineProps<{
 }>()
 
 const emit = defineEmits<{
-  (e: 'refresh'): void
+  (e: 'refresh-success'): void
+  (e: 'refresh-error', error: any): void
 }>()
 
 // 刷新状态
@@ -139,11 +139,9 @@ let refreshTimer: ReturnType<typeof setInterval> | null = null
 
 // 计算属性：格式化显示的交易对符号
 const formattedSymbol = computed(() => {
-  // 如果已经包含USDT后缀，则直接返回
-  if (props.symbol.toUpperCase().endsWith('USDT')) {
+  if (props.symbol && typeof props.symbol === 'string' && props.symbol.toUpperCase().endsWith('USDT')) {
     return props.symbol
   }
-  // 否则添加USDT后缀
   return `${props.symbol}/USDT`
 })
 
@@ -300,13 +298,13 @@ const handleRefresh = async () => {
     })
 
     // 等待API响应或超时
-    let result
+    let result: any
     try {
       result = await Promise.race([apiPromise, timeoutPromise])
       console.log('API响应结果:', result)
 
       // 如果响应表明代币未找到且需要刷新，我们需要调用生成报告的API
-      if (result && typeof result === 'object' && result.status === 'not_found' && result.needs_refresh) {
+      if (result && typeof result === 'object' && (result as any).status === 'not_found' && (result as any).needs_refresh) {
         console.log('代币数据未找到，需要生成新报告，调用生成报告API...')
 
         // 更新进度文本
@@ -328,7 +326,7 @@ const handleRefresh = async () => {
         await Promise.race([generatePromise, generateTimeoutPromise])
         console.log('新报告生成完成')
       }
-    } catch (error) {
+    } catch (error: any) {
       // 如果是404错误，说明数据库中没有数据，需要生成新报告
       if (error && error.response && error.response.status === 404) {
         console.log('收到404错误，数据库中没有数据，开始生成新报告...')
@@ -374,16 +372,16 @@ const handleRefresh = async () => {
       refreshTimer = null
     }
 
-    // 直接设置进度到100%并关闭弹窗
+    // 直接设置进度到100%
     refreshProgress.value = 100
 
-    // 短暂延迟后关闭弹窗，让用户看到100%的状态
+    // 等待一小段时间让用户看到完成消息，然后通知父组件刷新成功
     setTimeout(() => {
       showRefreshModal.value = false
-      emit('refresh')
-    }, 800)
+      emit('refresh-success')
+    }, 1500) // 1.5秒后关闭弹窗并通知父组件
 
-  } catch (error) {
+  } catch (error: any) {
     console.error('获取数据失败:', error)
 
     // 确保定时器已停止
@@ -404,10 +402,7 @@ const handleRefresh = async () => {
 
       // 设置进度为100%但保持弹窗显示3秒
       refreshProgress.value = 100
-      setTimeout(() => {
-        showRefreshModal.value = false
-      }, 3000)
-    } else if (error && error.response && error.response.status === 404) {
+    } else if (error && (error as any).response && (error as any).response.status === 404) {
       // 404错误：代币不存在，显示特殊提示
       refreshText.value = getTranslation('tokenNotFound.not_supported',
         currentLang.value === 'zh-CN' ? '该代币暂不支持，请尝试其他代币' :
@@ -418,16 +413,22 @@ const handleRefresh = async () => {
 
       // 设置进度为100%但保持弹窗显示3秒
       refreshProgress.value = 100
-      setTimeout(() => {
-        showRefreshModal.value = false
-      }, 3000)
     } else {
       // 其他错误：记录错误信息并立即关闭弹窗
       console.error('未处理的错误类型:', error)
       showRefreshModal.value = false
+      emit('refresh-error', error)
     }
   }
 }
+
+// 监听父组件 isRefreshing 变化，刷新完成后自动关闭弹窗
+watch(() => props.isRefreshing, (newVal) => {
+  if (showRefreshModal.value && newVal === false) {
+    // 父组件刷新完成，关闭弹窗
+    showRefreshModal.value = false
+  }
+})
 
 // 组件卸载时清理定时器
 onUnmounted(() => {
