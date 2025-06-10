@@ -1,43 +1,69 @@
 <template>
-  <div class="h-full w-full rounded-lg overflow-hidden bg-[#0F2A5A] shadow-lg flex flex-col items-center justify-center p-4">
-    <!-- 顶部加载动画 - 与图表加载动画保持一致 -->
-    <div class="loading-dots flex space-x-2 mb-3">
-      <div class="w-2 h-2 bg-blue-400 rounded-full animate-bounce" style="animation-delay: 0ms"></div>
-      <div class="w-2 h-2 bg-blue-400 rounded-full animate-bounce" style="animation-delay: 150ms"></div>
-      <div class="w-2 h-2 bg-blue-400 rounded-full animate-bounce" style="animation-delay: 300ms"></div>
+  <div class="max-w-[375px] mx-auto px-4 pb-16">
+    <!-- 价格展示卡片骨架 -->
+    <div class="mt-6 p-5 rounded-lg bg-gradient-to-b from-gray-800/60 to-gray-900/60 border border-gray-700/50 shadow-lg">
+      <div class="text-center text-gray-400 mb-1 h-4 w-24 bg-gray-700/50 rounded animate-pulse mx-auto"></div>
+      <div class="text-center text-3xl font-bold mb-2 h-10 w-32 bg-gray-700/50 rounded animate-pulse mx-auto"></div>
+      <div class="flex justify-center gap-3 mt-4 mb-2">
+        <div class="h-8 w-24 bg-gray-700/50 rounded-full animate-pulse"></div>
+        <div class="h-8 w-24 bg-gray-700/50 rounded-full animate-pulse"></div>
+      </div>
     </div>
 
-    <!-- 骨架线条 - 模拟图表 -->
-    <div class="w-full h-[100px] relative overflow-hidden">
-      <!-- 背景渐变 -->
-      <div class="absolute inset-0 bg-gradient-to-b from-blue-500/10 to-blue-500/5"></div>
-
-      <!-- 模拟图表线条 -->
-      <svg class="w-full h-full" viewBox="0 0 100 40" preserveAspectRatio="none">
-        <!-- 静态路径 -->
-        <path
-          d="M0,35 Q10,30 20,25 T40,20 T60,15 T80,25 T100,20"
-          fill="none"
-          stroke="rgba(91, 158, 255, 0.4)"
-          stroke-width="2"
-        />
-
-        <!-- 动画扫描效果 -->
-        <linearGradient id="chartGradient" x1="0%" y1="0%" x2="100%" y2="0%">
-          <stop offset="0%" stop-color="rgba(91, 158, 255, 0)" />
-          <stop offset="50%" stop-color="rgba(91, 158, 255, 0.5)" />
-          <stop offset="100%" stop-color="rgba(91, 158, 255, 0)" />
-        </linearGradient>
-        <rect x="-100" y="0" width="100" height="40" fill="url(#chartGradient)" opacity="0.5" class="scanning-animation">
-        </rect>
-      </svg>
-
-      <!-- 模拟图表点 - 减少数量，避免过于繁忙 -->
-      <div class="absolute top-1/3 left-1/2 w-2 h-2 rounded-full bg-blue-400/50 animate-pulse"></div>
+    <!-- 趋势分析卡片骨架 -->
+    <div class="mt-6 grid grid-cols-3 gap-3">
+      <div class="p-3 rounded-lg bg-gradient-to-br from-green-600/20 to-green-800/20 border border-green-500/30">
+        <div class="h-6 w-16 bg-gray-700/50 rounded animate-pulse mx-auto mb-1"></div>
+        <div class="h-4 w-20 bg-gray-700/50 rounded animate-pulse mx-auto"></div>
+      </div>
+      <div class="p-3 rounded-lg bg-gradient-to-br from-gray-700/20 to-gray-800/20 border border-gray-600/30">
+        <div class="h-6 w-16 bg-gray-700/50 rounded animate-pulse mx-auto mb-1"></div>
+        <div class="h-4 w-20 bg-gray-700/50 rounded animate-pulse mx-auto"></div>
+      </div>
+      <div class="p-3 rounded-lg bg-[rgba(239,68,68,0.12)] border border-red-500/30">
+        <div class="h-6 w-16 bg-gray-700/50 rounded animate-pulse mx-auto mb-1"></div>
+        <div class="h-4 w-20 bg-gray-700/50 rounded animate-pulse mx-auto"></div>
+      </div>
     </div>
 
-    <!-- 加载文本 -->
-    <p class="text-gray-400 text-sm mt-3">{{ loadingText }}</p>
+    <!-- 市场趋势分析骨架 -->
+    <div class="mt-6">
+      <div class="h-6 w-32 bg-gray-700/50 rounded animate-pulse mb-3"></div>
+      <div class="p-4 rounded-lg bg-gray-800/30 border border-gray-700/50">
+        <div class="space-y-2">
+          <div class="h-4 w-full bg-gray-700/50 rounded animate-pulse"></div>
+          <div class="h-4 w-3/4 bg-gray-700/50 rounded animate-pulse"></div>
+          <div class="h-4 w-5/6 bg-gray-700/50 rounded animate-pulse"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 技术指标分析骨架 -->
+    <div class="mt-6">
+      <div class="h-6 w-32 bg-gray-700/50 rounded animate-pulse mb-3"></div>
+      <div class="grid grid-cols-2 gap-3">
+        <!-- 重复6次技术指标卡片 -->
+        <template v-for="i in 6" :key="i">
+          <div class="p-3 rounded-lg bg-gray-800/30 border border-gray-700/50">
+            <div class="h-4 w-20 bg-gray-700/50 rounded animate-pulse mb-2"></div>
+            <div class="flex items-center justify-between">
+              <div class="h-5 w-12 bg-gray-700/50 rounded animate-pulse"></div>
+              <div class="h-5 w-5 bg-gray-700/50 rounded-full animate-pulse"></div>
+            </div>
+          </div>
+        </template>
+      </div>
+    </div>
+
+    <!-- 加载提示 -->
+    <div class="mt-4 text-center">
+      <div class="loading-dots flex space-x-2 justify-center">
+        <div class="w-2 h-2 bg-blue-400 rounded-full animate-bounce" style="animation-delay: 0ms"></div>
+        <div class="w-2 h-2 bg-blue-400 rounded-full animate-bounce" style="animation-delay: 150ms"></div>
+        <div class="w-2 h-2 bg-blue-400 rounded-full animate-bounce" style="animation-delay: 300ms"></div>
+      </div>
+      <p class="text-gray-400 text-sm mt-2">{{ loadingText }}</p>
+    </div>
   </div>
 </template>
 
@@ -45,7 +71,7 @@
 defineProps({
   loadingText: {
     type: String,
-    default: '正在加载价格数据...'
+    default: '正在加载分析数据...'
   }
 })
 </script>
@@ -68,28 +94,17 @@ defineProps({
   animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }
 
-/* 扫描动画 */
-@keyframes scanning {
-  0% {
-    transform: translateX(-100%);
+/* 弹跳动画 */
+@keyframes bounce {
+  0%, 100% {
+    transform: translateY(0);
   }
-  100% {
-    transform: translateX(100%);
-  }
-}
-
-.scanning-animation {
-  animation: scanning 3s ease-in-out infinite;
-}
-
-/* 旋转动画 */
-@keyframes spin {
-  to {
-    transform: rotate(360deg);
+  50% {
+    transform: translateY(-4px);
   }
 }
 
-.animate-spin {
-  animation: spin 1s linear infinite;
+.animate-bounce {
+  animation: bounce 1s infinite;
 }
 </style>

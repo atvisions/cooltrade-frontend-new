@@ -17,61 +17,9 @@
 
 
       <!-- 整体加载状态 - 只在初始加载时显示 -->
-      <div v-if="loading && !analysisData" class="max-w-[375px] mx-auto px-4 pb-16">
-        <!-- 价格展示卡片骨架屏 -->
-        <div class="mt-6 p-5 rounded-lg bg-gradient-to-b from-gray-800/60 to-gray-900/60 border border-gray-700/50 shadow-lg animate-pulse">
-          <div class="h-5 w-32 bg-gray-700/50 rounded mx-auto mb-2"></div>
-          <div class="h-8 w-40 bg-gray-700/50 rounded mx-auto mb-4"></div>
-
-          <div class="flex justify-center gap-3 mt-4 mb-2">
-            <div class="h-8 w-24 bg-gray-800/70 rounded-full"></div>
-            <div class="h-8 w-24 bg-gray-800/70 rounded-full"></div>
-          </div>
-        </div>
-
-        <!-- 趋势分析骨架屏 -->
-        <div class="mt-6 grid grid-cols-3 gap-3">
-          <div class="p-3 rounded-lg bg-gradient-to-br from-green-600/20 to-green-800/20 border border-green-500/30 animate-pulse">
-            <div class="h-6 w-16 bg-green-500/20 rounded mx-auto mb-1"></div>
-            <div class="h-4 w-12 bg-green-500/20 rounded mx-auto"></div>
-          </div>
-
-          <div class="p-3 rounded-lg bg-gradient-to-br from-gray-700/20 to-gray-800/20 border border-gray-600/30 animate-pulse">
-            <div class="h-6 w-16 bg-gray-600/20 rounded mx-auto mb-1"></div>
-            <div class="h-4 w-12 bg-gray-600/20 rounded mx-auto"></div>
-          </div>
-
-          <div class="p-3 rounded-lg bg-[rgba(239,68,68,0.12)] border border-red-500/30 animate-pulse">
-            <div class="h-6 w-16 bg-red-500/20 rounded mx-auto mb-1"></div>
-            <div class="h-4 w-12 bg-red-500/20 rounded mx-auto"></div>
-          </div>
-        </div>
-
-        <!-- 市场趋势分析骨架屏 -->
-        <div class="mt-6">
-          <div class="h-6 w-32 bg-gray-700/50 rounded mb-3"></div>
-          <div class="p-4 rounded-lg bg-gray-800/30 border border-gray-700/50">
-            <div class="h-4 w-full bg-gray-700/50 rounded mb-2"></div>
-            <div class="h-4 w-3/4 bg-gray-700/50 rounded"></div>
-          </div>
-        </div>
-
-        <!-- 技术指标骨架屏 -->
-        <div class="mt-6">
-          <div class="h-6 w-32 bg-gray-700/50 rounded mb-3"></div>
-          <div class="grid grid-cols-2 gap-3">
-            <div class="p-3 rounded-lg bg-gray-800/30 border border-gray-700/50">
-              <div class="h-4 w-16 bg-gray-700/50 rounded mb-2"></div>
-              <div class="h-6 w-full bg-gray-700/50 rounded"></div>
-            </div>
-            <div class="p-3 rounded-lg bg-gray-800/30 border border-gray-700/50">
-              <div class="h-4 w-16 bg-gray-700/50 rounded mb-2"></div>
-              <div class="h-6 w-full bg-gray-700/50 rounded"></div>
-            </div>
-          </div>
-        </div>
+      <div v-if="showSkeleton && loading && !analysisData" class="max-w-[375px] mx-auto px-4 pb-16">
+        <ChartSkeleton loadingText="正在加载价格数据..." />
       </div>
-
 
 
       <!-- 正常内容 - 优先显示分析数据 -->
@@ -453,7 +401,7 @@
           <div class="flex space-x-3 justify-center">
             <button
               class="px-4 py-2 bg-primary text-white rounded-lg"
-              @click="refreshData"
+              @click="() => loadAnalysisData()"
             >
               {{ t('common.retry') }}
             </button>
@@ -474,7 +422,7 @@
           <p class="text-gray-300 mb-2">{{ t('common.no_data') }}</p>
           <button
             class="px-4 py-2 bg-primary text-white rounded-lg"
-            @click="loadAnalysisData"
+            @click="() => loadAnalysisData()"
           >
             {{ t('common.load_data') }}
           </button>
@@ -527,6 +475,7 @@ import type {
 } from '@/types/technical-analysis'
 import { formatTechnicalAnalysisData } from '@/utils/data-formatter'
 import TokenNotFoundView from '@/components/TokenNotFoundView.vue'
+import ChartSkeleton from '@/components/ChartSkeleton.vue'
 
 
 
@@ -544,6 +493,18 @@ const currentSymbol = ref<string>('BTCUSDT') // 默认值
 const retryCount = ref(0)
 const isTokenNotFound = ref(false) // 用于标记代币是否未找到（404错误）
 const showRefreshModal = ref(false)
+
+// 防止骨架屏闪烁
+const showSkeleton = ref(false)
+watch(loading, (val) => {
+  if (val) {
+    setTimeout(() => {
+      if (loading.value) showSkeleton.value = true
+    }, 250)
+  } else {
+    showSkeleton.value = false
+  }
+})
 
 // 获取当前交易对
 const getCurrentSymbol = async () => {
@@ -652,7 +613,7 @@ const setupSymbolListener = () => {
         }
 
         sendResponse({ status: 'success' });
-      } catch (error) {
+      } catch (error: any) {
         console.error('处理消息时出错:', error);
         sendResponse({ status: 'error', error: error.message });
       }
@@ -738,95 +699,99 @@ const getBaseSymbol = (symbol: string) => {
   return symbol.replace('USDT', '')
 }
 
-// 加载分析数据
-const loadAnalysisData = async (forceRefresh: boolean = false) => {
+// 添加请求防抖变量
+let loadingPromise: Promise<any> | null = null;
+
+// 优化后的数据加载函数
+const loadAnalysisData = async (showLoading = true) => {
   try {
-    loading.value = true
+    if (!currentSymbol.value) {
+      error.value = '无法获取当前交易对信息'
+      return
+    }
+
+    // 如果已经有请求在进行中，直接返回该请求的Promise
+    if (loadingPromise) {
+      return loadingPromise;
+    }
+
     error.value = null
-    analysisLoading.value = true
-
-    if (!forceRefresh) {
-      analysisData.value = null
+    isTokenNotFound.value = false
+    if (showLoading) {
+      loading.value = true
+      analysisLoading.value = true
     }
 
-    // 只用 currentSymbol.value，不再解析 symbol
-    let symbol = currentSymbol.value;
-    if (!symbol) {
-      symbol = 'BTCUSDT';
-    }
-
-    // 更新 currentSymbol.value（防止外部调用时 symbol 变化）
-    currentSymbol.value = symbol;
-
-    try {
-      const response = await getTechnicalAnalysis(symbol)
-
-      if (typeof response === 'object' && response !== null) {
-        if ('status' in (response as any) && (response as any).status === 'not_found') {
+    // 创建新的请求Promise
+    loadingPromise = getTechnicalAnalysis(currentSymbol.value)
+      .then(data => {
+        if (data && (data as any).status !== 'not_found') {
+          const formattedData = formatTechnicalAnalysisData(data)
+          analysisData.value = formattedData
+          isTokenNotFound.value = false
+        } else {
           isTokenNotFound.value = true
-          loading.value = false
-          analysisLoading.value = false
-          return
         }
-
-        const currentLanguage = localStorage.getItem('language') || 'en-US'
-        const formattedData = formatTechnicalAnalysisData(response, currentLanguage)
-        analysisData.value = formattedData
-        retryCount.value = 0
-        error.value = null
-        isTokenNotFound.value = false
-      } else {
-        error.value = '服务器返回数据格式错误'
-      }
-    } catch (apiError: any) {
-      let errorMsg = '请求失败';
-      if (apiError.message) {
-        errorMsg = apiError.message;
-      }
-
-      if (apiError.code === 'ERR_NETWORK' || apiError.message?.includes('Network Error')) {
-        errorMsg = '网络连接错误，请检查网络连接后重试';
-      }
-      else if (apiError.code === 'ECONNABORTED' || apiError.message?.includes('timeout')) {
-        errorMsg = '请求超时，服务器响应时间过长';
-      }
-      else if (apiError.response?.status >= 500) {
-        isTokenNotFound.value = true
-        error.value = null
+        return data;
+      })
+      .finally(() => {
         loading.value = false
         analysisLoading.value = false
-        return
-      }
+        loadingPromise = null;
+      });
 
-      if (apiError.response?.data && typeof apiError.response.data === 'object') {
-        const errorData = apiError.response.data;
-        if ((errorData as any).status === 'not_found') {
-          isTokenNotFound.value = true
-          error.value = null
-          loading.value = false
-          analysisLoading.value = false
-          return;
-        }
-      }
-
-      if (apiError.response?.status === 404) {
-        isTokenNotFound.value = true;
-        error.value = null;
-        return;
-      } else {
-        isTokenNotFound.value = false;
-        error.value = errorMsg;
-      }
-    }
-  } catch (e: any) {
-    if (!error.value && !isTokenNotFound.value) {
-      error.value = e instanceof Error ? e.message : '加载数据失败'
-    }
-  } finally {
+    return loadingPromise;
+  } catch (e) {
+    error.value = e instanceof Error ? e.message : '加载数据失败'
     loading.value = false
     analysisLoading.value = false
+    loadingPromise = null;
   }
 }
+
+// 优化后的强制刷新函数
+function forceRefreshData() {
+  (async () => {
+    try {
+      if (!currentSymbol.value) {
+        error.value = '无法获取当前交易对信息'
+        return
+      }
+      error.value = null
+      isTokenNotFound.value = false
+      analysisLoading.value = true
+      
+      // 使用一个标志来控制是否继续轮询
+      let shouldContinuePolling = true;
+      
+      // 1. 先请求 get_report
+      await getLatestTechnicalAnalysis(currentSymbol.value)
+      
+      // 2. 轮询 technical-indicators，直到有数据或超时
+      for (let i = 0; i < 15 && shouldContinuePolling; i++) {
+        await new Promise(r => setTimeout(r, 1500));
+        const raw = await getTechnicalAnalysis(currentSymbol.value)
+        if (raw && (raw as any).status !== 'not_found') {
+          const formattedData = formatTechnicalAnalysisData(raw)
+          analysisData.value = formattedData
+          isTokenNotFound.value = false
+          shouldContinuePolling = false; // 找到数据后停止轮询
+        }
+      }
+      
+      analysisLoading.value = false
+    } catch (e) {
+      error.value = e instanceof Error ? e.message : '刷新失败'
+      analysisLoading.value = false
+    }
+  })();
+}
+
+// 组件卸载时清理
+onUnmounted(() => {
+  // 清理所有进行中的请求
+  loadingPromise = null;
+})
 
 // 监听语言变更事件，重新翻译报告数据
 const setupLanguageChangeListener = () => {
@@ -1049,48 +1014,13 @@ const testUrlParsing = async () => {
         alert(`URL: ${tab.url}\n直接解析结果: ${parsedSymbol}\nBackground Script 结果: ${bgSymbol}\n当前显示: ${currentSymbol.value}`);
       }
     }
-  } catch (e) {
+  } catch (e: unknown) {
     console.error('测试失败:', e);
-    alert('测试失败: ' + e.message);
-  }
-}
-
-// 强制刷新数据
-const forceRefreshData = async () => {
-  try {
-    if (!currentSymbol.value) {
-      error.value = '无法获取当前交易对信息'
-      return
-    }
-    error.value = null
-    isTokenNotFound.value = false
-    analysisLoading.value = true
-    // 1. 先请求 get_report
-    await getLatestTechnicalAnalysis(currentSymbol.value)
-    // 2. 轮询 technical-indicators，直到有数据或超时
-    let report = null
-    for (let i = 0; i < 15; i++) { // 轮询15次，约22.5秒
-      await new Promise(r => setTimeout(r, 1500));
-      const raw = await getTechnicalAnalysis(currentSymbol.value)
-      if (raw && raw.status !== 'not_found') {
-        report = raw
-        break
-      }
-    }
-    if (report) {
-      const formattedData = formatTechnicalAnalysisData(report)
-      analysisData.value = formattedData
-      isTokenNotFound.value = false
+    if (e && typeof e === 'object' && 'message' in e) {
+      alert('测试失败: ' + (e as any).message);
     } else {
-      isTokenNotFound.value = true
+      alert('测试失败');
     }
-    analysisLoading.value = false
-    await nextTick()
-    // 强制再拉取一次，确保 UI 刷新
-    await loadAnalysisData();
-  } catch (e) {
-    error.value = e instanceof Error ? e.message : '刷新失败'
-    analysisLoading.value = false
   }
 }
 
@@ -1459,22 +1389,21 @@ const currentLanguage: LangType = (localStorage.getItem('language') as LangType)
 
 // 处理 TokenNotFoundView 刷新成功事件
 const handleRefreshSuccess = async () => {
-  console.log('TokenNotFoundView 刷新成功，重新加载数据...')
-
-  // 重置状态
+  console.log('TokenNotFoundView 刷新成功，强制重新加载数据...')
   isTokenNotFound.value = false
   error.value = null
-
-  // 重新加载数据
-  await loadAnalysisData()
+  // 强制刷新，确保拉取到新生成的报告
+  await loadAnalysisData(true)
 }
 
 // 处理 TokenNotFoundView 刷新错误事件
-const handleRefreshError = (error: any) => {
+const handleRefreshError = async (error: any) => {
   console.error('TokenNotFoundView 刷新失败:', error)
-
-  // 可以在这里显示错误提示
-  // 但保持 TokenNotFoundView 显示状态，让用户可以重试
+  isTokenNotFound.value = false
+  // 这里也强制刷新一次，防止报告其实已经生成
+  await loadAnalysisData(true)
+  // 也可以弹出提示
+  // ElMessage.error(error?.message || '刷新失败')
 }
 
 const getIndicatorExplanation = (key: string) => {
