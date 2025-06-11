@@ -3,6 +3,7 @@ export default {
     app_name: 'Cooltrade',
     loading: '加载中...',
     refresh: '刷新',
+    refreshing: '刷新中...',
     save: '保存',
     cancel: '取消',
     confirm: '确认',
@@ -20,7 +21,9 @@ export default {
     submitting: '提交中...',
     retry: '重试',
     privacy_policy: '隐私政策',
-    about_us: '关于我们'
+    about_us: '关于我们',
+    no_data: '暂无数据',
+    load_data: '加载数据'
   },
   auth: {
     login: '登录',

@@ -3,11 +3,8 @@
     <!-- 顶部导航栏 -->
     <header class="absolute top-0 left-0 right-0 z-10 bg-[#0F172A]/95 backdrop-blur-md border-b border-gray-800">
       <div class="max-w-[375px] mx-auto">
-        <div class="flex justify-between items-center px-4 py-3">
+        <div class="flex justify-center items-center px-4 py-3">
           <h1 class="text-lg font-semibold">{{ currentSymbol ? t('analysis.market_report', { symbol: getBaseSymbol(currentSymbol) }) : t('common.loading') }}</h1>
-          <div class="flex items-center">
-            <span class="text-xs text-gray-400">{{ t('analysis.last_update') }}: {{ formatTime(analysisData?.last_update_time) }}</span>
-          </div>
         </div>
       </div>
     </header>
@@ -16,14 +13,13 @@
     <main class="absolute inset-0 top-12 bottom-16 overflow-y-auto">
 
 
-      <!-- 整体加载状态 - 只在初始加载时显示 -->
-      <div v-if="showSkeleton && loading && !analysisData" class="max-w-[375px] mx-auto px-4 pb-16">
+      <!-- 骨架屏 - 没有数据且没有错误时显示 -->
+      <div v-if="showSkeleton" class="max-w-[375px] mx-auto px-4 pb-16">
         <ChartSkeleton loadingText="正在加载价格数据..." />
       </div>
 
-
-      <!-- 正常内容 - 优先显示分析数据 -->
-      <div v-if="analysisData && !loading && !analysisLoading" class="max-w-[375px] mx-auto px-4 pb-16">
+      <!-- 正常内容 - 有数据时显示 -->
+      <div v-else-if="analysisData" class="max-w-[375px] mx-auto px-4 pb-16">
         <!-- 价格展示卡片 -->
         <div class="mt-6 p-5 rounded-lg bg-gradient-to-b from-gray-800/60 to-gray-900/60 border border-gray-700/50 shadow-lg">
           <h2 class="text-center text-gray-400 mb-1">{{ t('analysis.snapshot_price') }}</h2>
@@ -50,6 +46,23 @@
             </button>
           </div>
 
+        </div>
+
+        <!-- Last Update 和刷新按钮 -->
+        <div class="mt-4 flex items-center justify-between px-2">
+          <div class="flex items-center text-xs text-gray-400">
+            <i class="ri-time-line mr-1"></i>
+            <span>{{ t('analysis.last_update') }}: {{ formatTime(analysisData?.last_update_time) }}</span>
+          </div>
+          <button
+            @click="handleManualRefresh"
+            :disabled="analysisLoading"
+            class="flex items-center gap-1 px-3 py-1.5 text-xs bg-blue-600/20 hover:bg-blue-600/30 disabled:bg-gray-600/20 text-blue-400 disabled:text-gray-500 rounded-full transition-colors"
+            :class="{ 'animate-pulse': analysisLoading }"
+          >
+            <i class="ri-refresh-line" :class="{ 'animate-spin': analysisLoading }"></i>
+            <span>{{ analysisLoading ? t('common.refreshing') : t('common.refresh') }}</span>
+          </button>
         </div>
 
         <!-- 趋势分析卡片 -->
@@ -407,9 +420,10 @@
             </button>
             <button
               class="px-4 py-2 bg-blue-600 text-white rounded-lg"
-              @click="forceRefreshData"
+              @click="handleManualRefresh"
+              :disabled="isRefreshing"
             >
-              {{ t('analysis.force_refresh') }}
+              {{ isRefreshing ? t('common.refreshing') : t('analysis.force_refresh') }}
             </button>
           </div>
         </div>
@@ -451,6 +465,12 @@
         </div>
       </div>
     </nav>
+
+    <!-- 加载弹窗 -->
+    <LoadingModal
+      :visible="showLoadingModal"
+      :type="loadingType"
+    />
   </div>
 </template>
 
@@ -476,6 +496,7 @@ import type {
 import { formatTechnicalAnalysisData } from '@/utils/data-formatter'
 import TokenNotFoundView from '@/components/TokenNotFoundView.vue'
 import ChartSkeleton from '@/components/ChartSkeleton.vue'
+import LoadingModal from '@/components/LoadingModal.vue'
 
 
 
@@ -493,15 +514,22 @@ const currentSymbol = ref<string>('BTCUSDT') // 默认值
 const retryCount = ref(0)
 const isTokenNotFound = ref(false) // 用于标记代币是否未找到（404错误）
 const showRefreshModal = ref(false)
+const showLoadingModal = ref(false) // 通用加载弹窗
+const loadingType = ref<'refresh' | 'generate'>('refresh') // 加载类型
 
-// 防止骨架屏闪烁
-const showSkeleton = ref(false)
-watch(loading, (val) => {
-  if (val) {
-    setTimeout(() => {
-      if (loading.value) showSkeleton.value = true
-    }, 250)
-  } else {
+// 简化骨架屏逻辑 - 基于数据状态而不是加载状态
+const showSkeleton = ref(true) // 默认显示骨架屏
+
+// 监听数据变化，有数据时隐藏骨架屏
+watch(analysisData, (newData) => {
+  if (newData) {
+    showSkeleton.value = false
+  }
+})
+
+// 监听其他状态变化，确保在特殊状态下隐藏骨架屏
+watch([isTokenNotFound, error], ([tokenNotFound, errorState]) => {
+  if (tokenNotFound || errorState) {
     showSkeleton.value = false
   }
 })
@@ -750,41 +778,87 @@ const loadAnalysisData = async (showLoading = true) => {
 }
 
 // 优化后的强制刷新函数
-function forceRefreshData() {
-  (async () => {
+async function forceRefreshData() {
+  try {
+    console.log('forceRefreshData 开始执行')
+
+    if (!currentSymbol.value) {
+      const errorMsg = '无法获取当前交易对信息'
+      console.error(errorMsg)
+      error.value = errorMsg
+      throw new Error(errorMsg)
+    }
+
+    console.log('当前交易对:', currentSymbol.value)
+    error.value = null
+    isTokenNotFound.value = false
+    analysisLoading.value = true
+
+    // 使用一个标志来控制是否继续轮询
+    let shouldContinuePolling = true;
+
+    console.log('步骤1: 调用 getLatestTechnicalAnalysis 触发强制刷新')
+    // 1. 先请求 get_report，使用强制刷新（仅触发报告生成，不使用返回结果）
     try {
-      if (!currentSymbol.value) {
-        error.value = '无法获取当前交易对信息'
-        return
-      }
-      error.value = null
-      isTokenNotFound.value = false
-      analysisLoading.value = true
-      
-      // 使用一个标志来控制是否继续轮询
-      let shouldContinuePolling = true;
-      
-      // 1. 先请求 get_report
-      await getLatestTechnicalAnalysis(currentSymbol.value)
-      
-      // 2. 轮询 technical-indicators，直到有数据或超时
-      for (let i = 0; i < 15 && shouldContinuePolling; i++) {
-        await new Promise(r => setTimeout(r, 1500));
-        const raw = await getTechnicalAnalysis(currentSymbol.value)
+      const reportResult = await getLatestTechnicalAnalysis(currentSymbol.value, true)
+      console.log('getLatestTechnicalAnalysis 调用成功，已触发强制刷新')
+
+      // 不要立即使用返回的结果，因为可能还是旧数据
+      // 强制刷新需要时间生成，我们通过轮询来获取新数据
+    } catch (getReportError) {
+      console.error('getLatestTechnicalAnalysis 调用失败:', getReportError)
+      // 即使触发失败，也继续尝试轮询，可能报告已经存在
+    }
+
+    // 等待一段时间，让后端有时间开始生成报告
+    console.log('等待3秒，让后端开始生成报告...')
+    await new Promise(r => setTimeout(r, 3000))
+
+    console.log('步骤2: 开始轮询 getTechnicalAnalysis')
+    // 2. 轮询 technical-indicators，直到有数据或超时
+    let dataFound = false;
+    // 增加轮询次数和间隔，给后端更多时间生成报告（120秒总超时）
+    for (let i = 0; i < 40 && shouldContinuePolling; i++) {
+      console.log(`轮询第 ${i + 1} 次...`)
+      await new Promise(r => setTimeout(r, 3000)); // 增加到3秒间隔，总计120秒
+
+      try {
+        // 在轮询时也使用强制刷新，确保获取最新数据
+        const raw = await getTechnicalAnalysis(currentSymbol.value, true)
+        console.log(`轮询第 ${i + 1} 次结果:`, raw)
+
         if (raw && (raw as any).status !== 'not_found') {
+          console.log('找到有效数据，停止轮询')
           const formattedData = formatTechnicalAnalysisData(raw)
           analysisData.value = formattedData
           isTokenNotFound.value = false
           shouldContinuePolling = false; // 找到数据后停止轮询
+          dataFound = true;
+          break;
         }
+      } catch (pollError) {
+        console.error(`轮询第 ${i + 1} 次出错:`, pollError)
+        // 继续下一次轮询
       }
-      
-      analysisLoading.value = false
-    } catch (e) {
-      error.value = e instanceof Error ? e.message : '刷新失败'
-      analysisLoading.value = false
     }
-  })();
+
+    analysisLoading.value = false
+
+    // 如果轮询结束后仍然没有找到数据，抛出错误
+    if (!dataFound) {
+      const errorMsg = '刷新超时，未能获取到最新数据，请稍后重试'
+      console.error(errorMsg)
+      throw new Error(errorMsg)
+    }
+
+    console.log('forceRefreshData 执行成功')
+  } catch (e) {
+    console.error('forceRefreshData 执行失败:', e)
+    const errorMsg = e instanceof Error ? e.message : '刷新失败'
+    error.value = errorMsg
+    analysisLoading.value = false
+    throw e // 重新抛出错误，让调用者知道失败了
+  }
 }
 
 // 组件卸载时清理
@@ -845,7 +919,7 @@ const triggerContentScriptDetection = async () => {
 onMounted(async () => {
   console.log('HomeView 组件挂载开始...');
 
-  // 立即设置loading状态，避免显示空状态
+  // 设置loading状态
   loading.value = true;
 
   // 设置语言变更监听器
@@ -1066,13 +1140,61 @@ const refreshData = async () => {
     // 重置加载状态
     analysisLoading.value = false
 
-    // 检查是否是404错误（代币未找到）
-    if (err.response?.status === 404) {
-      isTokenNotFound.value = true
-      error.value = null // 清除一般错误，使用特殊的未找到视图
-    } else {
-      error.value = err.message || '刷新数据失败'
-    }
+    // 现在 404 错误会被 API 函数处理并返回 {status: 'not_found'} 对象
+    // 所以这里只需要处理其他类型的错误
+    error.value = err.message || '刷新数据失败'
+  }
+}
+
+// 防止重复刷新的标志
+const isRefreshing = ref(false)
+
+// 手动刷新按钮处理函数
+const handleManualRefresh = async () => {
+  // 防止重复点击
+  if (isRefreshing.value) {
+    console.log('刷新正在进行中，忽略重复点击')
+    return
+  }
+
+  try {
+    isRefreshing.value = true
+    console.log('开始手动刷新，显示加载弹窗')
+
+    // 显示加载弹窗
+    loadingType.value = 'refresh'
+    showLoadingModal.value = true
+    console.log('showLoadingModal.value 设置为:', showLoadingModal.value)
+
+    // 使用强制刷新逻辑
+    await forceRefreshData()
+
+    // 刷新成功，隐藏加载弹窗
+    showLoadingModal.value = false
+    console.log('刷新成功，隐藏加载弹窗')
+
+    ElMessage({
+      message: t('common.success'),
+      type: 'success'
+    })
+  } catch (error) {
+    console.error('手动刷新失败，详细错误:', error)
+    console.error('错误类型:', typeof error)
+    console.error('错误消息:', error instanceof Error ? error.message : String(error))
+
+    // 隐藏加载弹窗
+    showLoadingModal.value = false
+    console.log('刷新失败，隐藏加载弹窗')
+
+    // 显示具体的错误信息
+    const errorMessage = error instanceof Error ? error.message : t('errors.refresh_failed')
+    ElMessage({
+      message: errorMessage,
+      type: 'error',
+      duration: 3000 // 3秒后自动消失
+    })
+  } finally {
+    isRefreshing.value = false
   }
 }
 

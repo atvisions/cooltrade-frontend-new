@@ -34,6 +34,7 @@ export default {
     app_name: 'Cooltrade',
     loading: '読み込み中...',
     refresh: '更新',
+    refreshing: '更新中...',
     save: '保存',
     cancel: 'キャンセル',
     confirm: '確認',
@@ -51,7 +52,9 @@ export default {
     submitting: '送信中...',
     retry: '再試行',
     privacy_policy: 'プライバシーポリシー',
-    about_us: '会社概要'
+    about_us: '会社概要',
+    no_data: 'データがありません',
+    load_data: 'データを読み込む'
   },
   auth: {
     login: 'ログイン',

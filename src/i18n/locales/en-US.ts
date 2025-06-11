@@ -3,6 +3,7 @@ export default {
     app_name: 'Cooltrade',
     loading: 'Loading...',
     refresh: 'Refresh',
+    refreshing: 'Refreshing...',
     save: 'Save',
     cancel: 'Cancel',
     confirm: 'Confirm',
@@ -20,7 +21,9 @@ export default {
     submitting: 'Submitting...',
     retry: 'Retry',
     privacy_policy: 'Privacy Policy',
-    about_us: 'About Us'
+    about_us: 'About Us',
+    no_data: 'No data available',
+    load_data: 'Load Data'
   },
   auth: {
     login: 'Login',
@@ -191,7 +194,8 @@ export default {
     password_must_contain_letters_numbers: 'Password must contain both letters and numbers',
     server_timeout: 'Server timeout, please try again later',
     not_logged_in: 'Not logged in',
-    no_response_from_server: 'No response from server'
+    no_response_from_server: 'No response from server',
+    refresh_failed: 'Refresh failed, please try again'
   },
   nav: {
     market: 'Market',

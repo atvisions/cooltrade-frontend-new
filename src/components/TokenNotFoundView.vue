@@ -40,24 +40,20 @@
       </span>
     </button>
 
-    <!-- 刷新旋转loading弹窗 -->
-    <div v-if="showRefreshModal" class="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center">
-      <div class="bg-gray-900 rounded-xl p-6 w-[320px] shadow-xl border border-gray-800 flex flex-col items-center">
-        <i class="ri-loader-4-line text-5xl text-blue-400 animate-spin mb-4"></i>
-        <h3 class="text-lg font-medium text-center mb-2">
-          {{ loadingStageText }}
-        </h3>
-        <p class="text-sm text-gray-400 text-center min-h-[32px]">{{ loadingSubText }}</p>
-      </div>
-    </div>
+    <!-- 加载弹窗 -->
+    <LoadingModal
+      :visible="showRefreshModal"
+      type="generate"
+    />
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, watch, computed, onUnmounted, onMounted } from 'vue'
-import { getTechnicalAnalysis } from '@/api'
+import { getTechnicalAnalysis, getLatestTechnicalAnalysis } from '@/api'
 import { useEnhancedI18n } from '@/utils/i18n-helper'
 import { useI18n } from 'vue-i18n'
+import LoadingModal from '@/components/LoadingModal.vue'
 
 // 使用增强的翻译函数
 const { t } = useEnhancedI18n()
@@ -111,9 +107,6 @@ const emit = defineEmits<{
 
 // 刷新状态
 const showRefreshModal = ref(false)
-const loadingStageText = ref('')
-const loadingSubText = ref('')
-let loadingStageTimer: NodeJS.Timeout | null = null
 
 // 添加请求防抖变量
 let refreshPromise: Promise<any> | null = null;
@@ -126,72 +119,7 @@ const formattedSymbol = computed(() => {
   return `${props.symbol}/USDT`
 })
 
-// 动态切换loading文案
-const loadingStages = [
-  {
-    title: () => getTranslation('analysis.calculating_indicators',
-      currentLang.value === 'zh-CN' ? '正在获取市场数据' :
-      currentLang.value === 'en-US' ? 'Fetching market data...' :
-      currentLang.value === 'ja-JP' ? '市場データ取得中...' :
-      currentLang.value === 'ko-KR' ? '시장 데이터 가져오는 중...' :
-      'Fetching market data...'),
-    sub: () => getTranslation('analysis.calculating_indicators',
-      currentLang.value === 'zh-CN' ? '正在进行技术指标计算' :
-      currentLang.value === 'en-US' ? 'Calculating technical indicators...' :
-      currentLang.value === 'ja-JP' ? 'テクニカル指標計算中...' :
-      currentLang.value === 'ko-KR' ? '기술 지표 계산 중...' :
-      'Calculating technical indicators...')
-  },
-  {
-    title: () => getTranslation('analysis.analyzing_trends',
-      currentLang.value === 'zh-CN' ? '正在分析市场趋势' :
-      currentLang.value === 'en-US' ? 'Analyzing market trends...' :
-      currentLang.value === 'ja-JP' ? '市場トレンド分析中...' :
-      currentLang.value === 'ko-KR' ? '시장 동향 분석 중...' :
-      'Analyzing market trends...'),
-    sub: () => getTranslation('analysis.generating_advice',
-      currentLang.value === 'zh-CN' ? '正在生成交易建议' :
-      currentLang.value === 'en-US' ? 'Generating trading advice...' :
-      currentLang.value === 'ja-JP' ? '取引アドバイス生成中...' :
-      currentLang.value === 'ko-KR' ? '거래 조언 생성 중...' :
-      'Generating trading advice...')
-  },
-  {
-    title: () => getTranslation('analysis.risk_assessment',
-      currentLang.value === 'zh-CN' ? '正在评估市场风险' :
-      currentLang.value === 'en-US' ? 'Assessing market risks...' :
-      currentLang.value === 'ja-JP' ? '市場リスク評価中...' :
-      currentLang.value === 'ko-KR' ? '시장 위험 평가 중...' :
-      'Assessing market risks...'),
-    sub: () => getTranslation('analysis.finalizing_data',
-      currentLang.value === 'zh-CN' ? '正在完成数据处理' :
-      currentLang.value === 'en-US' ? 'Finalizing data...' :
-      currentLang.value === 'ja-JP' ? 'データ最終処理中...' :
-      currentLang.value === 'ko-KR' ? '데이터 마무리 중...' :
-      'Finalizing data...')
-  },
-  {
-    title: () => getTranslation('analysis.preparing_report',
-      currentLang.value === 'zh-CN' ? '正在准备分析报告' :
-      currentLang.value === 'en-US' ? 'Preparing analysis report...' :
-      currentLang.value === 'ja-JP' ? '分析レポート準備中...' :
-      currentLang.value === 'ko-KR' ? '분석 보고서 준비 중...' :
-      'Preparing analysis report...'),
-    sub: () => ''
-  }
-]
 
-const simulateLoadingStage = () => {
-  let idx = 0
-  loadingStageText.value = loadingStages[0].title()
-  loadingSubText.value = loadingStages[0].sub()
-  if (loadingStageTimer) clearInterval(loadingStageTimer)
-  loadingStageTimer = setInterval(() => {
-    idx = (idx + 1) % loadingStages.length
-    loadingStageText.value = loadingStages[idx].title()
-    loadingSubText.value = loadingStages[idx].sub()
-  }, 5000)
-}
 
 const handleRefresh = async () => {
   try {
@@ -208,31 +136,62 @@ const handleRefresh = async () => {
     // 检查是否已有技术数据
     const hasTechnicalData = localStorage.getItem(`technical_data_${props.symbol}`) === 'true'
 
-    // 开始模拟进度
-    simulateLoadingStage()
-
     // 设置一个更长的等待时间，因为生成新报告需要时间
     const maxWaitTime = 60000 // 60秒
 
     // 创建新的刷新请求Promise
     refreshPromise = new Promise(async (resolve, reject) => {
       try {
-        // 使用正确的API端点：先尝试获取现有报告，如果没有则生成新的
-        const apiPromise = getTechnicalAnalysis(props.symbol)
+        // 1. 先调用 getLatestTechnicalAnalysis 触发报告生成
+        console.log('开始触发报告生成...')
+        await getLatestTechnicalAnalysis(props.symbol)
 
-        // 使用 Promise.race 来实现超时机制
-        const timeoutPromise = new Promise((_, reject) => {
-          setTimeout(() => reject(new Error('请求超时，请稍后重试')), maxWaitTime)
-        })
+        // 2. 轮询 getTechnicalAnalysis 直到获取到数据或超时
+        const startTime = Date.now()
+        let attempts = 0
+        const maxAttempts = 20 // 最多尝试20次
 
-        // 等待API响应或超时
-        const result = await Promise.race([apiPromise, timeoutPromise])
-        resolve(result)
+        while (attempts < maxAttempts) {
+          // 检查是否超时
+          if (Date.now() - startTime > maxWaitTime) {
+            throw new Error('请求超时，请稍后重试')
+          }
+
+          attempts++
+          console.log(`第 ${attempts} 次尝试获取数据...`)
+
+          // 等待一段时间再尝试
+          if (attempts > 1) {
+            await new Promise(resolve => setTimeout(resolve, 3000)) // 等待3秒
+          }
+
+          // 尝试获取数据
+          const result = await getTechnicalAnalysis(props.symbol)
+
+          // 检查是否获取到有效数据
+          if (result && (result as any).status !== 'not_found') {
+            console.log('成功获取到数据!')
+            // 发送成功事件
+            emit('refresh-success')
+            // 延迟关闭弹窗，给HomeView时间加载数据
+            handleSuccessClose()
+            resolve(result)
+            return
+          }
+
+          console.log('数据尚未准备好，继续等待...')
+        }
+
+        // 如果所有尝试都失败了
+        throw new Error('生成报告超时，请稍后重试')
       } catch (error) {
+        console.error('刷新失败:', error)
+        emit('refresh-error', error)
         reject(error)
+        // 只有在错误时才立即关闭弹窗
+        showRefreshModal.value = false
       } finally {
         refreshPromise = null
-        showRefreshModal.value = false
       }
     })
 
@@ -247,10 +206,35 @@ const handleRefresh = async () => {
 // 监听父组件 isRefreshing 变化，刷新完成后自动关闭弹窗
 watch(() => props.isRefreshing, (newVal) => {
   if (showRefreshModal.value && newVal === false) {
-    // 父组件刷新完成，关闭弹窗
-    showRefreshModal.value = false
+    // 父组件刷新完成，延迟关闭弹窗确保数据已经渲染
+    setTimeout(() => {
+      showRefreshModal.value = false
+    }, 1000) // 延迟1秒关闭，确保HomeView已经渲染完成
   }
 })
+
+// 添加一个新的监听器，当成功获取数据后延迟关闭弹窗
+const handleSuccessClose = () => {
+  if (showRefreshModal.value) {
+    // 延迟关闭弹窗，给HomeView时间来加载和渲染数据
+    // 使用更长的延迟时间，确保报告完全生成和加载
+    setTimeout(() => {
+      showRefreshModal.value = false
+    }, 3000) // 延迟3秒关闭，确保有足够时间加载数据
+  }
+}
+
+// 添加一个监听器来检测父组件是否已经成功加载数据
+// 这个可以通过监听 emit 事件的响应来实现
+const checkParentDataLoaded = () => {
+  // 定期检查父组件是否已经加载了数据
+  const checkInterval = setInterval(() => {
+    // 如果弹窗还在显示，我们可以通过某种方式检查父组件状态
+    if (!showRefreshModal.value) {
+      clearInterval(checkInterval)
+    }
+  }, 1000)
+}
 
 // 组件卸载时清理
 onUnmounted(() => {

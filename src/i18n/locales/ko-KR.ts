@@ -34,6 +34,7 @@ export default {
     app_name: 'Cooltrade',
     loading: '로딩 중...',
     refresh: '새로고침',
+    refreshing: '새로고침 중...',
     save: '저장',
     cancel: '취소',
     confirm: '확인',
@@ -51,7 +52,9 @@ export default {
     submitting: '제출 중...',
     retry: '다시 시도',
     privacy_policy: '개인정보 처리방침',
-    about_us: '회사 소개'
+    about_us: '회사 소개',
+    no_data: '데이터가 없습니다',
+    load_data: '데이터 로드'
   },
   auth: {
     login: '로그인',

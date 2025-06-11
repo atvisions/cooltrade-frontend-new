@@ -573,6 +573,7 @@ export const getTechnicalAnalysis = async (
     const params: Record<string, any> = {}
     if (forceRefresh) {
       params.force_refresh = true
+      console.log('getTechnicalAnalysis: 启用强制刷新模式')
     }
 
     // 添加语言参数
@@ -619,6 +620,16 @@ export const getTechnicalAnalysis = async (
   } catch (error: any) {
     // 错误处理
 
+    // 处理 404 错误（代币未找到）
+    if (error.response?.status === 404) {
+      // 返回一个特殊的 not_found 状态，而不是抛出错误
+      return {
+        status: 'not_found',
+        message: error.response?.data?.message || '代币数据未找到',
+        needs_refresh: true
+      } as unknown as FormattedTechnicalAnalysisData
+    }
+
     // 网络错误重新格式化为更友好的消息
     if (error.code === 'ERR_NETWORK') {
       throw new Error('网络连接错误，请检查您的网络连接')
@@ -633,7 +644,8 @@ let pendingRequests: Record<string, boolean> = {};
 
 // 获取最新技术分析报告
 export const getLatestTechnicalAnalysis = async (
-  symbol: string
+  symbol: string,
+  forceRefresh: boolean = false
 ): Promise<FormattedTechnicalAnalysisData> => {
   // 定义在函数顶部，以便在 try/catch 块中都可以访问
   let requestPath = '';
@@ -658,14 +670,19 @@ export const getLatestTechnicalAnalysis = async (
     requestLanguage = getCurrentLanguage()
     params.language = requestLanguage
 
+    // 如果是强制刷新，添加参数
+    if (forceRefresh) {
+      params.force_refresh = 'true'
+    }
+
     // 添加时间戳参数，防止缓存
     params._t = Date.now()
 
     // 创建请求标识符
-    const requestId = `${requestPath}?language=${requestLanguage}`;
+    const requestId = `${requestPath}?language=${requestLanguage}&force_refresh=${forceRefresh}`;
 
-    // 检查是否有相同的请求正在进行中
-    if (pendingRequests[requestId]) {
+    // 检查是否有相同的请求正在进行中（除非是强制刷新）
+    if (!forceRefresh && pendingRequests[requestId]) {
       throw new Error('请求已在进行中，请稍后再试');
     }
 
@@ -703,6 +720,16 @@ export const getLatestTechnicalAnalysis = async (
     // 清除请求标记
     if (requestPath && requestLanguage) {
       pendingRequests[`${requestPath}?language=${requestLanguage}`] = false;
+    }
+
+    // 处理 404 错误（代币未找到）
+    if (error.response?.status === 404) {
+      // 返回一个特殊的 not_found 状态，而不是抛出错误
+      return {
+        status: 'not_found',
+        message: error.response?.data?.message || '代币数据未找到',
+        needs_refresh: true
+      } as unknown as FormattedTechnicalAnalysisData
     }
 
     // 网络错误重新格式化为更友好的消息
