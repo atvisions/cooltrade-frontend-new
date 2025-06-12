@@ -21,10 +21,25 @@ export const proxyRequest = async (config: AxiosRequestConfig): Promise<any> => 
   }
 
   return new Promise((resolve, reject) => {
-    const { url, method, headers, data } = config
+    const { url, method, headers, data, params } = config
+
+    // 构建完整的URL，包含查询参数
+    let fullUrl = url || ''
+    if (params && Object.keys(params).length > 0) {
+      const searchParams = new URLSearchParams()
+      Object.entries(params).forEach(([key, value]) => {
+        if (value !== null && value !== undefined) {
+          searchParams.append(key, String(value))
+        }
+      })
+      const queryString = searchParams.toString()
+      if (queryString) {
+        fullUrl += (fullUrl.includes('?') ? '&' : '?') + queryString
+      }
+    }
 
     // 检查是否是强制刷新请求
-    const isForceRefresh = url?.includes('force_refresh=true')
+    const isForceRefresh = fullUrl.includes('force_refresh=true')
 
     // 设置超时处理
     let timeoutId: number | null = null
@@ -39,10 +54,18 @@ export const proxyRequest = async (config: AxiosRequestConfig): Promise<any> => 
     if (!updatedHeaders.Authorization) {
       const token = localStorage.getItem('token');
       if (token) {
-        updatedHeaders = { ...updatedHeaders, Authorization: token };
+        // 确保 token 格式正确
+        if (token.startsWith('Token ') || token.startsWith('Bearer ')) {
+          updatedHeaders = { ...updatedHeaders, Authorization: token };
+        } else {
+          updatedHeaders = { ...updatedHeaders, Authorization: `Token ${token}` };
+        }
+        console.log('Proxy: 添加认证令牌到请求头');
       } else {
+        console.warn('Proxy: localStorage 中没有找到 token');
       }
     } else {
+      console.log('Proxy: 请求头中已包含认证令牌');
     }
 
     // 发送代理请求
@@ -52,7 +75,7 @@ export const proxyRequest = async (config: AxiosRequestConfig): Promise<any> => 
     chrome.runtime.sendMessage({
       type: 'PROXY_API_REQUEST',
       data: {
-        url,
+        url: fullUrl,  // 使用包含查询参数的完整URL
         method: requestMethod,
         headers: updatedHeaders,  // 使用更新后的 headers
         body: data

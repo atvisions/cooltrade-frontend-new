@@ -11,7 +11,7 @@
 
     <!-- 主要内容区域 -->
     <main class="flex-1 pt-16 pb-16 overflow-y-auto">
-      <div class="max-w-[375px] mx-auto px-4 py-6 space-y-6">
+      <div class="max-w-[375px] mx-auto px-4 space-y-6">
 
         <!-- 积分概览 - 简约卡片 -->
         <div class="relative overflow-hidden rounded-2xl bg-gradient-to-br from-blue-600/20 via-purple-600/20 to-pink-600/20 p-6 backdrop-blur-sm border border-white/10">

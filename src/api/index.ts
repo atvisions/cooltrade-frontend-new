@@ -202,28 +202,32 @@ api.interceptors.request.use(
       } else if (config.headers.Authorization) {
       }
 
+      // 只对非认证请求验证token
+      if (!isAuthRequest(config.url) && !validateToken()) {
+        return Promise.reject(new Error('Token验证失败'))
+      }
+
+      // 只对非认证请求添加token
+      if (!isAuthRequest(config.url)) {
+        const token = localStorage.getItem('token')
+        if (token) {
+          // 确保令牌格式正确，避免重复添加 Token 前缀
+          if (token.startsWith('Token ') || token.startsWith('Bearer ')) {
+            config.headers.Authorization = token
+          } else {
+            config.headers.Authorization = `Token ${token}`
+          }
+        }
+      }
+
       // 在扩展环境中使用代理请求
       if (isExtension()) {
         return proxyRequest(config);
       } else if (isDevelopment()) {
       }
 
-      // 只对非认证请求验证token
-      if (!isAuthRequest(config.url) && !validateToken()) {
-        return Promise.reject(new Error('Token验证失败'))
-      }
-
       // 检查请求限制
       await checkRateLimit()
-
-      // 只对非认证请求添加token
-      if (!isAuthRequest(config.url)) {
-        const token = localStorage.getItem('token')
-        if (token) {
-          // 确保令牌格式正确
-          config.headers.Authorization = `Token ${token}`
-        }
-      }
 
       return config
     } catch (error) {
@@ -552,12 +556,17 @@ const getCurrentLanguage = (): string => {
   return 'zh-CN'
 }
 
-// 获取技术分析数据 - 添加更详细的错误处理和日志
+// 获取技术分析数据 - 读取本地已存在的报告数据
 export const getTechnicalAnalysis = async (
-  symbol: string,
-  forceRefresh: boolean = false
+  symbol: string
 ): Promise<FormattedTechnicalAnalysisData> => {
   try {
+    // 验证 symbol 参数
+    if (!symbol || typeof symbol !== 'string') {
+      console.error('getTechnicalAnalysis: Invalid symbol provided:', { symbol, type: typeof symbol });
+      throw new Error('Invalid symbol provided');
+    }
+
     // 确保symbol是大写的
     const normalizedSymbol = symbol.toUpperCase();
 
@@ -566,19 +575,17 @@ export const getTechnicalAnalysis = async (
       ? normalizedSymbol
       : `${normalizedSymbol}USDT`;
 
-    // 构建请求路径
+    // 构建请求路径 - 使用 technical-indicators 接口读取本地数据
     const path = `/crypto/technical-indicators/${fullSymbol}/`
 
     // 准备查询参数
     const params: Record<string, any> = {}
-    if (forceRefresh) {
-      params.force_refresh = true
-      console.log('getTechnicalAnalysis: 启用强制刷新模式')
-    }
 
     // 添加语言参数
     const currentLanguage = getCurrentLanguage()
     params.language = currentLanguage
+
+    console.log(`getTechnicalAnalysis: 读取本地报告数据 ${fullSymbol}`)
 
     // 在开发环境中使用代理
     const url = isDevelopment()
@@ -586,10 +593,7 @@ export const getTechnicalAnalysis = async (
       : `${getBaseUrl()}${path}`;
 
     // 发送请求
-    // 获取认证令牌并确保格式正确
     const token = localStorage.getItem('token');
-
-    // 确保令牌格式正确
     const authHeader = token ? (token.startsWith('Token ') ? token : `Token ${token}`) : '';
 
     const response = await axios.get(url, {
@@ -599,6 +603,7 @@ export const getTechnicalAnalysis = async (
         'Authorization': authHeader
       }
     })
+
     // 检查响应格式
     const data = response.data
 
@@ -642,16 +647,22 @@ export const getTechnicalAnalysis = async (
 // 防止重复请求的标记
 let pendingRequests: Record<string, boolean> = {};
 
-// 获取最新技术分析报告
+// 获取最新技术分析报告 - 刷新或获取新的代币分析报告
 export const getLatestTechnicalAnalysis = async (
   symbol: string,
-  forceRefresh: boolean = false
+  forceRefresh: boolean = true
 ): Promise<FormattedTechnicalAnalysisData> => {
   // 定义在函数顶部，以便在 try/catch 块中都可以访问
   let requestPath = '';
   let requestLanguage = '';
 
   try {
+    // 验证 symbol 参数
+    if (!symbol || typeof symbol !== 'string') {
+      console.error('getLatestTechnicalAnalysis: Invalid symbol provided:', { symbol, type: typeof symbol });
+      throw new Error('Invalid symbol provided');
+    }
+
     // 确保symbol是大写的
     const normalizedSymbol = symbol.toUpperCase();
 
@@ -660,7 +671,7 @@ export const getLatestTechnicalAnalysis = async (
       ? normalizedSymbol
       : `${normalizedSymbol}USDT`;
 
-    // 构建请求路径 - 获取最新报告
+    // 构建请求路径 - 使用 get_report 接口获取/刷新报告
     requestPath = `/crypto/get_report/${fullSymbol}/`
 
     // 准备查询参数
@@ -670,29 +681,31 @@ export const getLatestTechnicalAnalysis = async (
     requestLanguage = getCurrentLanguage()
     params.language = requestLanguage
 
-    // 如果是强制刷新，添加参数
+    console.log(`getLatestTechnicalAnalysis: 当前语言设置为 ${requestLanguage}`)
+
+    // 默认强制刷新，确保获取最新数据
     if (forceRefresh) {
       params.force_refresh = 'true'
     }
 
-    // 添加时间戳参数，防止缓存
-    params._t = Date.now()
+    console.log(`getLatestTechnicalAnalysis: 获取/刷新报告 ${fullSymbol}, forceRefresh: ${forceRefresh}`)
 
     // 创建请求标识符
     const requestId = `${requestPath}?language=${requestLanguage}&force_refresh=${forceRefresh}`;
 
-    // 检查是否有相同的请求正在进行中（除非是强制刷新）
-    if (!forceRefresh && pendingRequests[requestId]) {
+    // 检查是否有相同的请求正在进行中
+    if (pendingRequests[requestId]) {
       throw new Error('请求已在进行中，请稍后再试');
     }
 
     // 标记请求为进行中
     pendingRequests[requestId] = true;
 
-    // 使用 api 实例而不是直接使用 axios，这样会通过请求拦截器
+    // 使用 api 实例发送请求
     const response = await api.get(requestPath, {
       params
     })
+
     // 检查响应格式
     const data = response.data
 
@@ -712,15 +725,11 @@ export const getLatestTechnicalAnalysis = async (
     // 假设响应是直接的技术分析数据，则格式化并返回
     const result = formatTechnicalAnalysisData(data);
 
-    // 清除请求标记
-    pendingRequests[`${requestPath}?language=${requestLanguage}`] = false;
+    console.log(`getLatestTechnicalAnalysis: 成功获取报告数据 ${fullSymbol}`)
 
     return result;
   } catch (error: any) {
-    // 清除请求标记
-    if (requestPath && requestLanguage) {
-      pendingRequests[`${requestPath}?language=${requestLanguage}`] = false;
-    }
+    console.error(`getLatestTechnicalAnalysis: 获取报告失败 ${symbol}:`, error)
 
     // 处理 404 错误（代币未找到）
     if (error.response?.status === 404) {
@@ -738,6 +747,12 @@ export const getLatestTechnicalAnalysis = async (
     }
 
     throw error
+  } finally {
+    // 清除请求标记
+    if (requestPath && requestLanguage) {
+      const requestId = `${requestPath}?language=${requestLanguage}&force_refresh=${forceRefresh}`;
+      pendingRequests[requestId] = false;
+    }
   }
 }
 

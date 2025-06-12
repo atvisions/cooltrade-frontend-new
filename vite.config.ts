@@ -11,14 +11,23 @@ export default defineConfig({
     }
   },
   server: {
-    port: 5000,
+    port: 5001,  // 修改为当前使用的端口
     host: true,
     proxy: {
       '/api': {
         target: 'https://www.cooltrade.xyz',
         changeOrigin: true,
         secure: false,
-        rewrite: (path) => path.replace(/^\/api/, '/api')
+        rewrite: (path) => path.replace(/^\/api/, '/api'),
+        // 添加认证头转发
+        configure: (proxy, options) => {
+          proxy.on('proxyReq', (proxyReq, req, res) => {
+            // 转发认证头
+            if (req.headers.authorization) {
+              proxyReq.setHeader('Authorization', req.headers.authorization);
+            }
+          });
+        }
       }
     }
   },

@@ -535,7 +535,7 @@ watch([isTokenNotFound, error], ([tokenNotFound, errorState]) => {
 })
 
 // 获取当前交易对
-const getCurrentSymbol = async () => {
+const getCurrentSymbol = async (): Promise<string> => {
   try {
     console.log('开始获取当前交易对...');
 
@@ -561,7 +561,7 @@ const getCurrentSymbol = async () => {
 
           console.log('Content script响应:', response);
 
-          if (response && response.symbol) {
+          if (response && response.symbol && typeof response.symbol === 'string') {
             console.log('从content script获取到交易对:', response.symbol);
             return response.symbol;
           }
@@ -570,7 +570,7 @@ const getCurrentSymbol = async () => {
           if (tab.url) {
             const parsedFromTabUrl = parseSymbolFromUrl(tab.url);
             console.log('直接解析标签页URL结果:', parsedFromTabUrl);
-            if (parsedFromTabUrl) {
+            if (parsedFromTabUrl && typeof parsedFromTabUrl === 'string') {
               return parsedFromTabUrl;
             }
           }
@@ -596,7 +596,7 @@ const getCurrentSymbol = async () => {
 
         console.log('Background script响应:', response);
 
-        if (response && response.symbol) {
+        if (response && response.symbol && typeof response.symbol === 'string') {
           console.log('从background script获取到交易对:', response.symbol);
           return response.symbol;
         }
@@ -608,7 +608,7 @@ const getCurrentSymbol = async () => {
     // fallback: 直接用 window.location (虽然在popup中通常不会有用)
     const parsedSymbol = parseSymbolFromUrl(window.location.href);
     console.log('解析popup URL结果:', parsedSymbol);
-    if (parsedSymbol) {
+    if (parsedSymbol && typeof parsedSymbol === 'string') {
       return parsedSymbol;
     }
 
@@ -617,6 +617,7 @@ const getCurrentSymbol = async () => {
     return 'BTCUSDT';
   } catch (error) {
     console.error('获取交易对时发生错误:', error);
+    // 确保即使在错误情况下也返回有效的字符串
     return 'BTCUSDT';
   }
 }
@@ -633,7 +634,8 @@ const setupSymbolListener = () => {
         if (message.type === 'SYMBOL_UPDATED' && message.data && message.data.symbol) {
           console.log('接收到交易对更新:', message.data.symbol);
           const newSymbol = message.data.symbol;
-          if (newSymbol !== currentSymbol.value) {
+          // 验证新的 symbol 是否为有效字符串
+          if (newSymbol && typeof newSymbol === 'string' && newSymbol !== currentSymbol.value) {
             console.log('交易对发生变化，从', currentSymbol.value, '到', newSymbol);
             currentSymbol.value = newSymbol;
             // 不要在这里调用 loadAnalysisData()，让 watch 来处理
@@ -723,17 +725,25 @@ const formatTime = (timeString?: string): string => {
 }
 
 // 获取基础货币名称
-const getBaseSymbol = (symbol: string) => {
+const getBaseSymbol = (symbol: string | null | undefined) => {
+  if (!symbol || typeof symbol !== 'string') {
+    return 'BTC' // 默认返回 BTC
+  }
   return symbol.replace('USDT', '')
 }
 
 // 添加请求防抖变量
 let loadingPromise: Promise<any> | null = null;
 
-// 优化后的数据加载函数
+// 简化的数据加载函数 - 读取本地已存在的报告数据
 const loadAnalysisData = async (showLoading = true) => {
   try {
-    if (!currentSymbol.value) {
+    // 增强的 symbol 验证
+    if (!currentSymbol.value || typeof currentSymbol.value !== 'string') {
+      console.error('loadAnalysisData: Invalid currentSymbol.value:', {
+        value: currentSymbol.value,
+        type: typeof currentSymbol.value
+      });
       error.value = '无法获取当前交易对信息'
       return
     }
@@ -750,15 +760,19 @@ const loadAnalysisData = async (showLoading = true) => {
       analysisLoading.value = true
     }
 
-    // 创建新的请求Promise
+    console.log(`loadAnalysisData: 开始加载 ${currentSymbol.value} 的本地报告数据`)
+
+    // 创建新的请求Promise - 直接调用 getTechnicalAnalysis 读取本地数据
     loadingPromise = getTechnicalAnalysis(currentSymbol.value)
       .then(data => {
         if (data && (data as any).status !== 'not_found') {
           const formattedData = formatTechnicalAnalysisData(data)
           analysisData.value = formattedData
           isTokenNotFound.value = false
+          console.log(`loadAnalysisData: 成功加载 ${currentSymbol.value} 的报告数据`)
         } else {
           isTokenNotFound.value = true
+          console.log(`loadAnalysisData: ${currentSymbol.value} 的报告数据未找到`)
         }
         return data;
       })
@@ -770,6 +784,7 @@ const loadAnalysisData = async (showLoading = true) => {
 
     return loadingPromise;
   } catch (e) {
+    console.error(`loadAnalysisData: 加载失败`, e)
     error.value = e instanceof Error ? e.message : '加载数据失败'
     loading.value = false
     analysisLoading.value = false
@@ -777,13 +792,19 @@ const loadAnalysisData = async (showLoading = true) => {
   }
 }
 
-// 优化后的强制刷新函数
+// 强制刷新函数 - 先生成新报告，然后读取完整报告数据
 async function forceRefreshData() {
   try {
     console.log('forceRefreshData 开始执行')
 
-    if (!currentSymbol.value) {
-      const errorMsg = '无法获取当前交易对信息'
+    // 添加详细的调试信息
+    console.log('forceRefreshData: currentSymbol.value =', currentSymbol.value)
+    console.log('forceRefreshData: currentSymbol.value 类型 =', typeof currentSymbol.value)
+    console.log('forceRefreshData: currentSymbol.value 是否为空 =', !currentSymbol.value)
+    console.log('forceRefreshData: currentSymbol.value 长度 =', currentSymbol.value?.length)
+
+    if (!currentSymbol.value || typeof currentSymbol.value !== 'string') {
+      const errorMsg = `无法获取当前交易对信息: currentSymbol.value = ${currentSymbol.value}, 类型 = ${typeof currentSymbol.value}`
       console.error(errorMsg)
       error.value = errorMsg
       throw new Error(errorMsg)
@@ -794,63 +815,58 @@ async function forceRefreshData() {
     isTokenNotFound.value = false
     analysisLoading.value = true
 
-    // 使用一个标志来控制是否继续轮询
-    let shouldContinuePolling = true;
+    console.log('步骤1: 调用 getLatestTechnicalAnalysis 生成新报告，参数:', currentSymbol.value)
 
-    console.log('步骤1: 调用 getLatestTechnicalAnalysis 触发强制刷新')
-    // 1. 先请求 get_report，使用强制刷新（仅触发报告生成，不使用返回结果）
-    try {
-      const reportResult = await getLatestTechnicalAnalysis(currentSymbol.value, true)
-      console.log('getLatestTechnicalAnalysis 调用成功，已触发强制刷新')
-
-      // 不要立即使用返回的结果，因为可能还是旧数据
-      // 强制刷新需要时间生成，我们通过轮询来获取新数据
-    } catch (getReportError) {
-      console.error('getLatestTechnicalAnalysis 调用失败:', getReportError)
-      // 即使触发失败，也继续尝试轮询，可能报告已经存在
-    }
-
-    // 等待一段时间，让后端有时间开始生成报告
-    console.log('等待3秒，让后端开始生成报告...')
-    await new Promise(r => setTimeout(r, 3000))
-
-    console.log('步骤2: 开始轮询 getTechnicalAnalysis')
-    // 2. 轮询 technical-indicators，直到有数据或超时
-    let dataFound = false;
-    // 增加轮询次数和间隔，给后端更多时间生成报告（120秒总超时）
-    for (let i = 0; i < 40 && shouldContinuePolling; i++) {
-      console.log(`轮询第 ${i + 1} 次...`)
-      await new Promise(r => setTimeout(r, 3000)); // 增加到3秒间隔，总计120秒
-
-      try {
-        // 在轮询时也使用强制刷新，确保获取最新数据
-        const raw = await getTechnicalAnalysis(currentSymbol.value, true)
-        console.log(`轮询第 ${i + 1} 次结果:`, raw)
-
-        if (raw && (raw as any).status !== 'not_found') {
-          console.log('找到有效数据，停止轮询')
-          const formattedData = formatTechnicalAnalysisData(raw)
-          analysisData.value = formattedData
-          isTokenNotFound.value = false
-          shouldContinuePolling = false; // 找到数据后停止轮询
-          dataFound = true;
-          break;
-        }
-      } catch (pollError) {
-        console.error(`轮询第 ${i + 1} 次出错:`, pollError)
-        // 继续下一次轮询
-      }
-    }
-
-    analysisLoading.value = false
-
-    // 如果轮询结束后仍然没有找到数据，抛出错误
-    if (!dataFound) {
-      const errorMsg = '刷新超时，未能获取到最新数据，请稍后重试'
+    // 再次验证 symbol 在调用 API 之前
+    if (!currentSymbol.value || typeof currentSymbol.value !== 'string') {
+      const errorMsg = `API调用前验证失败: currentSymbol.value = ${currentSymbol.value}, 类型 = ${typeof currentSymbol.value}`
       console.error(errorMsg)
+      error.value = errorMsg
+      analysisLoading.value = false
       throw new Error(errorMsg)
     }
 
+    // 步骤1: 调用 getLatestTechnicalAnalysis 生成新报告
+    const generateResult = await getLatestTechnicalAnalysis(currentSymbol.value, true)
+    console.log('forceRefreshData: 报告生成结果:', generateResult)
+
+    // 检查生成是否成功
+    if (!generateResult || (generateResult as any).status === 'not_found') {
+      isTokenNotFound.value = true
+      analysisLoading.value = false
+      console.log('forceRefreshData: 报告生成失败')
+      return
+    }
+
+    console.log('步骤2: 报告生成成功，现在调用 getTechnicalAnalysis 读取完整报告数据')
+
+    // 再次验证 symbol 在第二次 API 调用之前
+    if (!currentSymbol.value || typeof currentSymbol.value !== 'string') {
+      const errorMsg = `第二次API调用前验证失败: currentSymbol.value = ${currentSymbol.value}, 类型 = ${typeof currentSymbol.value}`
+      console.error(errorMsg)
+      error.value = errorMsg
+      analysisLoading.value = false
+      throw new Error(errorMsg)
+    }
+
+    // 步骤2: 报告生成成功后，调用 getTechnicalAnalysis 读取完整的报告数据
+    const fullReportData = await getTechnicalAnalysis(currentSymbol.value)
+    console.log('forceRefreshData: 完整报告数据:', fullReportData)
+
+    // 检查完整报告数据
+    if (fullReportData && (fullReportData as any).status !== 'not_found') {
+      // 成功获取到完整报告数据
+      const formattedData = formatTechnicalAnalysisData(fullReportData)
+      analysisData.value = formattedData
+      isTokenNotFound.value = false
+      console.log('forceRefreshData: 成功获取完整报告数据')
+    } else {
+      // 完整报告数据未找到
+      isTokenNotFound.value = true
+      console.log('forceRefreshData: 完整报告数据未找到')
+    }
+
+    analysisLoading.value = false
     console.log('forceRefreshData 执行成功')
   } catch (e) {
     console.error('forceRefreshData 执行失败:', e)
@@ -950,11 +966,12 @@ onMounted(async () => {
     const symbol = await getCurrentSymbol();
     console.log('获取到的交易对:', symbol);
 
-    if (symbol && symbol !== currentSymbol.value) {
+    // 验证获取到的 symbol 是否为有效字符串
+    if (symbol && typeof symbol === 'string' && symbol !== currentSymbol.value) {
       console.log('交易对发生变化，从', currentSymbol.value, '到', symbol);
       currentSymbol.value = symbol;
       await loadAnalysisData();
-    } else if (!symbol || symbol === 'BTCUSDT') {
+    } else if (!symbol || typeof symbol !== 'string' || symbol === 'BTCUSDT') {
       // 如果没有获取到symbol或者是默认值，再次尝试获取
       console.log('未获取到有效交易对，等待后重试...');
 
@@ -967,7 +984,8 @@ onMounted(async () => {
         const retrySymbol = await getCurrentSymbol();
         console.log('重试获取到的交易对:', retrySymbol);
 
-        if (retrySymbol && retrySymbol !== currentSymbol.value && retrySymbol !== 'BTCUSDT') {
+        // 验证重试获取的 symbol 是否为有效字符串
+        if (retrySymbol && typeof retrySymbol === 'string' && retrySymbol !== currentSymbol.value && retrySymbol !== 'BTCUSDT') {
           console.log('重试成功，更新交易对:', retrySymbol);
           currentSymbol.value = retrySymbol;
           await loadAnalysisData();
@@ -990,8 +1008,17 @@ onMounted(async () => {
 })
 
 // 监听交易对变化，更新数据
-watch(currentSymbol, async (newSymbol) => {
-  if (newSymbol) {
+watch(currentSymbol, async (newSymbol, oldSymbol) => {
+  console.log('currentSymbol 发生变化:', { oldSymbol, newSymbol, type: typeof newSymbol })
+
+  // 如果新值无效，恢复为默认值
+  if (!newSymbol || typeof newSymbol !== 'string') {
+    console.warn('检测到无效的 currentSymbol 值，恢复为默认值 BTCUSDT')
+    currentSymbol.value = 'BTCUSDT'
+    return
+  }
+
+  if (newSymbol && typeof newSymbol === 'string') {
     await loadAnalysisData()
   }
 })
@@ -1112,16 +1139,23 @@ const testUrlParsing = async () => {
   }
 }
 
-// 普通刷新数据
+// 普通刷新数据 - 重新读取本地报告数据
 const refreshData = async () => {
   error.value = null // 清除之前的错误
   isTokenNotFound.value = false // 重置代币未找到状态
   analysisLoading.value = true
 
   try {
-    // 尝试使用普通请求获取数据
-    const response = await getTechnicalAnalysis(currentSymbol.value, false)
-    console.log('普通刷新数据返回:', response)
+    console.log('refreshData: 开始刷新本地报告数据')
+
+    // 验证 currentSymbol.value
+    if (!currentSymbol.value || typeof currentSymbol.value !== 'string') {
+      throw new Error('无效的交易对信息')
+    }
+
+    // 调用 getTechnicalAnalysis 重新读取本地数据
+    const response = await getTechnicalAnalysis(currentSymbol.value)
+    console.log('refreshData: 普通刷新数据返回:', response)
 
     // 检查响应状态，处理新的响应格式
     if (typeof response === 'object' && response !== null && 'status' in response) {
@@ -1129,6 +1163,7 @@ const refreshData = async () => {
       if (apiResponse.status === 'not_found' && apiResponse.needs_refresh === true) {
         isTokenNotFound.value = true
         analysisLoading.value = false
+        console.log('refreshData: 报告数据未找到，需要生成新报告')
         return
       }
     }
@@ -1140,15 +1175,16 @@ const refreshData = async () => {
     analysisData.value = formattedData
 
     // 打印检查数据完整性
-    console.log('普通刷新后，格式化数据是否包含市场趋势分析:', !!formattedData.trend_analysis)
-    console.log('普通刷新后，格式化数据是否包含交易建议:', !!formattedData.trading_advice)
-    console.log('普通刷新后，格式化数据是否包含风险评估:', !!formattedData.risk_assessment)
+    console.log('refreshData: 格式化数据是否包含市场趋势分析:', !!formattedData.trend_analysis)
+    console.log('refreshData: 格式化数据是否包含交易建议:', !!formattedData.trading_advice)
+    console.log('refreshData: 格式化数据是否包含风险评估:', !!formattedData.risk_assessment)
 
     // 标记分析数据加载完成
     analysisLoading.value = false
 
     // 确保视图更新
     await nextTick()
+    console.log('refreshData: 刷新完成')
 
   } catch (err: any) {
     // 重置加载状态
@@ -1157,6 +1193,7 @@ const refreshData = async () => {
     // 现在 404 错误会被 API 函数处理并返回 {status: 'not_found'} 对象
     // 所以这里只需要处理其他类型的错误
     error.value = err.message || '刷新数据失败'
+    console.error('refreshData: 刷新失败:', err)
   }
 }
 
@@ -1174,6 +1211,29 @@ const handleManualRefresh = async () => {
   try {
     isRefreshing.value = true
     console.log('开始手动刷新，显示加载弹窗')
+
+    // 添加详细的调试信息
+    console.log('handleManualRefresh: currentSymbol.value =', currentSymbol.value)
+    console.log('handleManualRefresh: currentSymbol.value 类型 =', typeof currentSymbol.value)
+    console.log('handleManualRefresh: currentSymbol.value 是否为空 =', !currentSymbol.value)
+
+    // 如果 currentSymbol.value 无效，尝试重新获取
+    if (!currentSymbol.value || typeof currentSymbol.value !== 'string') {
+      console.warn('handleManualRefresh: 检测到无效的 currentSymbol.value，尝试重新获取')
+      try {
+        const newSymbol = await getCurrentSymbol()
+        if (newSymbol && typeof newSymbol === 'string') {
+          currentSymbol.value = newSymbol
+          console.log('handleManualRefresh: 成功重新获取 currentSymbol.value =', newSymbol)
+        } else {
+          currentSymbol.value = 'BTCUSDT'
+          console.log('handleManualRefresh: 重新获取失败，使用默认值 BTCUSDT')
+        }
+      } catch (e) {
+        console.error('handleManualRefresh: 重新获取 currentSymbol 失败:', e)
+        currentSymbol.value = 'BTCUSDT'
+      }
+    }
 
     // 显示加载弹窗
     loadingType.value = 'refresh'
@@ -1291,8 +1351,10 @@ const saveChartImage = async () => {
     titleSection.style.background = 'linear-gradient(to bottom, #1e293b99 60%, #0f172a99 100%)'
     titleSection.style.borderRadius = '16px'
     titleSection.style.boxShadow = '0 2px 8px 0 #0002'
+    const safeSymbol = currentSymbol.value || 'BTCUSDT'
+    const safeBaseSymbol = getBaseSymbol(safeSymbol)
     titleSection.innerHTML = `
-      <h2 style="font-size: 22px; margin-bottom: 10px; font-weight: 600; letter-spacing: 1px;">${currentSymbol.value} ${t('analysis.market_report', { symbol: getBaseSymbol(currentSymbol.value) }).replace('analysis.market_report', '市场分析报告')}</h2>
+      <h2 style="font-size: 22px; margin-bottom: 10px; font-weight: 600; letter-spacing: 1px;">${safeSymbol} ${t('analysis.market_report', { symbol: safeBaseSymbol }).replace('analysis.market_report', '市场分析报告')}</h2>
       <div style="font-size: 32px; font-weight: bold; margin-bottom: 4px;">
         ${formatPrice(analysisData.value?.current_price)} <span style='font-size:16px;color:#9ca3af'>USD</span>
       </div>
@@ -1469,7 +1531,8 @@ const saveChartImage = async () => {
 
     // 5. 下载图片
     const link = document.createElement('a')
-    link.download = `${currentSymbol.value}_market_analysis.png`
+    const safeSymbolForFilename = currentSymbol.value || 'CRYPTO'
+    link.download = `${safeSymbolForFilename}_market_analysis.png`
     link.href = canvas.toDataURL('image/png')
     link.click()
   } catch (error) {
@@ -1525,20 +1588,37 @@ const currentLanguage: LangType = (localStorage.getItem('language') as LangType)
 
 // 处理 TokenNotFoundView 刷新成功事件
 const handleRefreshSuccess = async () => {
-  console.log('TokenNotFoundView 刷新成功，强制重新加载数据...')
+  console.log('TokenNotFoundView 刷新成功，重新加载本地报告数据...')
   isTokenNotFound.value = false
   error.value = null
-  // 强制刷新，确保拉取到新生成的报告
+
+  // 重新加载本地报告数据，因为新报告已经生成
   await loadAnalysisData(true)
+
+  console.log('handleRefreshSuccess: 数据重新加载完成')
 }
 
 // 处理 TokenNotFoundView 刷新错误事件
 const handleRefreshError = async (error: any) => {
   console.error('TokenNotFoundView 刷新失败:', error)
-  isTokenNotFound.value = false
-  // 这里也强制刷新一次，防止报告其实已经生成
-  await loadAnalysisData(true)
-  // 也可以弹出提示
+
+  // 尝试重新加载一次本地数据，防止报告其实已经生成
+  try {
+    await loadAnalysisData(true)
+    // 如果加载成功，说明报告已经存在
+    if (analysisData.value) {
+      isTokenNotFound.value = false
+      error.value = null
+      console.log('handleRefreshError: 虽然刷新报错，但本地数据加载成功')
+    } else {
+      // 如果仍然没有数据，保持错误状态
+      isTokenNotFound.value = true
+      console.log('handleRefreshError: 本地数据仍然不存在')
+    }
+  } catch (loadError) {
+    console.error('handleRefreshError: 重新加载数据也失败:', loadError)
+    isTokenNotFound.value = true
+  }
   // ElMessage.error(error?.message || '刷新失败')
 }
 
@@ -1572,8 +1652,12 @@ const getIndicatorExplanation = (key: string) => {
 if (typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.onMessage) {
   chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     if (message.type === 'SYMBOL_UPDATED' && message.data && message.data.symbol) {
-      currentSymbol.value = message.data.symbol;
-      loadAnalysisData(); // 无论 symbol 是否变化都强制刷新
+      const newSymbol = message.data.symbol;
+      // 验证新的 symbol 是否为有效字符串
+      if (newSymbol && typeof newSymbol === 'string') {
+        currentSymbol.value = newSymbol;
+        loadAnalysisData(); // 无论 symbol 是否变化都强制刷新
+      }
     }
     return true;
   });

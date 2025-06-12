@@ -257,7 +257,7 @@ async function handleApiProxyRequest(data, sendResponse) {
       fullUrl = baseApiUrl + '/' + url;
     }
 
-    // console.log('Background script使用完整URL:', fullUrl);
+    console.log('Background script使用完整URL:', fullUrl);
 
     // 构建请求选项
     const options = {
@@ -271,56 +271,30 @@ async function handleApiProxyRequest(data, sendResponse) {
 
     // 确保认证令牌被正确传递
     if (headers && headers.Authorization) {
-      // console.log('Background script 请求包含认证令牌:', headers.Authorization);
+      console.log('Background script 请求包含认证令牌');
 
       // 确保令牌格式正确，如果不是以 "Token " 开头，则添加前缀
       if (headers.Authorization && !headers.Authorization.startsWith('Token ') && !headers.Authorization.startsWith('Bearer ')) {
-        // console.log('Background script 修正认证令牌格式，添加 Token 前缀');
+        console.log('Background script 修正认证令牌格式，添加 Token 前缀');
         options.headers.Authorization = `Token ${headers.Authorization}`;
+      } else {
+        options.headers.Authorization = headers.Authorization;
       }
     } else {
-      // 如果请求中没有包含认证令牌，尝试从 localStorage 获取
-      try {
-        // 从 localStorage 获取 token
-        chrome.storage.local.get(['token'], function(result) {
-          if (result.token) {
-            // console.log('Background script 从 storage 获取认证令牌');
+      console.warn('Background script 请求不包含认证令牌，这可能导致 401 错误');
 
-            // 确保令牌格式正确
-            if (!result.token.startsWith('Token ') && !result.token.startsWith('Bearer ')) {
-              options.headers.Authorization = `Token ${result.token}`;
-            } else {
-              options.headers.Authorization = result.token;
-            }
-          } else if (envConfig.token) {
-            // console.log('Background script 使用环境配置中的认证令牌');
+      // 如果请求中没有包含认证令牌，尝试从环境配置获取
+      if (envConfig.token) {
+        console.log('Background script 使用环境配置中的认证令牌');
 
-            // 确保令牌格式正确
-            if (!envConfig.token.startsWith('Token ') && !envConfig.token.startsWith('Bearer ')) {
-              options.headers.Authorization = `Token ${envConfig.token}`;
-            } else {
-              options.headers.Authorization = envConfig.token;
-            }
-          } else {
-            // console.warn('Background script 请求不包含认证令牌，无法从任何来源获取 token');
-          }
-        });
-      } catch (error) {
-        // console.error('Background script 获取认证令牌失败:', error);
-
-        // 如果从 localStorage 获取失败，尝试使用环境配置中的 token
-        if (envConfig.token) {
-          // console.log('Background script 使用环境配置中的认证令牌');
-
-          // 确保令牌格式正确
-          if (!envConfig.token.startsWith('Token ') && !envConfig.token.startsWith('Bearer ')) {
-            options.headers.Authorization = `Token ${envConfig.token}`;
-          } else {
-            options.headers.Authorization = envConfig.token;
-          }
+        // 确保令牌格式正确
+        if (!envConfig.token.startsWith('Token ') && !envConfig.token.startsWith('Bearer ')) {
+          options.headers.Authorization = `Token ${envConfig.token}`;
         } else {
-          // console.warn('Background script 请求不包含认证令牌，环境配置中也没有 token');
+          options.headers.Authorization = envConfig.token;
         }
+      } else {
+        console.warn('Background script 环境配置中也没有 token，请求将不包含认证信息');
       }
     }
 
@@ -332,14 +306,14 @@ async function handleApiProxyRequest(data, sendResponse) {
     // 设置超时
     const timeout = isForceRefresh ? 120000 : 30000; // 强制刷新使用更长的超时时间
 
-    // console.log('Background script发送请求:', {
-    //   url: fullUrl,
-    //   options: {
-    //     method: options.method,
-    //     headers: options.headers ? { ...options.headers, Authorization: options.headers.Authorization ? '已设置' : '未设置' } : '未设置',
-    //     body: options.body ? '已设置' : '未设置'
-    //   }
-    // });
+    console.log('Background script发送请求:', {
+      url: fullUrl,
+      options: {
+        method: options.method,
+        headers: options.headers ? { ...options.headers, Authorization: options.headers.Authorization ? '已设置' : '未设置' } : '未设置',
+        body: options.body ? '已设置' : '未设置'
+      }
+    });
 
     // 创建超时Promise
     const timeoutPromise = new Promise((_, reject) => {
@@ -356,11 +330,11 @@ async function handleApiProxyRequest(data, sendResponse) {
     // 使用Promise.race竞争，谁先完成就用谁的结果
     const response = await Promise.race([fetchPromise, timeoutPromise]);
 
-    // console.log('Background script收到响应:', {
-    //   status: response.status,
-    //   statusText: response.statusText,
-    //   headers: response.headers
-    // });
+    console.log('Background script收到响应:', {
+      status: response.status,
+      statusText: response.statusText,
+      headers: response.headers
+    });
 
     // 获取响应头
     const responseHeaders = {};
@@ -370,7 +344,7 @@ async function handleApiProxyRequest(data, sendResponse) {
 
     // 获取响应体在发送响应回去之前，先记录一下原始的响应文本
     const responseText = await response.text();
-    // console.log('Background script原始响应文本:', responseText);
+    console.log('Background script原始响应文本:', responseText);
 
     let responseData;
     try {
@@ -391,7 +365,7 @@ async function handleApiProxyRequest(data, sendResponse) {
       success: response.ok
     });
   } catch (error) {
-    // console.error('Background script API代理请求失败:', error);
+    console.error('Background script API代理请求失败:', error);
     sendResponse({
       success: false,
       error: error.message || '请求失败',

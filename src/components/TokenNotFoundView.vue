@@ -50,7 +50,7 @@
 
 <script setup lang="ts">
 import { ref, watch, computed, onUnmounted, onMounted } from 'vue'
-import { getTechnicalAnalysis, getLatestTechnicalAnalysis } from '@/api'
+import { getLatestTechnicalAnalysis } from '@/api'
 import { useEnhancedI18n } from '@/utils/i18n-helper'
 import { useI18n } from 'vue-i18n'
 import LoadingModal from '@/components/LoadingModal.vue'
@@ -113,7 +113,11 @@ let refreshPromise: Promise<any> | null = null;
 
 // 计算属性：格式化显示的交易对符号
 const formattedSymbol = computed(() => {
-  if (props.symbol && typeof props.symbol === 'string' && props.symbol.toUpperCase().endsWith('USDT')) {
+  if (!props.symbol || typeof props.symbol !== 'string') {
+    return 'Unknown/USDT'
+  }
+
+  if (props.symbol.toUpperCase().endsWith('USDT')) {
     return props.symbol
   }
   return `${props.symbol}/USDT`
@@ -121,6 +125,7 @@ const formattedSymbol = computed(() => {
 
 
 
+// 简化的刷新处理函数 - 直接调用 getLatestTechnicalAnalysis 获取新报告
 const handleRefresh = async () => {
   try {
     if (showRefreshModal.value) {
@@ -133,59 +138,30 @@ const handleRefresh = async () => {
       return refreshPromise;
     }
 
-    // 检查是否已有技术数据
-    const hasTechnicalData = localStorage.getItem(`technical_data_${props.symbol}`) === 'true'
-
-    // 设置一个更长的等待时间，因为生成新报告需要时间
-    const maxWaitTime = 60000 // 60秒
+    console.log('TokenNotFoundView: 开始获取新报告...')
 
     // 创建新的刷新请求Promise
     refreshPromise = new Promise(async (resolve, reject) => {
       try {
-        // 1. 先调用 getLatestTechnicalAnalysis 触发报告生成
-        console.log('开始触发报告生成...')
-        await getLatestTechnicalAnalysis(props.symbol)
+        // 直接调用 getLatestTechnicalAnalysis 获取新报告
+        console.log('TokenNotFoundView: 调用 getLatestTechnicalAnalysis 获取新报告')
+        const result = await getLatestTechnicalAnalysis(props.symbol, true)
 
-        // 2. 轮询 getTechnicalAnalysis 直到获取到数据或超时
-        const startTime = Date.now()
-        let attempts = 0
-        const maxAttempts = 20 // 最多尝试20次
-
-        while (attempts < maxAttempts) {
-          // 检查是否超时
-          if (Date.now() - startTime > maxWaitTime) {
-            throw new Error('请求超时，请稍后重试')
-          }
-
-          attempts++
-          console.log(`第 ${attempts} 次尝试获取数据...`)
-
-          // 等待一段时间再尝试
-          if (attempts > 1) {
-            await new Promise(resolve => setTimeout(resolve, 3000)) // 等待3秒
-          }
-
-          // 尝试获取数据
-          const result = await getTechnicalAnalysis(props.symbol)
-
-          // 检查是否获取到有效数据
-          if (result && (result as any).status !== 'not_found') {
-            console.log('成功获取到数据!')
-            // 发送成功事件
-            emit('refresh-success')
-            // 延迟关闭弹窗，给HomeView时间加载数据
-            handleSuccessClose()
-            resolve(result)
-            return
-          }
-
-          console.log('数据尚未准备好，继续等待...')
+        // 检查是否获取到有效数据
+        if (result && (result as any).status !== 'not_found') {
+          console.log('TokenNotFoundView: 成功获取到新报告数据!')
+          // 发送成功事件
+          emit('refresh-success')
+          // 延迟关闭弹窗，给HomeView时间加载数据
+          handleSuccessClose()
+          resolve(result)
+          return
+        } else {
+          // 如果仍然未找到，抛出错误
+          throw new Error('生成报告失败，请稍后重试')
         }
-
-        // 如果所有尝试都失败了
-        throw new Error('生成报告超时，请稍后重试')
       } catch (error) {
-        console.error('刷新失败:', error)
+        console.error('TokenNotFoundView: 获取新报告失败:', error)
         emit('refresh-error', error)
         reject(error)
         // 只有在错误时才立即关闭弹窗
@@ -197,7 +173,7 @@ const handleRefresh = async () => {
 
     return refreshPromise
   } catch (error) {
-    console.error('刷新失败:', error)
+    console.error('TokenNotFoundView: 刷新失败:', error)
     showRefreshModal.value = false
     refreshPromise = null
   }
@@ -224,17 +200,7 @@ const handleSuccessClose = () => {
   }
 }
 
-// 添加一个监听器来检测父组件是否已经成功加载数据
-// 这个可以通过监听 emit 事件的响应来实现
-const checkParentDataLoaded = () => {
-  // 定期检查父组件是否已经加载了数据
-  const checkInterval = setInterval(() => {
-    // 如果弹窗还在显示，我们可以通过某种方式检查父组件状态
-    if (!showRefreshModal.value) {
-      clearInterval(checkInterval)
-    }
-  }, 1000)
-}
+
 
 // 组件卸载时清理
 onUnmounted(() => {
