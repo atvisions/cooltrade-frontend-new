@@ -1,6 +1,6 @@
 // 初始化环境变量
 let envConfig = {
-  baseApiUrl: 'http://192.168.3.56:8000/api',
+  baseApiUrl: 'https://www.cooltrade.xyz/api',
   env: 'development',
   token: null
 };

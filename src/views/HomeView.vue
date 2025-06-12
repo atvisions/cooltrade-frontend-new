@@ -3,7 +3,7 @@
     <!-- 顶部导航栏 -->
     <header class="absolute top-0 left-0 right-0 z-10 bg-[#0F172A]/95 backdrop-blur-md border-b border-gray-800">
       <div class="max-w-[375px] mx-auto">
-        <div class="flex justify-center items-center px-4 py-3">
+        <div class="flex justify-start items-center px-4 py-3">
           <h1 class="text-lg font-semibold">{{ currentSymbol ? t('analysis.market_report', { symbol: getBaseSymbol(currentSymbol) }) : t('common.loading') }}</h1>
         </div>
       </div>
@@ -915,9 +915,23 @@ const triggerContentScriptDetection = async () => {
   }
 }
 
+// 检查用户登录状态
+const checkAuthStatus = () => {
+  const token = localStorage.getItem('token')
+  const userInfo = localStorage.getItem('userInfo')
+  return token && userInfo
+}
+
 // 组件挂载时加载数据
 onMounted(async () => {
   console.log('HomeView 组件挂载开始...');
+
+  // 检查用户登录状态，如果未登录则直接跳转到登录页
+  if (!checkAuthStatus()) {
+    console.log('用户未登录，跳转到登录页面');
+    window.location.href = '/login';
+    return;
+  }
 
   // 设置loading状态
   loading.value = true;

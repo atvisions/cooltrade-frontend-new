@@ -185,7 +185,7 @@ const cookieNameForCookie = 'temporary_invitation_uuid';
 // 根据环境获取主网站域名
 const getMainWebsiteDomain = () => {
   const isDevelopment = localStorage.getItem('env') === 'development';
-  return isDevelopment ? 'http://192.168.3.16:8000' : 'https://www.cooltrade.xyz';
+  return isDevelopment ? 'https://www.cooltrade.xyz' : 'https://www.cooltrade.xyz';
 };
 
 // 尝试从 cookie 读取 UUID 并认领

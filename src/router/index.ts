@@ -18,7 +18,7 @@ const routes: RouteRecordRaw[] = [
     component: HomeView,
     meta: {
       title: 'CoolTrade - Home',
-      requiresAuth: false
+      requiresAuth: true
     }
   },
   {

@@ -16,14 +16,14 @@ const isDevelopment = (): boolean => {
 // 获取基础 URL
 const getBaseUrl = (): string => {
   if (isExtension()) {
-    return 'http://192.168.3.56:8000/api'; // 扩展环境使用本地服务器
+    return 'https://www.cooltrade.xyz/api'; // 扩展环境使用本地服务器
   }
   // 在开发环境中使用代理
   if (isDevelopment()) {
     return '/api'
   }
   // 在生产环境中使用本地服务器
-  return 'http://192.168.3.56:8000/api'
+  return 'https://www.cooltrade.xyz/api'
 }
 
 // 创建axios实例
