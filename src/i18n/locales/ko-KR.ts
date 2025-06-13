@@ -54,7 +54,9 @@ export default {
     privacy_policy: '개인정보 처리방침',
     about_us: '회사 소개',
     no_data: '데이터가 없습니다',
-    load_data: '데이터 로드'
+    load_data: '데이터 로드',
+    popular_tokens: '인기 토큰',
+    quick_switch: '빠른 전환'
   },
   auth: {
     login: '로그인',

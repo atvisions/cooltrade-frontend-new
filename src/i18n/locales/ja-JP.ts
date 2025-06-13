@@ -54,7 +54,9 @@ export default {
     privacy_policy: 'プライバシーポリシー',
     about_us: '会社概要',
     no_data: 'データがありません',
-    load_data: 'データを読み込む'
+    load_data: 'データを読み込む',
+    popular_tokens: '人気トークン',
+    quick_switch: 'クイック切替'
   },
   auth: {
     login: 'ログイン',

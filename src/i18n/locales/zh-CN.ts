@@ -23,7 +23,9 @@ export default {
     privacy_policy: '隐私政策',
     about_us: '关于我们',
     no_data: '暂无数据',
-    load_data: '加载数据'
+    load_data: '加载数据',
+    popular_tokens: '热门代币',
+    quick_switch: '快速切换'
   },
   auth: {
     login: '登录',

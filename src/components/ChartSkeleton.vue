@@ -1,5 +1,5 @@
 <template>
-  <div class="max-w-[375px] mx-auto px-4 pb-16">
+  <div class="w-full">
     <!-- 价格展示卡片骨架 -->
     <div class="mt-6 p-5 rounded-lg bg-gradient-to-b from-gray-800/60 to-gray-900/60 border border-gray-700/50 shadow-lg">
       <div class="text-center text-gray-400 mb-1 h-4 w-24 bg-gray-700/50 rounded animate-pulse mx-auto"></div>

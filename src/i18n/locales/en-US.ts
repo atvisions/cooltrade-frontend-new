@@ -23,7 +23,9 @@ export default {
     privacy_policy: 'Privacy Policy',
     about_us: 'About Us',
     no_data: 'No data available',
-    load_data: 'Load Data'
+    load_data: 'Load Data',
+    popular_tokens: 'Popular Tokens',
+    quick_switch: 'Quick Switch'
   },
   auth: {
     login: 'Login',

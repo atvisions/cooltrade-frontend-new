@@ -3,15 +3,53 @@
     <!-- 顶部导航栏 -->
     <header class="absolute top-0 left-0 right-0 z-10 bg-[#0F172A]/95 backdrop-blur-md border-b border-gray-800">
       <div class="max-w-[375px] mx-auto">
-        <div class="flex justify-start items-center px-4 py-3">
+        <div class="flex justify-between items-center px-4 py-3">
           <h1 class="text-lg font-semibold">{{ currentSymbol ? t('analysis.market_report', { symbol: getBaseSymbol(currentSymbol) }) : t('common.loading') }}</h1>
+          <button
+            class="ml-2 flex items-center px-2 py-1 rounded hover:bg-gray-800/60 transition text-xs text-blue-400 border border-blue-500/40"
+            @click="showPopularTokensPopover = !showPopularTokensPopover"
+            aria-label="Popular Tokens"
+          >
+            <i class="ri-fire-line mr-1"></i>
+            {{ t('common.popular_tokens') }}
+          </button>
         </div>
       </div>
     </header>
 
+    <!-- 热门代币浮层 -->
+    <transition name="fade">
+      <div
+        v-if="showPopularTokensPopover"
+        class="fixed z-30 top-14 right-4 w-[340px] max-w-[90vw] bg-[#1e293b] border border-gray-700 rounded-xl shadow-xl p-4 animate-fade-in"
+        @click.self="showPopularTokensPopover = false"
+        style="backdrop-filter: blur(8px);"
+      >
+        <div class="flex items-center justify-between mb-3">
+          <h3 class="text-sm font-medium text-gray-400">{{ t('common.popular_tokens') }}</h3>
+          <button class="text-gray-400 hover:text-blue-400" @click="showPopularTokensPopover = false"><i class="ri-close-line text-lg"></i></button>
+        </div>
+        <div class="grid grid-cols-4 gap-2">
+          <button
+            v-for="token in popularTokens"
+            :key="token.symbol"
+            @click="handleTokenSwitchFromPopover(token.symbol)"
+            :disabled="analysisLoading || token.symbol === currentSymbol"
+            class="flex items-center justify-center p-3 rounded-lg border transition-all duration-200"
+            :class="{
+              'bg-blue-600/20 border-blue-500/50 text-blue-400': token.symbol === currentSymbol,
+              'bg-gray-800/30 border-gray-700/50 text-gray-300 hover:bg-gray-700/40 hover:border-gray-600/60': token.symbol !== currentSymbol && !analysisLoading,
+              'bg-gray-800/20 border-gray-700/30 text-gray-500 cursor-not-allowed': analysisLoading
+            }"
+          >
+            <div class="text-sm font-medium">{{ token.display }}</div>
+          </button>
+        </div>
+      </div>
+    </transition>
+
     <!-- 主要内容区域 -->
     <main class="absolute inset-0 top-12 bottom-16 overflow-y-auto">
-
 
       <!-- 骨架屏 - 没有数据且没有错误时显示 -->
       <div v-if="showSkeleton" class="max-w-[375px] mx-auto px-4 pb-16">
@@ -20,6 +58,9 @@
 
       <!-- 正常内容 - 有数据时显示 -->
       <div v-else-if="analysisData" class="max-w-[375px] mx-auto px-4 pb-16">
+        <!-- 热门代币切换按钮（已移至浮层） -->
+        <!-- <div class="mt-4 mb-4"> ... </div> -->
+
         <!-- 价格展示卡片 -->
         <div class="mt-6 p-5 rounded-lg bg-gradient-to-b from-gray-800/60 to-gray-900/60 border border-gray-700/50 shadow-lg">
           <h2 class="text-center text-gray-400 mb-1">{{ t('analysis.snapshot_price') }}</h2>
@@ -54,15 +95,7 @@
             <i class="ri-time-line mr-1"></i>
             <span>{{ t('analysis.last_update') }}: {{ formatTime(analysisData?.last_update_time) }}</span>
           </div>
-          <button
-            @click="handleManualRefresh"
-            :disabled="analysisLoading"
-            class="flex items-center gap-1 px-3 py-1.5 text-xs bg-blue-600/20 hover:bg-blue-600/30 disabled:bg-gray-600/20 text-blue-400 disabled:text-gray-500 rounded-full transition-colors"
-            :class="{ 'animate-pulse': analysisLoading }"
-          >
-            <i class="ri-refresh-line" :class="{ 'animate-spin': analysisLoading }"></i>
-            <span>{{ analysisLoading ? t('common.refreshing') : t('common.refresh') }}</span>
-          </button>
+          <!-- 刷新按钮已移除，将使用 TokenNotFoundView 的方法 -->
         </div>
 
         <!-- 趋势分析卡片 -->
@@ -418,13 +451,7 @@
             >
               {{ t('common.retry') }}
             </button>
-            <button
-              class="px-4 py-2 bg-blue-600 text-white rounded-lg"
-              @click="handleManualRefresh"
-              :disabled="isRefreshing"
-            >
-              {{ isRefreshing ? t('common.refreshing') : t('analysis.force_refresh') }}
-            </button>
+            <!-- 强制刷新按钮已移除，将使用 TokenNotFoundView 的方法 -->
           </div>
         </div>
       </div>
@@ -488,7 +515,7 @@ import { useI18n } from 'vue-i18n'
 const { t } = useEnhancedI18n()
 const { t: i18nT } = useI18n()
 
-import { getTechnicalAnalysis, getLatestTechnicalAnalysis } from '@/api'
+import { getTechnicalAnalysis } from '@/api'
 import { parseSymbolFromUrl } from '@/utils/trading'
 import type {
   FormattedTechnicalAnalysisData
@@ -511,11 +538,19 @@ const loading = ref(false) // 整体加载状态
 const analysisLoading = ref(false) // 分析数据加载状态
 const error = ref<string | null>(null)
 const currentSymbol = ref<string>('BTCUSDT') // 默认值
-const retryCount = ref(0)
 const isTokenNotFound = ref(false) // 用于标记代币是否未找到（404错误）
-const showRefreshModal = ref(false)
-const showLoadingModal = ref(false) // 通用加载弹窗
-const loadingType = ref<'refresh' | 'generate'>('refresh') // 加载类型
+
+// 热门代币列表
+const popularTokens = ref([
+  { symbol: 'BTCUSDT', display: 'BTC' },
+  { symbol: 'ETHUSDT', display: 'ETH' },
+  { symbol: 'SOLUSDT', display: 'SOL' },
+  { symbol: 'BNBUSDT', display: 'BNB' },
+  { symbol: 'ADAUSDT', display: 'ADA' },
+  { symbol: 'XRPUSDT', display: 'XRP' },
+  { symbol: 'DOGEUSDT', display: 'DOGE' },
+  { symbol: 'AVAXUSDT', display: 'AVAX' }
+])
 
 // 简化骨架屏逻辑 - 基于数据状态而不是加载状态
 const showSkeleton = ref(true) // 默认显示骨架屏
@@ -533,6 +568,27 @@ watch([isTokenNotFound, error], ([tokenNotFound, errorState]) => {
     showSkeleton.value = false
   }
 })
+
+// 切换代币函数
+const switchToToken = async (symbol: string) => {
+  if (symbol === currentSymbol.value || analysisLoading.value) {
+    return
+  }
+
+  console.log(`切换代币从 ${currentSymbol.value} 到 ${symbol}`)
+
+  // 重置状态
+  analysisData.value = null
+  error.value = null
+  isTokenNotFound.value = false
+  showSkeleton.value = true
+
+  // 更新当前代币
+  currentSymbol.value = symbol
+
+  // 加载新代币的数据
+  await loadAnalysisData(true, false) // 不使用防抖，立即加载
+}
 
 // 获取当前交易对
 const getCurrentSymbol = async (): Promise<string> => {
@@ -636,9 +692,11 @@ const setupSymbolListener = () => {
           const newSymbol = message.data.symbol;
           // 验证新的 symbol 是否为有效字符串
           if (newSymbol && typeof newSymbol === 'string' && newSymbol !== currentSymbol.value) {
-            console.log('交易对发生变化，从', currentSymbol.value, '到', newSymbol);
+            console.log('收到 SYMBOL_UPDATED 消息，交易对从', currentSymbol.value, '到', newSymbol);
             currentSymbol.value = newSymbol;
             // 不要在这里调用 loadAnalysisData()，让 watch 来处理
+          } else {
+            console.log('收到 SYMBOL_UPDATED 消息，但交易对未变化:', { current: currentSymbol.value, new: newSymbol });
           }
         }
 
@@ -734,10 +792,30 @@ const getBaseSymbol = (symbol: string | null | undefined) => {
 
 // 添加请求防抖变量
 let loadingPromise: Promise<any> | null = null;
+let debounceTimer: NodeJS.Timeout | null = null;
+let abortController: AbortController | null = null;
 
 // 简化的数据加载函数 - 读取本地已存在的报告数据
-const loadAnalysisData = async (showLoading = true) => {
+const loadAnalysisData = async (showLoading = true, debounce = true) => {
   try {
+    // 防抖处理 - 避免快速连续调用
+    if (debounce) {
+      if (debounceTimer) {
+        clearTimeout(debounceTimer)
+      }
+
+      return new Promise((resolve, reject) => {
+        debounceTimer = setTimeout(async () => {
+          try {
+            const result = await loadAnalysisData(showLoading, false) // 递归调用但不再防抖
+            resolve(result)
+          } catch (error) {
+            reject(error)
+          }
+        }, 300) // 减少防抖延迟到300ms，提高响应速度
+      })
+    }
+
     // 增强的 symbol 验证
     if (!currentSymbol.value || typeof currentSymbol.value !== 'string') {
       console.error('loadAnalysisData: Invalid currentSymbol.value:', {
@@ -748,10 +826,17 @@ const loadAnalysisData = async (showLoading = true) => {
       return
     }
 
-    // 如果已经有请求在进行中，直接返回该请求的Promise
+    // 如果已经有请求在进行中，取消之前的请求
     if (loadingPromise) {
-      return loadingPromise;
+      console.log('loadAnalysisData: 取消之前的请求，开始新请求')
+      if (abortController) {
+        abortController.abort()
+      }
+      loadingPromise = null
     }
+
+    // 创建新的 AbortController
+    abortController = new AbortController()
 
     error.value = null
     isTokenNotFound.value = false
@@ -769,12 +854,22 @@ const loadAnalysisData = async (showLoading = true) => {
           const formattedData = formatTechnicalAnalysisData(data)
           analysisData.value = formattedData
           isTokenNotFound.value = false
+          error.value = null // 清除之前的错误
           console.log(`loadAnalysisData: 成功加载 ${currentSymbol.value} 的报告数据`)
         } else {
           isTokenNotFound.value = true
+          analysisData.value = null
+          error.value = null // 清除错误，因为这是正常的未找到状态
           console.log(`loadAnalysisData: ${currentSymbol.value} 的报告数据未找到`)
         }
         return data;
+      })
+      .catch(err => {
+        console.error(`loadAnalysisData: 请求失败`, err)
+        error.value = err instanceof Error ? err.message : '加载数据失败'
+        analysisData.value = null
+        isTokenNotFound.value = false
+        return null;
       })
       .finally(() => {
         loading.value = false
@@ -792,95 +887,24 @@ const loadAnalysisData = async (showLoading = true) => {
   }
 }
 
-// 强制刷新函数 - 先生成新报告，然后读取完整报告数据
-async function forceRefreshData() {
-  try {
-    console.log('forceRefreshData 开始执行')
 
-    // 添加详细的调试信息
-    console.log('forceRefreshData: currentSymbol.value =', currentSymbol.value)
-    console.log('forceRefreshData: currentSymbol.value 类型 =', typeof currentSymbol.value)
-    console.log('forceRefreshData: currentSymbol.value 是否为空 =', !currentSymbol.value)
-    console.log('forceRefreshData: currentSymbol.value 长度 =', currentSymbol.value?.length)
-
-    if (!currentSymbol.value || typeof currentSymbol.value !== 'string') {
-      const errorMsg = `无法获取当前交易对信息: currentSymbol.value = ${currentSymbol.value}, 类型 = ${typeof currentSymbol.value}`
-      console.error(errorMsg)
-      error.value = errorMsg
-      throw new Error(errorMsg)
-    }
-
-    console.log('当前交易对:', currentSymbol.value)
-    error.value = null
-    isTokenNotFound.value = false
-    analysisLoading.value = true
-
-    console.log('步骤1: 调用 getLatestTechnicalAnalysis 生成新报告，参数:', currentSymbol.value)
-
-    // 再次验证 symbol 在调用 API 之前
-    if (!currentSymbol.value || typeof currentSymbol.value !== 'string') {
-      const errorMsg = `API调用前验证失败: currentSymbol.value = ${currentSymbol.value}, 类型 = ${typeof currentSymbol.value}`
-      console.error(errorMsg)
-      error.value = errorMsg
-      analysisLoading.value = false
-      throw new Error(errorMsg)
-    }
-
-    // 步骤1: 调用 getLatestTechnicalAnalysis 生成新报告
-    const generateResult = await getLatestTechnicalAnalysis(currentSymbol.value, true)
-    console.log('forceRefreshData: 报告生成结果:', generateResult)
-
-    // 检查生成是否成功
-    if (!generateResult || (generateResult as any).status === 'not_found') {
-      isTokenNotFound.value = true
-      analysisLoading.value = false
-      console.log('forceRefreshData: 报告生成失败')
-      return
-    }
-
-    console.log('步骤2: 报告生成成功，现在调用 getTechnicalAnalysis 读取完整报告数据')
-
-    // 再次验证 symbol 在第二次 API 调用之前
-    if (!currentSymbol.value || typeof currentSymbol.value !== 'string') {
-      const errorMsg = `第二次API调用前验证失败: currentSymbol.value = ${currentSymbol.value}, 类型 = ${typeof currentSymbol.value}`
-      console.error(errorMsg)
-      error.value = errorMsg
-      analysisLoading.value = false
-      throw new Error(errorMsg)
-    }
-
-    // 步骤2: 报告生成成功后，调用 getTechnicalAnalysis 读取完整的报告数据
-    const fullReportData = await getTechnicalAnalysis(currentSymbol.value)
-    console.log('forceRefreshData: 完整报告数据:', fullReportData)
-
-    // 检查完整报告数据
-    if (fullReportData && (fullReportData as any).status !== 'not_found') {
-      // 成功获取到完整报告数据
-      const formattedData = formatTechnicalAnalysisData(fullReportData)
-      analysisData.value = formattedData
-      isTokenNotFound.value = false
-      console.log('forceRefreshData: 成功获取完整报告数据')
-    } else {
-      // 完整报告数据未找到
-      isTokenNotFound.value = true
-      console.log('forceRefreshData: 完整报告数据未找到')
-    }
-
-    analysisLoading.value = false
-    console.log('forceRefreshData 执行成功')
-  } catch (e) {
-    console.error('forceRefreshData 执行失败:', e)
-    const errorMsg = e instanceof Error ? e.message : '刷新失败'
-    error.value = errorMsg
-    analysisLoading.value = false
-    throw e // 重新抛出错误，让调用者知道失败了
-  }
-}
 
 // 组件卸载时清理
 onUnmounted(() => {
   // 清理所有进行中的请求
   loadingPromise = null;
+
+  // 清理防抖定时器
+  if (debounceTimer) {
+    clearTimeout(debounceTimer);
+    debounceTimer = null;
+  }
+
+  // 取消进行中的请求
+  if (abortController) {
+    abortController.abort();
+    abortController = null;
+  }
 })
 
 // 监听语言变更事件，重新翻译报告数据
@@ -967,39 +991,17 @@ onMounted(async () => {
     console.log('获取到的交易对:', symbol);
 
     // 验证获取到的 symbol 是否为有效字符串
-    if (symbol && typeof symbol === 'string' && symbol !== currentSymbol.value) {
-      console.log('交易对发生变化，从', currentSymbol.value, '到', symbol);
+    if (symbol && typeof symbol === 'string') {
+      console.log('设置交易对为:', symbol);
       currentSymbol.value = symbol;
-      await loadAnalysisData();
-    } else if (!symbol || typeof symbol !== 'string' || symbol === 'BTCUSDT') {
-      // 如果没有获取到symbol或者是默认值，再次尝试获取
-      console.log('未获取到有效交易对，等待后重试...');
-
-      // 先用默认值加载，避免长时间显示loading
-      currentSymbol.value = 'BTCUSDT';
-      await loadAnalysisData();
-
-      // 等待一段时间后重试
-      setTimeout(async () => {
-        const retrySymbol = await getCurrentSymbol();
-        console.log('重试获取到的交易对:', retrySymbol);
-
-        // 验证重试获取的 symbol 是否为有效字符串
-        if (retrySymbol && typeof retrySymbol === 'string' && retrySymbol !== currentSymbol.value && retrySymbol !== 'BTCUSDT') {
-          console.log('重试成功，更新交易对:', retrySymbol);
-          currentSymbol.value = retrySymbol;
-          await loadAnalysisData();
-        }
-      }, 1000);
     } else {
-      // 如果获取到了有效的交易对，直接加载
-      await loadAnalysisData();
+      console.log('未获取到有效交易对，使用默认值 BTCUSDT');
+      currentSymbol.value = 'BTCUSDT';
     }
 
-    // 如果 analysisData 为空，主动加载一次（兜底）
-    if (!analysisData.value) {
-      await loadAnalysisData();
-    }
+    // 只调用一次 loadAnalysisData，避免重复调用
+    await loadAnalysisData(true, false); // 不使用防抖，直接加载
+
   } catch (e: any) {
     console.error('初始化失败:', e);
     error.value = e instanceof Error ? e.message : '加载数据失败'
@@ -1018,8 +1020,10 @@ watch(currentSymbol, async (newSymbol, oldSymbol) => {
     return
   }
 
-  if (newSymbol && typeof newSymbol === 'string') {
-    await loadAnalysisData()
+  // 只有当交易对真正发生变化时才加载数据
+  if (newSymbol && typeof newSymbol === 'string' && newSymbol !== oldSymbol) {
+    console.log(`交易对从 ${oldSymbol} 变更为 ${newSymbol}，开始加载数据`)
+    await loadAnalysisData(true, true) // 使用防抖
   }
 })
 
@@ -1139,138 +1143,9 @@ const testUrlParsing = async () => {
   }
 }
 
-// 普通刷新数据 - 重新读取本地报告数据
-const refreshData = async () => {
-  error.value = null // 清除之前的错误
-  isTokenNotFound.value = false // 重置代币未找到状态
-  analysisLoading.value = true
 
-  try {
-    console.log('refreshData: 开始刷新本地报告数据')
 
-    // 验证 currentSymbol.value
-    if (!currentSymbol.value || typeof currentSymbol.value !== 'string') {
-      throw new Error('无效的交易对信息')
-    }
 
-    // 调用 getTechnicalAnalysis 重新读取本地数据
-    const response = await getTechnicalAnalysis(currentSymbol.value)
-    console.log('refreshData: 普通刷新数据返回:', response)
-
-    // 检查响应状态，处理新的响应格式
-    if (typeof response === 'object' && response !== null && 'status' in response) {
-      const apiResponse = response as any;
-      if (apiResponse.status === 'not_found' && apiResponse.needs_refresh === true) {
-        isTokenNotFound.value = true
-        analysisLoading.value = false
-        console.log('refreshData: 报告数据未找到，需要生成新报告')
-        return
-      }
-    }
-
-    // 确保数据格式化，填充可能缺失的字段
-    const formattedData = formatTechnicalAnalysisData(response)
-
-    // 更新数据
-    analysisData.value = formattedData
-
-    // 打印检查数据完整性
-    console.log('refreshData: 格式化数据是否包含市场趋势分析:', !!formattedData.trend_analysis)
-    console.log('refreshData: 格式化数据是否包含交易建议:', !!formattedData.trading_advice)
-    console.log('refreshData: 格式化数据是否包含风险评估:', !!formattedData.risk_assessment)
-
-    // 标记分析数据加载完成
-    analysisLoading.value = false
-
-    // 确保视图更新
-    await nextTick()
-    console.log('refreshData: 刷新完成')
-
-  } catch (err: any) {
-    // 重置加载状态
-    analysisLoading.value = false
-
-    // 现在 404 错误会被 API 函数处理并返回 {status: 'not_found'} 对象
-    // 所以这里只需要处理其他类型的错误
-    error.value = err.message || '刷新数据失败'
-    console.error('refreshData: 刷新失败:', err)
-  }
-}
-
-// 防止重复刷新的标志
-const isRefreshing = ref(false)
-
-// 手动刷新按钮处理函数
-const handleManualRefresh = async () => {
-  // 防止重复点击
-  if (isRefreshing.value) {
-    console.log('刷新正在进行中，忽略重复点击')
-    return
-  }
-
-  try {
-    isRefreshing.value = true
-    console.log('开始手动刷新，显示加载弹窗')
-
-    // 添加详细的调试信息
-    console.log('handleManualRefresh: currentSymbol.value =', currentSymbol.value)
-    console.log('handleManualRefresh: currentSymbol.value 类型 =', typeof currentSymbol.value)
-    console.log('handleManualRefresh: currentSymbol.value 是否为空 =', !currentSymbol.value)
-
-    // 如果 currentSymbol.value 无效，尝试重新获取
-    if (!currentSymbol.value || typeof currentSymbol.value !== 'string') {
-      console.warn('handleManualRefresh: 检测到无效的 currentSymbol.value，尝试重新获取')
-      try {
-        const newSymbol = await getCurrentSymbol()
-        if (newSymbol && typeof newSymbol === 'string') {
-          currentSymbol.value = newSymbol
-          console.log('handleManualRefresh: 成功重新获取 currentSymbol.value =', newSymbol)
-        } else {
-          currentSymbol.value = 'BTCUSDT'
-          console.log('handleManualRefresh: 重新获取失败，使用默认值 BTCUSDT')
-        }
-      } catch (e) {
-        console.error('handleManualRefresh: 重新获取 currentSymbol 失败:', e)
-        currentSymbol.value = 'BTCUSDT'
-      }
-    }
-
-    // 显示加载弹窗
-    loadingType.value = 'refresh'
-    showLoadingModal.value = true
-    console.log('showLoadingModal.value 设置为:', showLoadingModal.value)
-
-    // 使用强制刷新逻辑
-    await forceRefreshData()
-
-    // 刷新成功，隐藏加载弹窗
-    showLoadingModal.value = false
-    console.log('刷新成功，隐藏加载弹窗')
-
-    ElMessage({
-      message: t('common.success'),
-      type: 'success'
-    })
-  } catch (error) {
-    console.error('手动刷新失败，详细错误:', error)
-    console.error('错误类型:', typeof error)
-    console.error('错误消息:', error instanceof Error ? error.message : String(error))
-
-    // 隐藏加载弹窗
-    showLoadingModal.value = false
-    console.log('刷新失败，隐藏加载弹窗')
-
-    // 显示具体的错误信息
-    const errorMessage = error instanceof Error ? error.message : t('errors.refresh_failed')
-    ElMessage({
-      message: errorMessage,
-      type: 'error',
-      duration: 3000 // 3秒后自动消失
-    })
-  } finally {
-    isRefreshing.value = false
-  }
-}
 
 // 分享到推特
 const shareToTwitter = () => {
@@ -1663,6 +1538,27 @@ if (typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.onMessage)
   });
 }
 
+const showPopularTokensPopover = ref(false)
+
+// 点击浮层内切换token
+const handleTokenSwitchFromPopover = async (symbol: string) => {
+  await switchToToken(symbol)
+  showPopularTokensPopover.value = false
+}
+
+// 点击页面其他地方关闭浮层
+onMounted(() => {
+  const onClick = (e: MouseEvent) => {
+    const popover = document.querySelector('.z-30.top-14')
+    const triggerButton = document.querySelector('[aria-label="Popular Tokens"]')
+    if (showPopularTokensPopover.value && popover && !popover.contains(e.target as Node) && !triggerButton?.contains(e.target as Node)) {
+      showPopularTokensPopover.value = false
+    }
+  }
+  document.addEventListener('click', onClick)
+  onUnmounted(() => document.removeEventListener('click', onClick))
+})
+
 </script>
 
 <style scoped>
@@ -1675,5 +1571,13 @@ if (typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.onMessage)
 .fade-enter-from,
 .fade-leave-to {
   opacity: 0;
+}
+
+@keyframes fade-in {
+  from { opacity: 0; transform: translateY(-10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.animate-fade-in {
+  animation: fade-in 0.2s;
 }
 </style>
