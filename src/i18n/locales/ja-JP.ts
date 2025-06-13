@@ -164,7 +164,11 @@ export default {
     force_refresh: '強制更新',
     minute_ago: '{n}分前',
     hour_ago: '{n}時間前',
-    day_ago: '{n}日前'
+    day_ago: '{n}日前',
+    preparing_analysis_report: '分析レポートを準備中...',
+    generating_new_report: '新しい分析レポートを生成中、お待ちください...',
+    timeout_error: 'リクエストタイムアウト。サーバーが処理中です。後でもう一度お試しください',
+    refresh_report: 'レポート更新'
   },
   indicators: {
     rsi: 'RSI',

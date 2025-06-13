@@ -164,7 +164,11 @@ export default {
     force_refresh: '강제 새로고침',
     minute_ago: '{n}분 전',
     hour_ago: '{n}시간 전',
-    day_ago: '{n}일 전'
+    day_ago: '{n}일 전',
+    preparing_analysis_report: '분석 보고서 준비 중...',
+    generating_new_report: '새로운 분석 보고서 생성 중, 잠시만 기다려주세요...',
+    timeout_error: '요청 시간 초과. 서버가 처리 중입니다. 나중에 다시 시도해주세요',
+    refresh_report: '보고서 새로고침'
   },
   indicators: {
     rsi: 'RSI',

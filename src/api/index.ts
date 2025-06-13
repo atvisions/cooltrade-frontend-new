@@ -558,7 +558,8 @@ const getCurrentLanguage = (): string => {
 
 // 获取技术分析数据 - 读取本地已存在的报告数据
 export const getTechnicalAnalysis = async (
-  symbol: string
+  symbol: string,
+  noCache: boolean = false
 ): Promise<FormattedTechnicalAnalysisData> => {
   try {
     // 验证 symbol 参数
@@ -584,6 +585,10 @@ export const getTechnicalAnalysis = async (
     // 添加语言参数
     const currentLanguage = getCurrentLanguage()
     params.language = currentLanguage
+    // 添加防缓存参数
+    if (noCache) {
+      params._t = Date.now()
+    }
 
     console.log(`getTechnicalAnalysis: 读取本地报告数据 ${fullSymbol}`)
 

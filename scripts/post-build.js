@@ -29,9 +29,9 @@ if (jsMatch) {
   console.log('📄 找到 JS 文件:', jsMatch)
 }
 
-// 更新 manifest.json 中的 CSP 以允许内联样式
+// 更新 manifest.json 中的 CSP 以允许内联样式和 Google Fonts
 manifest.content_security_policy = {
-  extension_pages: "script-src 'self'; object-src 'self'; style-src 'self' 'unsafe-inline';"
+  extension_pages: "script-src 'self'; object-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com;"
 }
 
 // 写回 manifest.json

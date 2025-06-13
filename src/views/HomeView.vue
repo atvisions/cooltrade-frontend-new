@@ -95,8 +95,22 @@
             <i class="ri-time-line mr-1"></i>
             <span>{{ t('analysis.last_update') }}: {{ formatTime(analysisData?.last_update_time) }}</span>
           </div>
-          <!-- 刷新按钮已移除，将使用 TokenNotFoundView 的方法 -->
+          <el-tooltip :content="t('analysis.refresh_report')" placement="top">
+            <button
+              class="flex items-center justify-center w-8 h-8 bg-blue-600/20 hover:bg-blue-600/30 text-blue-400 rounded-lg border border-blue-500/40 transition-colors duration-200"
+              @click="handleRefreshReport"
+              :disabled="isRefreshing"
+            >
+              <i class="ri-refresh-line text-lg" :class="{ 'animate-spin': isRefreshing }"></i>
+            </button>
+          </el-tooltip>
         </div>
+
+        <!-- 刷新进度弹窗 -->
+        <LoadingModal
+          :visible="isRefreshing"
+          type="generate"
+        />
 
         <!-- 趋势分析卡片 -->
         <div class="mt-6 grid grid-cols-3 gap-3" v-if="analysisData?.trend_analysis?.probabilities">
@@ -515,7 +529,7 @@ import { useI18n } from 'vue-i18n'
 const { t } = useEnhancedI18n()
 const { t: i18nT } = useI18n()
 
-import { getTechnicalAnalysis } from '@/api'
+import { getTechnicalAnalysis, getLatestTechnicalAnalysis } from '@/api'
 import { parseSymbolFromUrl } from '@/utils/trading'
 import type {
   FormattedTechnicalAnalysisData
@@ -796,7 +810,7 @@ let debounceTimer: NodeJS.Timeout | null = null;
 let abortController: AbortController | null = null;
 
 // 简化的数据加载函数 - 读取本地已存在的报告数据
-const loadAnalysisData = async (showLoading = true, debounce = true) => {
+const loadAnalysisData = async (showLoading = true, debounce = true, noCache = false) => {
   try {
     // 防抖处理 - 避免快速连续调用
     if (debounce) {
@@ -807,7 +821,7 @@ const loadAnalysisData = async (showLoading = true, debounce = true) => {
       return new Promise((resolve, reject) => {
         debounceTimer = setTimeout(async () => {
           try {
-            const result = await loadAnalysisData(showLoading, false) // 递归调用但不再防抖
+            const result = await loadAnalysisData(showLoading, false, noCache) // 递归调用但不再防抖
             resolve(result)
           } catch (error) {
             reject(error)
@@ -848,7 +862,7 @@ const loadAnalysisData = async (showLoading = true, debounce = true) => {
     console.log(`loadAnalysisData: 开始加载 ${currentSymbol.value} 的本地报告数据`)
 
     // 创建新的请求Promise - 直接调用 getTechnicalAnalysis 读取本地数据
-    loadingPromise = getTechnicalAnalysis(currentSymbol.value)
+    loadingPromise = getTechnicalAnalysis(currentSymbol.value, noCache)
       .then(data => {
         if (data && (data as any).status !== 'not_found') {
           const formattedData = formatTechnicalAnalysisData(data)
@@ -1557,6 +1571,74 @@ onMounted(() => {
   }
   document.addEventListener('click', onClick)
   onUnmounted(() => document.removeEventListener('click', onClick))
+})
+
+// 刷新状态
+const isRefreshing = ref(false)
+let refreshPromise: Promise<any> | null = null
+
+// 刷新报告处理函数 - 直接使用生成的报告数据
+const handleRefreshReport = async () => {
+  try {
+    if (isRefreshing.value || !currentSymbol.value) return
+    isRefreshing.value = true
+
+    if (refreshPromise) return refreshPromise
+
+    console.log('HomeView: 开始刷新报告...')
+
+    refreshPromise = new Promise(async (resolve, reject) => {
+      try {
+        // 直接调用 getLatestTechnicalAnalysis 获取新报告
+        console.log('HomeView: 调用 getLatestTechnicalAnalysis 生成新报告')
+        const result = await getLatestTechnicalAnalysis(currentSymbol.value, true)
+
+        // 检查是否获取到有效数据
+        if (result && (result as any).status !== 'not_found') {
+          console.log('HomeView: 成功获取到新报告数据!')
+
+          // 直接使用生成的报告数据，不再重新读取本地数据
+          const formattedData = formatTechnicalAnalysisData(result)
+          analysisData.value = formattedData
+
+          console.log('HomeView: 直接使用生成的报告数据更新界面')
+
+          isTokenNotFound.value = false
+          error.value = null
+          resolve(true)
+        } else {
+          // 如果仍然未找到，抛出错误
+          throw new Error('生成报告失败，请稍后重试')
+        }
+      } catch (error) {
+        console.error('HomeView: 刷新报告失败:', error)
+
+        // 如果刷新失败，尝试重新加载本地数据作为备选方案
+        try {
+          console.log('HomeView: 刷新失败，尝试重新加载本地数据')
+          await loadAnalysisData(true, false, true)
+        } catch (loadError) {
+          console.error('HomeView: 重新加载本地数据也失败:', loadError)
+        }
+
+        reject(error)
+      } finally {
+        setTimeout(() => { isRefreshing.value = false }, 1000)
+        refreshPromise = null
+      }
+    })
+
+    return refreshPromise
+  } catch (error) {
+    console.error('HomeView: 刷新报告异常:', error)
+    isRefreshing.value = false
+    refreshPromise = null
+  }
+}
+
+// 组件卸载时清理
+onUnmounted(() => {
+  refreshPromise = null
 })
 
 </script>

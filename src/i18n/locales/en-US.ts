@@ -136,7 +136,8 @@ export default {
     day_ago: '{n} days ago',
     preparing_analysis_report: 'Preparing analysis report...',
     generating_new_report: 'Generating new analysis report, please wait...',
-    timeout_error: 'Request timeout. Server is processing, please try again later.'
+    timeout_error: 'Request timeout. Server is processing, please try again later.',
+    refresh_report: 'Refresh Report'
   },
   tokenNotFound: {
     title: '{symbol} Data Not Found',
