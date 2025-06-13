@@ -95,11 +95,14 @@
             <i class="ri-time-line mr-1"></i>
             <span>{{ t('analysis.last_update') }}: {{ formatTime(analysisData?.last_update_time) }}</span>
           </div>
-          <el-tooltip :content="t('analysis.refresh_report')" placement="top">
+          <el-tooltip
+            :content="!canRefreshReport ? t('analysis.refresh_report_too_soon') : t('analysis.refresh_report')"
+            placement="top"
+          >
             <button
               class="flex items-center justify-center w-8 h-8 bg-blue-600/20 hover:bg-blue-600/30 text-blue-400 rounded-lg border border-blue-500/40 transition-colors duration-200"
-              @click="handleRefreshReport"
-              :disabled="isRefreshing"
+              @click="canRefreshReport && handleRefreshReport()"
+              :disabled="!canRefreshReport || isRefreshing"
             >
               <i class="ri-refresh-line text-lg" :class="{ 'animate-spin': isRefreshing }"></i>
             </button>
@@ -516,7 +519,7 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, onUnmounted, ref, nextTick, watch, onBeforeUnmount } from 'vue'
+import { onMounted, onUnmounted, ref, nextTick, watch, onBeforeUnmount, computed } from 'vue'
 import html2canvas from 'html2canvas'
 // @ts-ignore
 // eslint-disable-next-line
@@ -1639,6 +1642,13 @@ const handleRefreshReport = async () => {
 // 组件卸载时清理
 onUnmounted(() => {
   refreshPromise = null
+})
+
+const canRefreshReport = computed(() => {
+  if (!analysisData.value?.last_update_time) return true
+  const lastUpdate = new Date(analysisData.value.last_update_time).getTime()
+  const now = Date.now()
+  return now - lastUpdate > 12 * 60 * 60 * 1000
 })
 
 </script>

@@ -168,7 +168,8 @@ export default {
     preparing_analysis_report: '분석 보고서 준비 중...',
     generating_new_report: '새로운 분석 보고서 생성 중, 잠시만 기다려주세요...',
     timeout_error: '요청 시간 초과. 서버가 처리 중입니다. 나중에 다시 시도해주세요',
-    refresh_report: '보고서 새로고침'
+    refresh_report: '보고서 새로고침',
+    refresh_report_too_soon: '보고서는 12시간이 지나야 새로 고침할 수 있습니다'
   },
   indicators: {
     rsi: 'RSI',

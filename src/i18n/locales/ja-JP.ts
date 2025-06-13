@@ -168,7 +168,8 @@ export default {
     preparing_analysis_report: '分析レポートを準備中...',
     generating_new_report: '新しい分析レポートを生成中、お待ちください...',
     timeout_error: 'リクエストタイムアウト。サーバーが処理中です。後でもう一度お試しください',
-    refresh_report: 'レポート更新'
+    refresh_report: 'レポート更新',
+    refresh_report_too_soon: 'レポートは12時間経過するまで更新できません'
   },
   indicators: {
     rsi: 'RSI',

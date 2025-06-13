@@ -137,7 +137,8 @@ export default {
     preparing_analysis_report: '正在准备分析报告...',
     generating_new_report: '正在生成新的分析报告，请耐心等待...',
     timeout_error: '请求超时，服务器正在处理中，请稍后重试',
-    refresh_report: '刷新报告'
+    refresh_report: '刷新报告',
+    refresh_report_too_soon: '报告未超过12小时，暂不可刷新'
   },
   indicators: {
     rsi: 'RSI',
