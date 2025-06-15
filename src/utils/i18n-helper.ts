@@ -62,14 +62,14 @@ export const useEnhancedI18n = () => {
       const result = directT(key, params)
       // 如果直接加载器返回的结果就是键名，尝试使用 vue-i18n
       if (result === key) {
-        const vueResult = vueT(key, params)
+        const vueResult = vueT(key, params || {})
         // 如果 vue-i18n 也返回键名，使用直接加载器的结果
         return vueResult === key ? result : vueResult
       }
       return result
     }
     // 在非扩展环境中，使用 vue-i18n
-    return vueT(key, params)
+    return vueT(key, params || {})
   }
 
   return {

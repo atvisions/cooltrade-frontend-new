@@ -2,27 +2,26 @@
 
 import axios from 'axios'
 import type {
-  FormattedTechnicalAnalysisData,
-  BaseApiResponse
+  FormattedTechnicalAnalysisData
 } from '@/types/technical-analysis'
 import { formatTechnicalAnalysisData } from '@/utils/data-formatter'
 import { proxyRequest, isExtensionEnvironment as isExtension } from './proxy'
 
-// 检查是否是开发环境
+// Check if it is development environment
 const isDevelopment = (): boolean => {
   return process.env.NODE_ENV === 'development'
 }
 
-// 获取基础 URL
+// Get base URL
 const getBaseUrl = (): string => {
   if (isExtension()) {
-    return 'https://www.cooltrade.xyz/api'; // 扩展环境使用本地服务器
+    return 'https://www.cooltrade.xyz/api'; // Use production server in extension environment
   }
-  // 在开发环境中使用代理
+  // Use proxy in development environment
   if (isDevelopment()) {
     return '/api'
   }
-  // 在生产环境中使用本地服务器
+  // Use production server in production environment
   return 'https://www.cooltrade.xyz/api'
 }
 
@@ -48,18 +47,16 @@ const MIN_REQUEST_INTERVAL = 2000 // 最小请求间隔2秒
 let requestQueue: { timestamp: number; count: number }[] = []
 let lastRequestTime = 0
 
-// Token验证
+// Token validation
 const validateToken = () => {
   const token = localStorage.getItem('token')
   if (!token) {
     return false
   }
 
-  // 检查token格式
+  // Check token format
   if (!token.startsWith('Token ') && !token.startsWith('Bearer ')) {
-    // 尝试修复token格式
     try {
-      // 保存正确格式的token
       localStorage.setItem('token', `Token ${token}`)
       return true
     } catch (e) {
@@ -67,10 +64,10 @@ const validateToken = () => {
     }
   }
 
-  // 检查token长度 (只对Token格式的令牌进行检查)
+  // Check token length (only for Token format)
   if (token.startsWith('Token ')) {
     const tokenValue = token.replace('Token ', '')
-    // 放宽token长度检查，只确保不为空
+    // Relax token length check, just ensure not empty
     if (tokenValue.length < 5) {
       return false
     }
@@ -79,7 +76,7 @@ const validateToken = () => {
   return true
 }
 
-// 检查是否是认证相关的请求
+// Check if it is an auth-related request
 const isAuthRequest = (url: string | undefined): boolean => {
   if (!url) return false;
   return url.includes('/auth/login') ||
@@ -89,15 +86,15 @@ const isAuthRequest = (url: string | undefined): boolean => {
          url.includes('/auth/reset-password-with-code');
 }
 
-// 检查请求限制
+// Check rate limit
 const checkRateLimit = async (): Promise<void> => {
   const now = Date.now()
   const oneMinuteAgo = now - 60000
 
-  // 清理旧的请求记录
+  // Clean up old request records
   requestQueue = requestQueue.filter(item => item.timestamp > oneMinuteAgo)
 
-  // 检查是否超过每分钟限制
+  // Check if exceeds per minute limit
   if (requestQueue.length >= MAX_REQUESTS_PER_MINUTE) {
     const oldestRequest = requestQueue[0]
     const waitTime = 60000 - (now - oldestRequest.timestamp)
@@ -108,32 +105,32 @@ const checkRateLimit = async (): Promise<void> => {
     }
   }
 
-  // 检查最小请求间隔
+  // Check minimum request interval
   const timeSinceLastRequest = now - lastRequestTime
   if (timeSinceLastRequest < MIN_REQUEST_INTERVAL) {
     const waitTime = MIN_REQUEST_INTERVAL - timeSinceLastRequest
     await new Promise(resolve => setTimeout(resolve, waitTime))
   }
 
-  // 更新请求记录
+  // Update request record
   requestQueue.push({ timestamp: now, count: 1 })
   lastRequestTime = now
 }
 
-// 请求重试函数
+// Retry request function
 const retryRequest = async (config: any, retryCount: number = 0): Promise<any> => {
   try {
-    // 验证token
+    // Validate token
     if (!validateToken()) {
-      throw new Error('Token验证失败')
+      throw new Error('Token validation failed')
     }
 
-    // 检查请求限制
+    // Check rate limit
     await checkRateLimit()
 
     const token = localStorage.getItem('token')
     if (token) {
-      // 确保令牌格式正确
+      // Ensure token format is correct
       if (!token.startsWith('Token ') && !token.startsWith('Bearer ')) {
         config.headers.Authorization = `Token ${token}`
       } else {
@@ -141,21 +138,21 @@ const retryRequest = async (config: any, retryCount: number = 0): Promise<any> =
       }
     }
 
-    // 添加缓存控制头
+    // Add cache control headers
     config.headers['Cache-Control'] = 'no-cache'
     config.headers['Pragma'] = 'no-cache'
 
-    // 如果是强制刷新请求，使用更长的超时时间
+    // Use longer timeout for force refresh requests
     if (config.params?.force_refresh) {
       config.timeout = FORCE_REFRESH_TIMEOUT
     }
 
-    // 直接使用配置好的 axios 实例 (api)
+    // Use configured axios instance (api)
     let response = await api(config);
 
     return response
   } catch (error: any) {
-    // 处理文件访问错误
+    // Handle file access error
     if (error.code === 'ERR_FILE_NOT_FOUND') {
       if (isExtension() && error.config?.url?.includes(chrome.runtime.getURL(''))) {
         chrome.runtime.sendMessage({ type: 'RELOAD_RESOURCES' })
@@ -164,14 +161,14 @@ const retryRequest = async (config: any, retryCount: number = 0): Promise<any> =
       }
     }
 
-    if (error.message === 'Token验证失败') {
+    if (error.message === 'Token validation failed') {
       localStorage.removeItem('token')
       localStorage.removeItem('userInfo')
       window.location.href = '/login'
       return Promise.reject(error)
     }
 
-    // 如果是强制刷新请求，增加重试次数
+    // Increase retry count for force refresh requests
     const maxRetries = config.params?.force_refresh ? MAX_RETRIES * 2 : MAX_RETRIES
 
     if (retryCount < maxRetries && (
@@ -189,11 +186,11 @@ const retryRequest = async (config: any, retryCount: number = 0): Promise<any> =
   }
 }
 
-// 请求拦截器
+// Request interceptor
 api.interceptors.request.use(
   async (config) => {
     try {
-      // 确保请求包含认证令牌
+      // Ensure request contains auth token
       if (!isAuthRequest(config.url) && !config.headers.Authorization) {
         const token = localStorage.getItem('token');
         if (token) {
@@ -202,16 +199,16 @@ api.interceptors.request.use(
       } else if (config.headers.Authorization) {
       }
 
-      // 只对非认证请求验证token
+      // Only validate token for non-auth requests
       if (!isAuthRequest(config.url) && !validateToken()) {
-        return Promise.reject(new Error('Token验证失败'))
+        return Promise.reject(new Error('Token validation failed'))
       }
 
-      // 只对非认证请求添加token
+      // Only add token for non-auth requests
       if (!isAuthRequest(config.url)) {
         const token = localStorage.getItem('token')
         if (token) {
-          // 确保令牌格式正确，避免重复添加 Token 前缀
+          // Ensure token format is correct, avoid repeating adding Token prefix
           if (token.startsWith('Token ') || token.startsWith('Bearer ')) {
             config.headers.Authorization = token
           } else {
@@ -220,13 +217,13 @@ api.interceptors.request.use(
         }
       }
 
-      // 在扩展环境中使用代理请求
+      // Use proxy in extension environment
       if (isExtension()) {
         return proxyRequest(config);
       } else if (isDevelopment()) {
       }
 
-      // 检查请求限制
+      // Check rate limit
       await checkRateLimit()
 
       return config
@@ -239,20 +236,20 @@ api.interceptors.request.use(
   }
 )
 
-// 响应拦截器
+// Response interceptor
 api.interceptors.response.use(
   (response) => {
-    // 检查数据结构
+    // Check data structure
     if (!response.data || typeof response.data !== 'object') {
-      return Promise.reject(new Error('数据格式错误'))
+      return Promise.reject(new Error('Invalid data format'))
     }
 
-    // 检查响应是否已经是标准格式
+    // Check if response is already in standard format
     if (response.data.status === 'success' || response.data.status === 'error') {
       return response.data
     }
 
-    // 如果不是标准格式，包装成标准格式
+    // If not standard format, wrap as standard format
     return {
       status: 'success',
       data: response.data
@@ -261,15 +258,15 @@ api.interceptors.response.use(
   async (error) => {
     const originalRequest = error.config
 
-    // 处理token验证失败
-    if (error.message === 'Token验证失败') {
+    // Handle token validation failure
+    if (error.message === 'Token validation failed') {
       localStorage.removeItem('token')
       localStorage.removeItem('userInfo')
       window.location.href = '/login'
       return Promise.reject(error)
     }
 
-    // 处理网络错误
+    // Handle network error
     if (error.code === 'ERR_NETWORK') {
       if (!originalRequest._retry) {
         originalRequest._retry = true
@@ -282,7 +279,7 @@ api.interceptors.response.use(
       }
     }
 
-    // 处理其他错误
+    // Handle other errors
     if ((error.code === 'ERR_FILE_NOT_FOUND' || error.response?.status === 500) && !originalRequest._retry) {
       originalRequest._retry = true
       try {
@@ -396,10 +393,10 @@ export const auth = {
     try {
       const url = `${getBaseUrl()}/auth/change-password/`;
 
-      // 获取认证令牌
+      // Get auth token
       const token = localStorage.getItem('token');
       if (!token) {
-        throw new Error('未登录，无法修改密码');
+        throw new Error('Not logged in, unable to change password');
       }
 
       const response = await axios.post(url, {
@@ -420,14 +417,14 @@ export const auth = {
   }
 }
 
-// API响应通用接口
+// API response common interface
 export interface ApiResponse<T> {
   status: 'success' | 'error';
   message?: string;
   data: T;
 }
 
-// 技术分析接口返回类型
+// Technical analysis interface return type
 export interface TechnicalAnalysisData {
   trend_analysis: {
     probabilities: {
@@ -522,25 +519,17 @@ export interface TechnicalAnalysisData {
   last_update_time: string;
 }
 
-// 类型守卫：检查是否是基础API响应
-function isBaseApiResponse(response: unknown): response is BaseApiResponse {
-  return (
-    typeof response === 'object' &&
-    response !== null &&
-    'status' in response &&
-    typeof (response as BaseApiResponse).status === 'string'
-  )
-}
+// Type guard: Check if it is base API response (removed unused function)
 
-// 获取当前用户语言
+// Get current user language
 const getCurrentLanguage = (): string => {
-  // 首先从 localStorage 直接获取语言设置
+  // First get language setting from localStorage
   const storedLanguage = localStorage.getItem('language')
   if (storedLanguage && ['zh-CN', 'en-US', 'ja-JP', 'ko-KR'].includes(storedLanguage)) {
     return storedLanguage
   }
 
-  // 如果没有直接的语言设置，尝试从用户信息中获取
+  // If not set, try to get from user info
   const userInfo = localStorage.getItem('userInfo')
   if (userInfo) {
     try {
@@ -552,52 +541,52 @@ const getCurrentLanguage = (): string => {
     }
   }
 
-  // 如果都没有，默认使用中文
-  return 'zh-CN'
+  // Default to English
+  return 'en-US'
 }
 
-// 获取技术分析数据 - 读取本地已存在的报告数据
+// Get technical analysis data - read locally existing report data
 export const getTechnicalAnalysis = async (
   symbol: string,
   noCache: boolean = false
 ): Promise<FormattedTechnicalAnalysisData> => {
   try {
-    // 验证 symbol 参数
+    // Validate symbol parameter
     if (!symbol || typeof symbol !== 'string') {
       console.error('getTechnicalAnalysis: Invalid symbol provided:', { symbol, type: typeof symbol });
       throw new Error('Invalid symbol provided');
     }
 
-    // 确保symbol是大写的
+    // Ensure symbol is uppercase
     const normalizedSymbol = symbol.toUpperCase();
 
-    // 如果不包含USDT后缀，添加它
+    // Add USDT suffix if not present
     const fullSymbol = normalizedSymbol.endsWith('USDT')
       ? normalizedSymbol
       : `${normalizedSymbol}USDT`;
 
-    // 构建请求路径 - 使用 technical-indicators 接口读取本地数据
+    // Build request path - use technical-indicators endpoint to read local data
     const path = `/crypto/technical-indicators/${fullSymbol}/`
 
-    // 准备查询参数
+    // Prepare query params
     const params: Record<string, any> = {}
 
-    // 添加语言参数
+    // Add language param
     const currentLanguage = getCurrentLanguage()
     params.language = currentLanguage
-    // 添加防缓存参数
+    // Add anti-cache param
     if (noCache) {
       params._t = Date.now()
     }
 
-    console.log(`getTechnicalAnalysis: 读取本地报告数据 ${fullSymbol}`)
+    console.log(`getTechnicalAnalysis: Reading local report data ${fullSymbol}`)
 
-    // 在开发环境中使用代理
+    // Use proxy in development environment
     const url = isDevelopment()
       ? `/api${path}`
       : `${getBaseUrl()}${path}`;
 
-    // 发送请求
+    // Send request
     const token = localStorage.getItem('token');
     const authHeader = token ? (token.startsWith('Token ') ? token : `Token ${token}`) : '';
 
@@ -609,11 +598,11 @@ export const getTechnicalAnalysis = async (
       }
     })
 
-    // 检查响应格式
+    // Check response format
     const data = response.data
 
     if (typeof data === 'object') {
-      // 检查是否是特殊响应格式
+      // Check for special response format
       if ('status' in data) {
         if (data.status === 'not_found') {
           return data as unknown as FormattedTechnicalAnalysisData
@@ -625,97 +614,103 @@ export const getTechnicalAnalysis = async (
       }
     }
 
-    // 假设响应是直接的技术分析数据，则格式化并返回
+    // Assume response is direct technical analysis data, return as is
     return data
   } catch (error: any) {
-    // 错误处理
-
-    // 处理 404 错误（代币未找到）
+    // Handle 404 error (token not found)
     if (error.response?.status === 404) {
-      // 返回一个特殊的 not_found 状态，而不是抛出错误
+      // Return a special not_found status instead of throwing error
       return {
         status: 'not_found',
-        message: error.response?.data?.message || '代币数据未找到',
+        message: error.response?.data?.message || 'Token data not found',
         needs_refresh: true
       } as unknown as FormattedTechnicalAnalysisData
     }
 
-    // 网络错误重新格式化为更友好的消息
+    // Network error, reformat to more friendly message
     if (error.code === 'ERR_NETWORK') {
-      throw new Error('网络连接错误，请检查您的网络连接')
+      throw new Error('Network connection error, please check your network')
     }
 
     throw error
   }
 }
 
-// 防止重复请求的标记
+// Prevent duplicate request mark
 let pendingRequests: Record<string, boolean> = {};
 
-// 获取最新技术分析报告 - 刷新或获取新的代币分析报告
+// Get latest technical analysis report - refresh or get new token analysis report
 export const getLatestTechnicalAnalysis = async (
   symbol: string,
   forceRefresh: boolean = true
 ): Promise<FormattedTechnicalAnalysisData> => {
-  // 定义在函数顶部，以便在 try/catch 块中都可以访问
+  // Define at function top for access in try/catch
   let requestPath = '';
   let requestLanguage = '';
 
   try {
-    // 验证 symbol 参数
+    // Validate symbol parameter
     if (!symbol || typeof symbol !== 'string') {
       console.error('getLatestTechnicalAnalysis: Invalid symbol provided:', { symbol, type: typeof symbol });
       throw new Error('Invalid symbol provided');
     }
 
-    // 确保symbol是大写的
+    // Ensure symbol is uppercase
     const normalizedSymbol = symbol.toUpperCase();
 
-    // 如果不包含USDT后缀，添加它
+    // Add USDT suffix if not present
     const fullSymbol = normalizedSymbol.endsWith('USDT')
       ? normalizedSymbol
       : `${normalizedSymbol}USDT`;
 
-    // 构建请求路径 - 使用 get_report 接口获取/刷新报告
+    // Build request path - use get_report endpoint to get/refresh report
     requestPath = `/crypto/get_report/${fullSymbol}/`
 
-    // 准备查询参数
+    // Prepare query params
     const params: Record<string, any> = {}
 
-    // 添加语言参数
+    // Add language param
     requestLanguage = getCurrentLanguage()
     params.language = requestLanguage
 
-    console.log(`getLatestTechnicalAnalysis: 当前语言设置为 ${requestLanguage}`)
+    console.log(`getLatestTechnicalAnalysis: Current language set to ${requestLanguage}`)
 
-    // 默认强制刷新，确保获取最新数据
+    // Default force refresh, ensure latest data
     if (forceRefresh) {
       params.force_refresh = 'true'
     }
 
-    console.log(`getLatestTechnicalAnalysis: 获取/刷新报告 ${fullSymbol}, forceRefresh: ${forceRefresh}`)
+    // Add timestamp to prevent caching
+    params._t = Date.now()
 
-    // 创建请求标识符
+    console.log(`getLatestTechnicalAnalysis: Get/refresh report ${fullSymbol}, forceRefresh: ${forceRefresh}`)
+
+    // Create request identifier
     const requestId = `${requestPath}?language=${requestLanguage}&force_refresh=${forceRefresh}`;
 
-    // 检查是否有相同的请求正在进行中
+    // Check if same request is in progress
     if (pendingRequests[requestId]) {
-      throw new Error('请求已在进行中，请稍后再试');
+      throw new Error('Request is already in progress, please try again later');
     }
 
-    // 标记请求为进行中
+    // Mark request as in progress
     pendingRequests[requestId] = true;
 
-    // 使用 api 实例发送请求
+    // Use api instance to send request
     const response = await api.get(requestPath, {
-      params
+      params,
+      headers: {
+        'Cache-Control': 'no-cache, no-store, must-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0'
+      }
     })
 
-    // 检查响应格式
+    // Check response format
     const data = response.data
 
     if (typeof data === 'object') {
-      // 检查是否是特殊响应格式
+      // Check for special response format
       if ('status' in data) {
         if (data.status === 'not_found') {
           return data as unknown as FormattedTechnicalAnalysisData
@@ -727,33 +722,33 @@ export const getLatestTechnicalAnalysis = async (
       }
     }
 
-    // 假设响应是直接的技术分析数据，则格式化并返回
+    // Assume response is direct technical analysis data, format and return
     const result = formatTechnicalAnalysisData(data);
 
-    console.log(`getLatestTechnicalAnalysis: 成功获取报告数据 ${fullSymbol}`)
+    console.log(`getLatestTechnicalAnalysis: Successfully got report data ${fullSymbol}`)
 
     return result;
   } catch (error: any) {
-    console.error(`getLatestTechnicalAnalysis: 获取报告失败 ${symbol}:`, error)
+    console.error(`getLatestTechnicalAnalysis: Failed to get report for ${symbol}:`, error)
 
-    // 处理 404 错误（代币未找到）
+    // Handle 404 error (token not found)
     if (error.response?.status === 404) {
-      // 返回一个特殊的 not_found 状态，而不是抛出错误
+      // Return a special not_found status instead of throwing error
       return {
         status: 'not_found',
-        message: error.response?.data?.message || '代币数据未找到',
+        message: error.response?.data?.message || 'Token data not found',
         needs_refresh: true
       } as unknown as FormattedTechnicalAnalysisData
     }
 
-    // 网络错误重新格式化为更友好的消息
+    // Network error, reformat to more friendly message
     if (error.code === 'ERR_NETWORK') {
-      throw new Error('网络连接错误，请检查您的网络连接')
+      throw new Error('Network connection error, please check your network')
     }
 
     throw error
   } finally {
-    // 清除请求标记
+    // Clear request mark
     if (requestPath && requestLanguage) {
       const requestId = `${requestPath}?language=${requestLanguage}&force_refresh=${forceRefresh}`;
       pendingRequests[requestId] = false;

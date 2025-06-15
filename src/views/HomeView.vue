@@ -53,7 +53,7 @@
 
       <!-- 骨架屏 - 没有数据且没有错误时显示 -->
       <div v-if="showSkeleton" class="max-w-[375px] mx-auto px-4 pb-16">
-        <ChartSkeleton loadingText="正在加载价格数据..." />
+        <ChartSkeleton loadingText="Loading price data..." />
       </div>
 
       <!-- 正常内容 - 有数据时显示 -->
@@ -451,7 +451,6 @@
           :symbol="currentSymbol"
           @refresh-success="handleRefreshSuccess"
           @refresh-error="handleRefreshError"
-          :is-refreshing="showRefreshModal"
         />
       </div>
 
@@ -512,8 +511,8 @@
 
     <!-- 加载弹窗 -->
     <LoadingModal
-      :visible="showLoadingModal"
-      :type="loadingType"
+      :visible="isRefreshing"
+      type="generate"
     />
   </div>
 </template>
@@ -1588,40 +1587,40 @@ const handleRefreshReport = async () => {
 
     if (refreshPromise) return refreshPromise
 
-    console.log('HomeView: 开始刷新报告...')
+    console.log('HomeView: Start refreshing report...')
 
     refreshPromise = new Promise(async (resolve, reject) => {
       try {
-        // 直接调用 getLatestTechnicalAnalysis 获取新报告
-        console.log('HomeView: 调用 getLatestTechnicalAnalysis 生成新报告')
+        // Call getLatestTechnicalAnalysis to generate a new report
+        console.log('HomeView: Calling getLatestTechnicalAnalysis to generate new report')
         const result = await getLatestTechnicalAnalysis(currentSymbol.value, true)
 
-        // 检查是否获取到有效数据
+        // If valid data is returned
         if (result && (result as any).status !== 'not_found') {
-          console.log('HomeView: 成功获取到新报告数据!')
+          console.log('HomeView: Successfully got new report data!')
 
-          // 直接使用生成的报告数据，不再重新读取本地数据
+          // Directly use the new report data
           const formattedData = formatTechnicalAnalysisData(result)
           analysisData.value = formattedData
 
-          console.log('HomeView: 直接使用生成的报告数据更新界面')
+          console.log('HomeView: Updated UI with new report data')
 
           isTokenNotFound.value = false
           error.value = null
           resolve(true)
         } else {
-          // 如果仍然未找到，抛出错误
-          throw new Error('生成报告失败，请稍后重试')
+          // If still not found, throw error
+          throw new Error('Failed to generate report, please try again later')
         }
       } catch (error) {
-        console.error('HomeView: 刷新报告失败:', error)
+        console.error('HomeView: Failed to refresh report:', error)
 
-        // 如果刷新失败，尝试重新加载本地数据作为备选方案
+        // If refresh fails, try to reload local data as a fallback
         try {
-          console.log('HomeView: 刷新失败，尝试重新加载本地数据')
+          console.log('HomeView: Refresh failed, try to reload local data')
           await loadAnalysisData(true, false, true)
         } catch (loadError) {
-          console.error('HomeView: 重新加载本地数据也失败:', loadError)
+          console.error('HomeView: Reloading local data also failed:', loadError)
         }
 
         reject(error)
@@ -1633,7 +1632,7 @@ const handleRefreshReport = async () => {
 
     return refreshPromise
   } catch (error) {
-    console.error('HomeView: 刷新报告异常:', error)
+    console.error('HomeView: Exception during refresh report:', error)
     isRefreshing.value = false
     refreshPromise = null
   }

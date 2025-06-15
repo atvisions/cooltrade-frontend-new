@@ -8,11 +8,11 @@ import koKR from './locales/ko-KR'
 
 // 确保语言文件被正确加载
 
-// 获取浏览器语言
-const getBrowserLanguage = (): string => {
-  // 默认使用英文，不再根据浏览器语言自动切换
-  return 'en-US'
-}
+// 获取浏览器语言 (removed unused function)
+// const getBrowserLanguage = (): string => {
+//   // 默认使用英文，不再根据浏览器语言自动切换
+//   return 'en-US'
+// }
 
 // 获取用户设置的语言或默认语言
 const getPreferredLanguage = (): string => {

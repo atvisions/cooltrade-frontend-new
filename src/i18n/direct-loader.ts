@@ -20,10 +20,10 @@ const messages = {
 let currentLocale = 'en-US'
 
 // Debug mode flag - only enabled in development environment or manually enabled
-const isDebug = false; // Temporarily disable debug mode
+// const isDebug = false; // Temporarily disable debug mode (removed unused variable)
 
 // 调试工具（简化版本）
-let i18nDebug: any = null;
+// let i18nDebug: any = null; // (removed unused variable)
 
 // 初始化时获取语言
 function initLocale() {
@@ -107,7 +107,7 @@ export function setLocale(locale: string) {
 
   if (['en-US', 'ja-JP', 'ko-KR'].includes(locale)) {
     // 记录旧语言，用于调试
-    const oldLocale = currentLocale
+    // const oldLocale = currentLocale // (removed unused variable)
 
     // 更新当前语言
     currentLocale = locale

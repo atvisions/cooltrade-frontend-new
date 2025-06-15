@@ -48,10 +48,10 @@ function isTechnicalAnalysisData(data: unknown): data is TechnicalAnalysisData {
  */
 export function formatTechnicalAnalysisData(
   response: TechnicalAnalysisData | TechnicalAnalysisResponse | ForceRefreshResponse | ForceRefreshData | unknown,
-  targetLanguage?: string
+  _targetLanguage?: string
 ): FormattedTechnicalAnalysisData {
   // 获取当前语言，如果没有指定则使用localStorage中的语言或默认英文
-  const currentLanguage = targetLanguage || localStorage.getItem('language') || 'en-US';
+  // const currentLanguage = targetLanguage || localStorage.getItem('language') || 'en-US'; // (removed unused variable)
   try {
     // 如果响应为空，抛出明确的错误
     if (!response) {
@@ -76,8 +76,8 @@ export function formatTechnicalAnalysisData(
       try {
         // 创建格式化后的数据对象，添加默认值和类型检查
         const formattedData: FormattedTechnicalAnalysisData = {
-          current_price: typeof response.current_price === 'number' ? response.current_price : (typeof response.price === 'number' ? response.price : 0),
-          snapshot_price: typeof response.snapshot_price === 'number' ? response.snapshot_price : (typeof response.price === 'number' ? response.price : 0),
+          current_price: typeof response.current_price === 'number' ? response.current_price : 0,
+          snapshot_price: typeof response.snapshot_price === 'number' ? response.snapshot_price : 0,
           trend_analysis: {
             probabilities: {
               up: typeof response.trend_up_probability === 'number' ? response.trend_up_probability : 0,
@@ -95,9 +95,9 @@ export function formatTechnicalAnalysisData(
             take_profit: typeof response.take_profit === 'number' ? response.take_profit : 0
           },
           risk_assessment: {
-            level: typeof response.risk_level === 'string' ? response.risk_level : '中',
-            score: typeof response.risk_score === 'number' ? response.risk_score : 50,
-            details: Array.isArray(response.risk_details) ? response.risk_details : []
+            level: typeof (response as any).risk_level === 'string' ? (response as any).risk_level : '中',
+            score: typeof (response as any).risk_score === 'number' ? (response as any).risk_score : 50,
+            details: Array.isArray((response as any).risk_details) ? (response as any).risk_details : []
           },
           last_update_time: typeof response.last_update_time === 'string' ? response.last_update_time : new Date().toISOString()
         }
@@ -124,6 +124,15 @@ export function formatTechnicalAnalysisData(
 
         // 创建格式化后的数据对象，添加默认值和类型检查
         const price = typeof (response as any).price === 'number' ? (response as any).price : 0;
+        // 兼容：如果 risk_assessment 字段不存在，则从 trading_advice 拷贝风险字段
+        let risk_assessment = (response as any).risk_assessment;
+        if (!risk_assessment && response.trading_advice) {
+          risk_assessment = {
+            level: response.trading_advice.risk_level ?? '中',
+            score: response.trading_advice.risk_score ?? 50,
+            details: Array.isArray(response.trading_advice.risk_details) ? response.trading_advice.risk_details : []
+          }
+        }
         const formattedData: FormattedTechnicalAnalysisData = {
           current_price: typeof response.current_price === 'number' ? response.current_price : price,
           snapshot_price: typeof response.snapshot_price === 'number' ? response.snapshot_price : price,
@@ -144,12 +153,12 @@ export function formatTechnicalAnalysisData(
             take_profit: typeof response.trading_advice?.take_profit === 'number' ? response.trading_advice.take_profit : 0
           },
           risk_assessment: {
-            level: typeof response.trading_advice?.risk_level === 'string' ? response.trading_advice.risk_level : '中',
-            score: typeof response.trading_advice?.risk_score === 'number' ? response.trading_advice.risk_score : 50,
-            details: Array.isArray(response.trading_advice?.risk_details) ? response.trading_advice.risk_details : []
+            level: typeof risk_assessment?.level === 'string' ? risk_assessment.level : '中',
+            score: typeof risk_assessment?.score === 'number' ? risk_assessment.score : 50,
+            details: Array.isArray(risk_assessment?.details) ? risk_assessment.details : []
           },
           last_update_time: typeof response.last_update_time === 'string' ? response.last_update_time :
-                        (typeof response.timestamp === 'string' ? response.timestamp : new Date().toISOString())
+                        (typeof (response as any).timestamp === 'string' ? (response as any).timestamp : new Date().toISOString())
         }
 
         // 直接返回格式化后的数据

@@ -16,12 +16,12 @@
     <main class="flex-1 pt-16 pb-16">
       <div class="max-w-[375px] mx-auto px-4">
         <div v-if="!isLoggedIn" class="text-center py-8">
-          <p class="text-gray-400 mb-4">{{ t('auth.login_required_for_password_change') }}</p>
+          <p class="text-gray-400 mb-4">{{ t('auth.please_login_first') }}</p>
           <router-link
-            to="/login?redirect=/change-password"
+            to="/login"
             class="inline-block py-2 px-6 bg-gradient-to-r from-primary to-blue-500 text-white rounded-lg font-medium"
           >
-            {{ t('auth.go_to_login') }}
+            {{ t('auth.login') }}
           </router-link>
         </div>
 
@@ -43,7 +43,7 @@
                 id="current_password"
                 v-model="formData.current_password"
                 type="password"
-                class="w-full px-4 py-2 rounded-lg bg-gray-800 border border-gray-700 focus:border-primary focus:ring-1 focus:ring-primary outline-none"
+                class="w-full px-4 py-2 rounded-lg bg-gray-800 border border-gray-700 focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-colors"
                 required
               >
             </div>
@@ -54,7 +54,7 @@
                 id="new_password"
                 v-model="formData.new_password"
                 type="password"
-                class="w-full px-4 py-2 rounded-lg bg-gray-800 border border-gray-700 focus:border-primary focus:ring-1 focus:ring-primary outline-none"
+                class="w-full px-4 py-2 rounded-lg bg-gray-800 border border-gray-700 focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-colors"
                 required
               >
               <p class="mt-1 text-xs text-gray-500">{{ t('auth.password_requirements') }}</p>
@@ -66,14 +66,14 @@
                 id="confirm_password"
                 v-model="formData.confirm_password"
                 type="password"
-                class="w-full px-4 py-2 rounded-lg bg-gray-800 border border-gray-700 focus:border-primary focus:ring-1 focus:ring-primary outline-none"
+                class="w-full px-4 py-2 rounded-lg bg-gray-800 border border-gray-700 focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-colors"
                 required
               >
             </div>
 
             <button
               type="submit"
-              class="w-full py-3 bg-gradient-to-r from-primary to-blue-500 text-white rounded-lg font-medium"
+              class="w-full py-3 bg-gradient-to-r from-primary to-blue-500 text-white rounded-lg font-medium disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               :disabled="loading"
             >
               {{ loading ? t('common.submitting') : t('auth.change_password') }}
@@ -92,11 +92,10 @@ import { auth } from '@/api'
 import { useEnhancedI18n } from '@/utils/i18n-helper'
 
 const { t } = useEnhancedI18n()
-
 const router = useRouter()
 const loading = ref(false)
-const error = ref<string | null>(null)
-const success = ref<string | null>(null)
+const error = ref<string | undefined>(undefined)
+const success = ref<string | undefined>(undefined)
 
 const formData = ref({
   current_password: '',
@@ -109,100 +108,42 @@ const isLoggedIn = computed(() => {
 })
 
 const handleChangePassword = async () => {
-  error.value = null
-  success.value = null
-
-  // 表单验证
-  if (!formData.value.current_password || !formData.value.new_password || !formData.value.confirm_password) {
-    error.value = t('errors.fill_all_fields')
-    return
-  }
-
-  if (formData.value.new_password !== formData.value.confirm_password) {
-    error.value = t('errors.passwords_not_match')
-    return
-  }
-
-  if (formData.value.new_password.length < 6) {
-    error.value = t('errors.password_too_short')
-    return
-  }
-
-  // 检查密码是否包含字母和数字
-  const hasLetter = /[A-Za-z]/.test(formData.value.new_password)
-  const hasNumber = /[0-9]/.test(formData.value.new_password)
-  if (!hasLetter || !hasNumber) {
-    error.value = t('errors.password_must_contain_letters_numbers')
-    return
-  }
-
   loading.value = true
+  error.value = undefined
+  success.value = undefined
+
   try {
-
-    // 获取认证令牌
-    const token = localStorage.getItem('token');
-    if (!token) {
-      error.value = t('errors.not_logged_in');
-      loading.value = false;
-      return;
-    }
-
-    // 使用统一的 auth API
     const response = await auth.changePassword({
       current_password: formData.value.current_password.trim(),
       new_password: formData.value.new_password.trim(),
       confirm_password: formData.value.confirm_password.trim()
-    });
+    })
 
-
-    if (response && response.status === 'success') {
-      success.value = t('auth.password_changed_success');
-
-      // 如果返回了新的token，更新本地存储
-      if (response.data?.token) {
-        localStorage.setItem('token', `Token ${response.data.token}`);
-      }
-
-      // 清空表单
+    if (response.status === 'success') {
+      success.value = t('auth.password_changed')
       formData.value = {
         current_password: '',
         new_password: '',
         confirm_password: ''
-      };
-
-      // 3秒后返回个人中心
-      setTimeout(() => {
-        router.push('/profile');
-      }, 3000);
-    } else {
-      error.value = response?.message || t('errors.password_change_failed');
+      }
     }
   } catch (err: any) {
-
-    // 详细记录错误信息
-    if (err.response) {
-      // 显示服务器返回的详细错误信息
-      if (err.response.data && err.response.data.message) {
-        error.value = err.response.data.message;
-      } else if (err.response.data && err.response.data.errors) {
-        // 处理验证错误
-        const errorMessages = [];
-        for (const field in err.response.data.errors) {
-          errorMessages.push(err.response.data.errors[field]);
+    if (err.response?.data?.message) {
+      if (typeof err.response.data.message === 'object') {
+        const messages = Object.values(err.response.data.message).flat()
+        if (messages.length > 0) {
+          error.value = messages[0] as string
         }
-        error.value = errorMessages.join(', ');
       } else {
-        error.value = t('errors.password_change_failed');
+        error.value = err.response.data.message
       }
-    } else if (err.request) {
-      // 请求已发送但没有收到响应
-      error.value = t('errors.no_response_from_server');
+    } else if (err.response?.data?.detail) {
+      error.value = err.response.data.detail
+    } else if (err.response?.status === 401) {
+      error.value = t('errors.unauthorized')
     } else {
-      // 请求设置时出错
-      error.value = t('errors.password_change_failed');
+      error.value = t('errors.unknown_error')
     }
-
-
   } finally {
     loading.value = false
   }

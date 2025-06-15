@@ -4,7 +4,7 @@
     <header class="fixed top-0 w-full z-10 bg-[#0F172A]/95 backdrop-blur-md border-b border-gray-800">
       <div class="max-w-[375px] mx-auto">
         <div class="flex items-center px-4 py-3">
-          <button @click="router.push('/')" class="mr-2">
+          <button @click="router.push('/login')" class="mr-2">
             <i class="ri-arrow-left-line ri-lg"></i>
           </button>
           <h1 class="text-lg font-semibold">{{ t('auth.register') }}</h1>
@@ -15,11 +15,10 @@
     <!-- 主要内容区域 -->
     <main class="flex-1 pt-16 pb-16">
       <div class="max-w-[375px] mx-auto px-4">
-        <h1 class="text-2xl font-bold text-center mb-8">{{ t('auth.register') }}</h1>
-
-        <!-- 一般性错误提示 -->
-        <div v-if="generalError" class="mb-4 p-3 bg-red-900/30 border border-red-800 rounded-lg text-red-400 text-sm">
-          {{ generalError }}
+        <!-- Logo和应用名称 -->
+        <div class="flex flex-col items-center justify-center mt-8 mb-6">
+          <img src="/icons/icon128.png" alt="Cooltrade Logo" class="w-16 h-16 mb-2 rounded-lg shadow-lg" />
+          <div class="text-2xl font-bold text-white tracking-wide mb-1">Cooltrade</div>
         </div>
 
         <form @submit.prevent="handleRegister" class="space-y-4">
@@ -32,7 +31,7 @@
               required
               ref="emailInput"
               :class="[
-                'w-full px-4 py-2 rounded-lg bg-gray-800 border focus:ring-1 outline-none',
+                'w-full px-4 py-2 rounded-lg bg-gray-800 border focus:ring-1 outline-none transition-colors',
                 errors.email ? 'border-red-500 focus:border-red-500 focus:ring-red-500' : 'border-gray-700 focus:border-primary focus:ring-primary'
               ]"
               :placeholder="t('auth.email_placeholder')"
@@ -49,7 +48,7 @@
               required
               ref="passwordInput"
               :class="[
-                'w-full px-4 py-2 rounded-lg bg-gray-800 border focus:ring-1 outline-none',
+                'w-full px-4 py-2 rounded-lg bg-gray-800 border focus:ring-1 outline-none transition-colors',
                 errors.password ? 'border-red-500 focus:border-red-500 focus:ring-red-500' : 'border-gray-700 focus:border-primary focus:ring-primary'
               ]"
               :placeholder="t('auth.password_placeholder')"
@@ -67,7 +66,7 @@
                 required
                 ref="codeInput"
                 :class="[
-                  'w-full px-4 py-2 rounded-lg bg-gray-800 border focus:ring-1 outline-none',
+                  'w-full px-4 py-2 rounded-lg bg-gray-800 border focus:ring-1 outline-none transition-colors',
                   errors.code ? 'border-red-500 focus:border-red-500 focus:ring-red-500' : 'border-gray-700 focus:border-primary focus:ring-primary'
                 ]"
                 :placeholder="t('auth.verification_code_placeholder')"
@@ -78,7 +77,7 @@
               type="button"
               @click="handleSendCode"
               :disabled="isSendingCode || countdown > 0"
-              class="mt-6 px-4 py-2 bg-gray-800 text-white rounded-lg text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+              class="mt-6 px-4 py-2 bg-gray-800 text-white rounded-lg text-sm disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
               {{ countdown > 0 ? t('auth.retry_in_seconds', { seconds: countdown }) : (isSendingCode ? t('common.sending') : t('auth.send_code')) }}
             </button>
@@ -89,10 +88,11 @@
             <input
               type="text"
               v-model="formData.invitation_code"
+              @input="handleInvitationCodeChange"
               required
               ref="invitationCodeInput"
               :class="[
-                'w-full px-4 py-2 rounded-lg bg-gray-800 border focus:ring-1 outline-none',
+                'w-full px-4 py-2 rounded-lg bg-gray-800 border focus:ring-1 outline-none transition-colors',
                 errors.invitation_code ? 'border-red-500 focus:border-red-500 focus:ring-red-500' : 'border-gray-700 focus:border-primary focus:ring-primary'
               ]"
               :placeholder="t('auth.invitation_code_placeholder')"
@@ -102,7 +102,7 @@
 
           <button
             type="submit"
-            class="w-full py-3 bg-gradient-to-r from-primary to-blue-500 text-white rounded-lg font-medium"
+            class="w-full py-3 bg-gradient-to-r from-primary to-blue-500 text-white rounded-lg font-medium disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             :disabled="loading"
           >
             {{ loading ? t('common.registering') : t('auth.register') }}
@@ -110,9 +110,10 @@
         </form>
 
         <div class="mt-6 text-center">
-          <a href="#" @click.prevent="goToLogin" class="text-primary hover:underline">
-            {{ t('auth.have_account') }} {{ t('auth.login_now') }}
-          </a>
+          <p class="text-sm text-gray-400">
+            {{ t('auth.have_account') }}
+            <a href="#" @click.prevent="goToLogin" class="text-primary hover:underline">{{ t('auth.login_now') }}</a>
+          </p>
         </div>
       </div>
     </main>
@@ -125,6 +126,7 @@ import { useRouter } from 'vue-router'
 import axios from 'axios'
 import * as ExtensionRouter from '@/utils/extension-router'
 import { useEnhancedI18n } from '@/utils/i18n-helper'
+import { auth } from '@/api'
 
 // 使用增强的 i18n
 const { t } = useEnhancedI18n()
@@ -223,6 +225,10 @@ const handleCodeChange = () => {
   errors.value.code = ''
   generalError.value = ''
   saveFormData()
+}
+
+const handleInvitationCodeChange = () => {
+  errors.value.invitation_code = ''
 }
 
 const startCountdown = () => {

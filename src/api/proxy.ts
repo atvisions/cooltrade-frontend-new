@@ -1,8 +1,8 @@
-// API代理模块，用于解决CORS问题
-import type { AxiosRequestConfig, AxiosResponse } from 'axios'
+// API proxy module for solving CORS issues
+import type { AxiosRequestConfig } from 'axios'
 
 /**
- * 检查是否在扩展环境中
+ * Check if running in extension environment
  */
 export const isExtensionEnvironment = (): boolean => {
   return typeof chrome !== 'undefined' &&
@@ -11,19 +11,19 @@ export const isExtensionEnvironment = (): boolean => {
 }
 
 /**
- * 通过扩展的background.js代理API请求
- * @param config Axios请求配置
+ * Proxy API requests via extension background.js
+ * @param config Axios request config
  * @returns Promise<AxiosResponse>
  */
 export const proxyRequest = async (config: AxiosRequestConfig): Promise<any> => {
   if (!isExtensionEnvironment()) {
-    throw new Error('不在扩展环境中，无法使用代理')
+    throw new Error('Not running in extension environment, cannot use proxy')
   }
 
   return new Promise((resolve, reject) => {
     const { url, method, headers, data, params } = config
 
-    // 构建完整的URL，包含查询参数
+    // Build full URL with query params
     let fullUrl = url || ''
     if (params && Object.keys(params).length > 0) {
       const searchParams = new URLSearchParams()
@@ -38,50 +38,40 @@ export const proxyRequest = async (config: AxiosRequestConfig): Promise<any> => 
       }
     }
 
-    // 检查是否是强制刷新请求
+    // Check if force refresh request
     const isForceRefresh = fullUrl.includes('force_refresh=true')
 
-    // 设置超时处理
+    // Set timeout
     let timeoutId: number | null = null
-    const timeout = isForceRefresh ? 120000 : 30000 // 强制刷新使用更长的超时时间
+    const timeout = isForceRefresh ? 120000 : 30000 // Longer timeout for force refresh
 
     timeoutId = window.setTimeout(() => {
-      reject(new Error(`请求超时 (${timeout/1000}秒)`))
+      reject(new Error(`Request timed out (${timeout/1000}s)`))
     }, timeout)
 
-    // 确保认证令牌被正确传递
+    // Ensure auth token is passed
     let updatedHeaders = headers || {};
     if (!updatedHeaders.Authorization) {
       const token = localStorage.getItem('token');
       if (token) {
-        // 确保 token 格式正确
-        if (token.startsWith('Token ') || token.startsWith('Bearer ')) {
-          updatedHeaders = { ...updatedHeaders, Authorization: token };
-        } else {
-          updatedHeaders = { ...updatedHeaders, Authorization: `Token ${token}` };
-        }
-        console.log('Proxy: 添加认证令牌到请求头');
-      } else {
-        console.warn('Proxy: localStorage 中没有找到 token');
+        updatedHeaders = { ...updatedHeaders, Authorization: token };
       }
-    } else {
-      console.log('Proxy: 请求头中已包含认证令牌');
     }
 
-    // 发送代理请求
-    // 确保 method 是有效的字符串
+    // Send proxy request
+    // Ensure method is valid string
     const requestMethod = typeof method === 'string' ? method.toUpperCase() : 'GET';
 
     chrome.runtime.sendMessage({
       type: 'PROXY_API_REQUEST',
       data: {
-        url: fullUrl,  // 使用包含查询参数的完整URL
+        url: fullUrl,  // Use full URL with query params
         method: requestMethod,
-        headers: updatedHeaders,  // 使用更新后的 headers
+        headers: updatedHeaders,  // Use updated headers
         body: data
       }
     }, (response) => {
-      // 清除超时计时器
+      // Clear timeout
       if (timeoutId !== null) {
         clearTimeout(timeoutId)
       }
@@ -92,7 +82,7 @@ export const proxyRequest = async (config: AxiosRequestConfig): Promise<any> => 
       }
 
       if (!response || !response.success) {
-        const error = new Error(response?.error || '请求失败')
+        const error = new Error(response?.error || 'Proxy request failed')
         if (response?.errorDetail) {
           // @ts-ignore
           error.detail = response.errorDetail
@@ -101,19 +91,17 @@ export const proxyRequest = async (config: AxiosRequestConfig): Promise<any> => 
         return
       }
 
-
       try {
-        // 直接返回一个简化的响应对象，只包含必要的数据
-        // 避免尝试构造完整的Axios响应对象，这可能会导致错误
+        // Return simplified response object with necessary data only
         resolve({
           data: response.data,
           status: response.status,
           statusText: response.statusText,
-          headers: {},  // 使用空对象避免undefined
-          config: {}    // 使用空对象避免undefined
+          headers: {},  // Use empty object to avoid undefined
+          config: {}
         })
       } catch (error) {
-        // 如果出错，返回一个最小化的响应对象
+        // If error, return minimal response object
         resolve({
           data: response.data,
           status: 200,

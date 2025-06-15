@@ -20,6 +20,7 @@
           <img src="/icons/icon128.png" alt="Cooltrade Logo" class="w-16 h-16 mb-2 rounded-lg shadow-lg" />
           <div class="text-2xl font-bold text-white tracking-wide mb-1">Cooltrade</div>
         </div>
+
         <form @submit.prevent="handleLogin" class="space-y-6">
           <div v-if="error" class="p-3 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-sm">
             {{ error }}
@@ -31,7 +32,8 @@
               id="email"
               v-model="formData.email"
               type="email"
-              class="w-full px-4 py-2 rounded-lg bg-gray-800 border border-gray-700 focus:border-primary focus:ring-1 focus:ring-primary outline-none"
+              class="w-full px-4 py-2 rounded-lg bg-gray-800 border border-gray-700 focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-colors"
+              :placeholder="t('auth.email_placeholder')"
               required
             >
           </div>
@@ -45,14 +47,15 @@
               id="password"
               v-model="formData.password"
               type="password"
-              class="w-full px-4 py-2 rounded-lg bg-gray-800 border border-gray-700 focus:border-primary focus:ring-1 focus:ring-primary outline-none"
+              class="w-full px-4 py-2 rounded-lg bg-gray-800 border border-gray-700 focus:border-primary focus:ring-1 focus:ring-primary outline-none transition-colors"
+              :placeholder="t('auth.password_placeholder')"
               required
             >
           </div>
 
           <button
             type="submit"
-            class="w-full py-3 bg-gradient-to-r from-primary to-blue-500 text-white rounded-lg font-medium"
+            class="w-full py-3 bg-gradient-to-r from-primary to-blue-500 text-white rounded-lg font-medium disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             :disabled="loading"
           >
             {{ loading ? t('common.loading') : t('auth.login') }}
@@ -71,136 +74,76 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
-import { useRouter, useRoute } from 'vue-router'
-import * as ExtensionRouter from '@/utils/extension-router'
-import { useEnhancedI18n } from '@/utils/i18n-helper'
+import { ref } from 'vue'
+import { useRouter } from 'vue-router'
 import { auth } from '@/api'
+import { useEnhancedI18n } from '@/utils/i18n-helper'
 
-// 使用增强的 i18n
 const { t } = useEnhancedI18n()
-
 const router = useRouter()
-const route = useRoute()
+const loading = ref(false)
+const error = ref<string | undefined>(undefined)
 
-// 路由辅助函数
-const goToForgotPassword = () => ExtensionRouter.goToForgotPassword()
-const goToRegister = () => ExtensionRouter.goToRegister()
 const formData = ref({
   email: '',
   password: ''
 })
-const loading = ref(false)
-const error = ref<string | null>(null)
+
+const goToRegister = () => {
+  router.push('/register')
+}
+
+const goToForgotPassword = () => {
+  router.push('/forgot-password')
+}
 
 const handleLogin = async () => {
-  error.value = null
-
-  console.log('🔐 Starting login process...');
-  console.log('📧 Email:', formData.value.email);
-  console.log('🌐 Environment:', window.location.protocol === 'chrome-extension:' ? 'Extension' : 'Web');
-
-  if (!formData.value.email || !formData.value.password) {
-    error.value = t('errors.fill_all_fields')
-    return
-  }
-
   loading.value = true
+  error.value = undefined
+
   try {
-    console.log('📡 Sending login request...');
-
     const response = await auth.login({
-      email: formData.value.email,
-      password: formData.value.password
-    });
+      email: formData.value.email.trim(),
+      password: formData.value.password.trim()
+    })
 
-    console.log('📥 Login response:', response);
-
-    if (response.status === 'success' && response.data) {
-      const token = response.data.token;
-      const userData = response.data.user;
-
-      console.log('✅ Login successful');
-      console.log('🎫 Token:', token ? `${token.substring(0, 10)}...` : 'null');
-      console.log('👤 User data:', userData);
-
-      if (token) {
-        const fullToken = `Token ${token}`;
-        
-        // 保存 token 到 localStorage
-        localStorage.setItem('token', fullToken);
-        console.log('💾 Token saved to localStorage');
-
-        // 在扩展环境中，同时保存到 chrome.storage
-        if (window.location.protocol === 'chrome-extension:') {
-          try {
-            await chrome.storage.local.set({ token: fullToken });
-            console.log('💾 Token saved to chrome.storage');
-          } catch (e) {
-            console.error('Failed to save token to chrome.storage:', e);
-          }
-        }
-
-        if (userData) {
-          localStorage.setItem('userInfo', JSON.stringify(userData));
-          console.log('💾 User info saved');
-
-          // 在扩展环境中，同时保存到 chrome.storage，序列化为字符串
-          if (window.location.protocol === 'chrome-extension:') {
-            try {
-              await chrome.storage.local.set({ userInfo: JSON.stringify(userData) });
-              console.log('💾 User info saved to chrome.storage (stringified)');
-            } catch (e) {
-              console.error('Failed to save user info to chrome.storage:', e);
-            }
-          }
-        }
-
-        const redirectPath = route.query.redirect as string || '/';
-        console.log('🔄 Redirecting to:', redirectPath);
-        router.push(redirectPath);
-      } else {
-        console.error('❌ No token in login response');
-        error.value = t('errors.login_failed_no_token');
-      }
+    if (response.status === 'success' && response.data?.token) {
+      localStorage.setItem('token', response.data.token)
+      localStorage.setItem('userInfo', JSON.stringify(response.data.user))
+      router.push('/')
     } else {
-      console.error('❌ Login failed:', response);
-      error.value = response.message || t('errors.login_failed_server_error');
+      console.error('❌ No token in login response')
+      error.value = t('errors.login_failed_no_token')
     }
   } catch (err: any) {
-    console.error('💥 Login error:', err);
-    console.error('💥 Error details:', {
-      message: err.message,
-      response: err.response,
-      config: err.config
-    });
+    console.error('💥 Login error:', err)
 
     if (err.response?.data?.message) {
       if (typeof err.response.data.message === 'object') {
-        const messages = Object.values(err.response.data.message).flat();
+        const messages = Object.values(err.response.data.message).flat()
         if (messages.length > 0) {
-          error.value = messages[0] as string;
+          error.value = messages[0] as string
         } else {
-          error.value = t('errors.login_failed_check_input');
+          error.value = t('errors.login_failed_check_input')
         }
       } else {
-        error.value = err.response.data.message;
+        error.value = err.response.data.message
       }
     } else if (err.response?.data?.detail) {
-      error.value = err.response.data.detail;
+      error.value = err.response.data.detail
     } else if (err.response?.status === 401) {
-      error.value = t('errors.email_or_password_incorrect');
+      error.value = t('errors.email_or_password_incorrect')
     } else if (err.response?.status === 429) {
-      error.value = t('errors.too_many_attempts');
+      error.value = t('errors.too_many_attempts')
     } else if (err.code === 'ECONNABORTED') {
-      error.value = t('errors.connection_timeout');
+      error.value = t('errors.connection_timeout')
     } else if (err.message.includes('Network Error')) {
-      error.value = t('errors.network_error');
+      error.value = t('errors.network_error')
     } else {
-      error.value = t('errors.login_failed');
+      error.value = t('errors.login_failed')
     }
   } finally {
-    loading.value = false;
+    loading.value = false
   }
 }
 </script>

@@ -71,13 +71,13 @@
 defineProps({
   loadingText: {
     type: String,
-    default: '正在加载分析数据...'
+    default: 'Loading analysis data...'
   }
 })
 </script>
 
 <style scoped>
-/* 脉冲动画 */
+/* Pulse animation */
 @keyframes pulse {
   0% {
     opacity: 0.3;
@@ -94,7 +94,7 @@ defineProps({
   animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }
 
-/* 弹跳动画 */
+/* Bounce animation */
 @keyframes bounce {
   0%, 100% {
     transform: translateY(0);

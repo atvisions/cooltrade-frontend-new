@@ -68,6 +68,9 @@ export interface TechnicalAnalysisData {
     entry_price: number;
     stop_loss: number;
     take_profit: number;
+    risk_level?: string;
+    risk_score?: number;
+    risk_details?: string[];
   };
   risk_assessment: {
     level: string;
@@ -125,6 +128,9 @@ export interface FormattedTechnicalAnalysisData {
     entry_price: number;
     stop_loss: number;
     take_profit: number;
+    risk_level?: string;
+    risk_score?: number;
+    risk_details?: string[];
   };
   risk_assessment: {
     level: string;

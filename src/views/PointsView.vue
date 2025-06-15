@@ -96,7 +96,7 @@
               <i class="ri-user-add-line text-2xl text-gray-500"></i>
             </div>
             <p class="text-gray-400 text-sm">{{ t('points.no_invitation_records') }}</p>
-            <p class="text-gray-500 text-xs mt-1">邀请好友注册即可获得积分奖励</p>
+            <p class="text-gray-500 text-xs mt-1">{{ t('points.invite_friends_to_earn_points') }}</p>
           </div>
         </div>
       </div>
@@ -133,13 +133,10 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
+import { ref, onMounted } from 'vue'
 import { useEnhancedI18n } from '@/utils/i18n-helper'
-import axios from 'axios'
 import api from '@/api'
 
-const router = useRouter()
 const { t } = useEnhancedI18n()
 
 // 积分信息
@@ -153,43 +150,6 @@ const pointsInfo = ref({
 
 // 排名信息
 const pointsRanking = ref(null)
-
-// 历史记录类型 (不再使用)
-const currentHistoryType = ref('all')
-
-// 积分历史 (不再使用)
-// const pointsHistory = ref([
-//   {
-//     id: 1,
-//     type: 'earned',
-//     points: 10,
-//     description: t('points.invitation_reward_desc'),
-//     created_at: '2024-01-20 14:30:00'
-//   },
-//   {
-//     id: 2,
-//     type: 'earned',
-//     points: 1,
-//     description: t('points.daily_trade_desc'),
-//     created_at: '2024-01-20 10:15:00'
-//   },
-//   {
-//     id: 3,
-//     type: 'used',
-//     points: 5,
-//     description: t('points.used_for_discount'),
-//     created_at: '2024-01-19 16:45:00'
-//   }
-// ])
-
-// 过滤后的历史记录 (不再使用)
-// const filteredHistory = computed(() => {
-//   if (currentHistoryType.value === 'all') return pointsHistory.value
-//   return pointsHistory.value.filter(record => record.type === currentHistoryType.value)
-// })
-
-// UI 状态
-// const showInviteModal = ref(false) // 不再需要
 const showCopySuccess = ref(false)
 
 // 用于存储 cookie 相关的域名和名称，以便在不同的函数中使用
@@ -256,8 +216,8 @@ const claimTemporaryInvitation = async (uuid: string) => {
             temporary_invitation_uuid: uuid
         });
 
-        if (response.status === 'success') {
-            if (response.message === '成功认领邀请并获得奖励') {
+        if ((response as any).status === 'success') {
+            if ((response as any).message === 'Successfully claimed invitation and received reward') {
                 fetchPointsInfo();
             }
         } else {
@@ -288,11 +248,11 @@ const fetchPointsInfo = async () => {
       return;
     }
 
-    // 确保请求头中包含认证令牌
-    const headers = {
-      'Content-Type': 'application/json',
-      'Authorization': token
-    };
+    // 确保请求头中包含认证令牌 (headers moved inline)
+    // const headers = {
+    //   'Content-Type': 'application/json',
+    //   'Authorization': token
+    // }; // (removed unused variable)
 
 
 
@@ -323,11 +283,11 @@ const fetchPointsInfo = async () => {
       });
 
       // 检查响应格式 - 适配代理请求的响应格式
-      console.log('积分 API 响应数据:', responseData);
+      console.log('Points API response data:', responseData);
 
-      if (responseData && responseData.success && responseData.data) {
+      if (responseData && (responseData as any).success && (responseData as any).data) {
         // 代理请求的响应格式：{ success: true, data: {status: 'success', data: {...}}, status: 200 }
-        const apiResponse = responseData.data;
+        const apiResponse = (responseData as any).data;
 
         if (apiResponse.status === 'success' && apiResponse.data) {
           pointsInfo.value = apiResponse.data;
@@ -337,12 +297,12 @@ const fetchPointsInfo = async () => {
             pointsRanking.value = apiResponse.data.ranking;
           }
 
-          console.log('积分信息更新成功:', pointsInfo.value);
+          console.log('Points info updated successfully:', pointsInfo.value);
         } else {
-          console.log('API 响应状态不正确:', apiResponse);
+          console.log('API response status incorrect:', apiResponse);
         }
       } else {
-        console.log('积分信息响应格式不正确:', responseData);
+        console.log('Points info response format incorrect:', responseData);
       }
     } catch (error) {
       console.error('Failed to fetch points info:', error);
@@ -376,20 +336,20 @@ const fetchPointsInfo = async () => {
       });
 
       // 检查响应格式 - 适配代理请求的响应格式
-      console.log('排名 API 响应数据:', rankingData);
+      console.log('Ranking API response data:', rankingData);
 
-      if (rankingData && rankingData.success && rankingData.data) {
+      if (rankingData && (rankingData as any).success && (rankingData as any).data) {
         // 代理请求的响应格式：{ success: true, data: {status: 'success', ranking: 1}, status: 200 }
-        const apiResponse = rankingData.data;
+        const apiResponse = (rankingData as any).data;
 
         if (apiResponse.status === 'success' && apiResponse.ranking !== undefined) {
           pointsRanking.value = apiResponse.ranking;
-          console.log('排名信息更新成功:', pointsRanking.value);
+          console.log('Ranking info updated successfully:', pointsRanking.value);
         } else {
-          console.log('排名 API 响应状态不正确:', apiResponse);
+          console.log('Ranking API response status incorrect:', apiResponse);
         }
       } else {
-        console.log('排名信息响应格式不正确:', rankingData);
+        console.log('Ranking info response format incorrect:', rankingData);
       }
     } catch (rankingError) {
       console.error('Failed to fetch ranking info:', rankingError);
@@ -408,13 +368,13 @@ const formatDate = (dateString: string) => {
     const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24))
 
     if (diffDays === 0) {
-      return '今天'
+      return 'Today'
     } else if (diffDays === 1) {
-      return '昨天'
+      return 'Yesterday'
     } else if (diffDays < 7) {
-      return `${diffDays}天前`
+      return `${diffDays} days ago`
     } else {
-      return date.toLocaleDateString('zh-CN', {
+      return date.toLocaleDateString('en-US', {
         month: 'short',
         day: 'numeric'
       })
