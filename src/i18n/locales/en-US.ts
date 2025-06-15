@@ -136,6 +136,7 @@ export default {
     day_ago: '{n} days ago',
     preparing_analysis_report: 'Preparing analysis report...',
     generating_new_report: 'Generating new analysis report, please wait...',
+    please_wait: 'Please wait, this may take some time',
     timeout_error: 'Request timeout. Server is processing, please try again later.',
     refresh_report: 'Refresh Report',
     refresh_report_too_soon: 'The report cannot be refreshed until 12 hours have passed'

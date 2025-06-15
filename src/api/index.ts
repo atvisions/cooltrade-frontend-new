@@ -6,6 +6,7 @@ import type {
 } from '@/types/technical-analysis'
 import { formatTechnicalAnalysisData } from '@/utils/data-formatter'
 import { proxyRequest, isExtensionEnvironment as isExtension } from './proxy'
+import { getApiBaseUrl } from '@/config/constants'
 
 // Check if it is development environment
 const isDevelopment = (): boolean => {
@@ -14,15 +15,7 @@ const isDevelopment = (): boolean => {
 
 // Get base URL
 const getBaseUrl = (): string => {
-  if (isExtension()) {
-    return 'https://www.cooltrade.xyz/api'; // Use production server in extension environment
-  }
-  // Use proxy in development environment
-  if (isDevelopment()) {
-    return '/api'
-  }
-  // Use production server in production environment
-  return 'https://www.cooltrade.xyz/api'
+  return getApiBaseUrl();
 }
 
 // 创建axios实例
@@ -571,9 +564,6 @@ export const getTechnicalAnalysis = async (
     // Prepare query params
     const params: Record<string, any> = {}
 
-    // Add language param
-    const currentLanguage = getCurrentLanguage()
-    params.language = currentLanguage
     // Add anti-cache param
     if (noCache) {
       params._t = Date.now()
@@ -641,12 +631,10 @@ let pendingRequests: Record<string, boolean> = {};
 
 // Get latest technical analysis report - refresh or get new token analysis report
 export const getLatestTechnicalAnalysis = async (
-  symbol: string,
-  forceRefresh: boolean = true
+  symbol: string
 ): Promise<FormattedTechnicalAnalysisData> => {
   // Define at function top for access in try/catch
   let requestPath = '';
-  let requestLanguage = '';
 
   try {
     // Validate symbol parameter
@@ -669,24 +657,13 @@ export const getLatestTechnicalAnalysis = async (
     // Prepare query params
     const params: Record<string, any> = {}
 
-    // Add language param
-    requestLanguage = getCurrentLanguage()
-    params.language = requestLanguage
-
-    console.log(`getLatestTechnicalAnalysis: Current language set to ${requestLanguage}`)
-
-    // Default force refresh, ensure latest data
-    if (forceRefresh) {
-      params.force_refresh = 'true'
-    }
-
-    // Add timestamp to prevent caching
+    // 只加时间戳防缓存，不再传 force_refresh
     params._t = Date.now()
 
-    console.log(`getLatestTechnicalAnalysis: Get/refresh report ${fullSymbol}, forceRefresh: ${forceRefresh}`)
+    console.log(`getLatestTechnicalAnalysis: Get/refresh report ${fullSymbol}`)
 
     // Create request identifier
-    const requestId = `${requestPath}?language=${requestLanguage}&force_refresh=${forceRefresh}`;
+    const requestId = `${requestPath}`;
 
     // Check if same request is in progress
     if (pendingRequests[requestId]) {
@@ -749,11 +726,168 @@ export const getLatestTechnicalAnalysis = async (
     throw error
   } finally {
     // Clear request mark
-    if (requestPath && requestLanguage) {
-      const requestId = `${requestPath}?language=${requestLanguage}&force_refresh=${forceRefresh}`;
+    if (requestPath) {
+      const requestId = `${requestPath}`;
       pendingRequests[requestId] = false;
     }
   }
 }
+
+// Points related interfaces
+export interface InvitationInfo {
+  points: number;
+  invitation_code: string;
+  invitation_points_per_user: number;
+  invitation_count: number;
+  invitation_records: {
+    invitee_email: string;
+    invitee_username: string;
+    points_awarded: number;
+    created_at: string;
+  }[];
+  ranking?: number;
+}
+
+// 修改 RankingInfo 接口以匹配实际响应格式
+export interface RankingInfo {
+  status: 'success';
+  ranking: number;
+}
+
+// Points related API
+export const points = {
+  // Get invitation info and points
+  getInvitationInfo: async (): Promise<ApiResponse<InvitationInfo>> => {
+    try {
+      // 在扩展环境中使用代理请求
+      if (isExtension()) {
+        const response = await new Promise((resolve, reject) => {
+          chrome.runtime.sendMessage({
+            type: 'PROXY_API_REQUEST',
+            data: {
+              url: '/auth/invitation-info/',
+              method: 'GET',
+              headers: {
+                'Authorization': localStorage.getItem('token'),
+                'Accept': 'application/json'
+              }
+            }
+          }, (response) => {
+            if (chrome.runtime.lastError) {
+              reject(new Error(chrome.runtime.lastError.message));
+              return;
+            }
+            if (response.success) {
+              resolve(response);
+            } else {
+              reject(new Error(response.error || '请求失败'));
+            }
+          });
+        });
+
+        // 处理代理请求的响应格式
+        if (response && (response as any).success && (response as any).data) {
+          const apiResponse = (response as any).data;
+          return apiResponse as ApiResponse<InvitationInfo>;
+        }
+        throw new Error('Invalid response format');
+      }
+
+      // 非扩展环境使用普通请求
+      const response = await api.get('/auth/invitation-info/');
+      return response as unknown as ApiResponse<InvitationInfo>;
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  // Get points ranking
+  getRanking: async (): Promise<RankingInfo> => {
+    try {
+      if (isExtension()) {
+        const response = await new Promise((resolve, reject) => {
+          chrome.runtime.sendMessage({
+            type: 'PROXY_API_REQUEST',
+            data: {
+              url: '/auth/invitation-info/ranking/',
+              method: 'GET',
+              headers: {
+                'Authorization': localStorage.getItem('token'),
+                'Accept': 'application/json'
+              }
+            }
+          }, (response) => {
+            if (chrome.runtime.lastError) {
+              reject(new Error(chrome.runtime.lastError.message));
+              return;
+            }
+            if (response.success) {
+              resolve((response as any).data);
+            } else {
+              reject(new Error(response.error || '请求失败'));
+            }
+          });
+        });
+        return response as RankingInfo;
+      }
+      const response = await api.get('/auth/invitation-info/ranking/');
+      // 直接返回接口原始数据
+      return response as unknown as RankingInfo;
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  // Claim temporary invitation
+  claimTemporaryInvitation: async (uuid: string): Promise<ApiResponse<null>> => {
+    try {
+      // 在扩展环境中使用代理请求
+      if (isExtension()) {
+        const response = await new Promise((resolve, reject) => {
+          chrome.runtime.sendMessage({
+            type: 'PROXY_API_REQUEST',
+            data: {
+              url: '/auth/claim-temporary-invitation/',
+              method: 'POST',
+              headers: {
+                'Authorization': localStorage.getItem('token'),
+                'Accept': 'application/json',
+                'Content-Type': 'application/json'
+              },
+              body: {
+                temporary_invitation_uuid: uuid
+              }
+            }
+          }, (response) => {
+            if (chrome.runtime.lastError) {
+              reject(new Error(chrome.runtime.lastError.message));
+              return;
+            }
+            if (response.success) {
+              resolve(response);
+            } else {
+              reject(new Error(response.error || '请求失败'));
+            }
+          });
+        });
+
+        // 处理代理请求的响应格式
+        if (response && (response as any).success && (response as any).data) {
+          const apiResponse = (response as any).data;
+          return apiResponse as ApiResponse<null>;
+        }
+        throw new Error('Invalid response format');
+      }
+
+      // 非扩展环境使用普通请求
+      const response = await api.post('/auth/claim-temporary-invitation/', {
+        temporary_invitation_uuid: uuid
+      });
+      return response as unknown as ApiResponse<null>;
+    } catch (error) {
+      throw error;
+    }
+  }
+};
 
 export default api

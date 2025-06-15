@@ -135,31 +135,27 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { useEnhancedI18n } from '@/utils/i18n-helper'
-import api from '@/api'
+import { points } from '@/api'
+import type { InvitationInfo } from '@/api'
+import { getMainWebsiteDomain } from '@/config/constants'
 
 const { t } = useEnhancedI18n()
 
 // 积分信息
-const pointsInfo = ref({
+const pointsInfo = ref<InvitationInfo>({
   points: 0,
   invitation_code: '',
   invitation_points_per_user: 10,
   invitation_count: 0,
-  invitation_records: [] as { invitee_email: string; invitee_username: string; points_awarded: number; created_at: string }[]
+  invitation_records: []
 })
 
 // 排名信息
-const pointsRanking = ref(null)
+const pointsRanking = ref<number | null>(null)
 const showCopySuccess = ref(false)
 
 // 用于存储 cookie 相关的域名和名称，以便在不同的函数中使用
 const cookieNameForCookie = 'temporary_invitation_uuid';
-
-// 根据环境获取主网站域名
-const getMainWebsiteDomain = () => {
-  const isDevelopment = localStorage.getItem('env') === 'development';
-  return isDevelopment ? 'https://www.cooltrade.xyz' : 'https://www.cooltrade.xyz';
-};
 
 // 尝试从 cookie 读取 UUID 并认领
 const attemptClaimFromCookie = async () => {
@@ -191,10 +187,10 @@ const attemptClaimFromCookie = async () => {
                         name: cookieNameForCookie
                     }
                 });
-            } else {
             }
         });
     } catch (error) {
+        console.error('Failed to read cookie:', error);
     }
 };
 
@@ -210,19 +206,12 @@ const claimTemporaryInvitation = async (uuid: string) => {
             return;
         }
 
-        // 使用 api 实例发送请求，而不是直接使用 axios
-        // 这样可以利用 api 实例中的代理机制和环境配置
-        const response = await api.post('/auth/claim-temporary-invitation/', {
-            temporary_invitation_uuid: uuid
-        });
-
-        if ((response as any).status === 'success') {
-            if ((response as any).message === 'Successfully claimed invitation and received reward') {
-                fetchPointsInfo();
-            }
-        } else {
+        const response = await points.claimTemporaryInvitation(uuid);
+        if (response.status === 'success' && response.message === 'Successfully claimed invitation and received reward') {
+            fetchPointsInfo();
         }
     } catch (error) {
+        console.error('Failed to claim temporary invitation:', error);
         // 检查是否在 Chrome 扩展环境中运行
         if (typeof chrome !== 'undefined' && chrome.runtime) {
             // 请求出错也考虑让 background script 删除 cookie，避免无效尝试
@@ -241,121 +230,34 @@ const claimTemporaryInvitation = async (uuid: string) => {
 // 获取积分信息
 const fetchPointsInfo = async () => {
   try {
-
     // 检查认证令牌
     const token = localStorage.getItem('token');
     if (!token) {
       return;
     }
 
-    // 确保请求头中包含认证令牌 (headers moved inline)
-    // const headers = {
-    //   'Content-Type': 'application/json',
-    //   'Authorization': token
-    // }; // (removed unused variable)
-
-
-
     try {
-      // 临时强制使用代理请求
-      const responseData = await new Promise((resolve, reject) => {
-        chrome.runtime.sendMessage({
-          type: 'PROXY_API_REQUEST',
-          data: {
-            url: '/auth/invitation-info/',
-            method: 'GET',
-            headers: {
-              'Authorization': localStorage.getItem('token'),
-              'Accept': 'application/json'
-            }
-          }
-        }, (response) => {
-          if (chrome.runtime.lastError) {
-            reject(new Error(chrome.runtime.lastError.message));
-            return;
-          }
-          if (response.success) {
-            resolve(response);
-          } else {
-            reject(new Error(response.error || '请求失败'));
-          }
-        });
-      });
+      // 获取邀请信息
+      const response = await points.getInvitationInfo();
+      if (response.status === 'success' && response.data) {
+        pointsInfo.value = response.data;
+        console.log('Points info updated successfully:', pointsInfo.value);
+      }
 
-      // 检查响应格式 - 适配代理请求的响应格式
-      console.log('Points API response data:', responseData);
-
-      if (responseData && (responseData as any).success && (responseData as any).data) {
-        // 代理请求的响应格式：{ success: true, data: {status: 'success', data: {...}}, status: 200 }
-        const apiResponse = (responseData as any).data;
-
-        if (apiResponse.status === 'success' && apiResponse.data) {
-          pointsInfo.value = apiResponse.data;
-
-          // 如果排名数据合并到 invitation-info 接口，在这里更新 pointsRanking
-          if (apiResponse.data.ranking !== undefined) {
-            pointsRanking.value = apiResponse.data.ranking;
-          }
-
-          console.log('Points info updated successfully:', pointsInfo.value);
-        } else {
-          console.log('API response status incorrect:', apiResponse);
-        }
+      // 获取排名信息
+      const rankingResponse = await points.getRanking();
+      console.log('Ranking response in view:', rankingResponse);
+      if (rankingResponse.status === 'success' && rankingResponse.ranking !== undefined) {
+        pointsRanking.value = rankingResponse.ranking;
+        console.log('Ranking info updated successfully:', pointsRanking.value);
       } else {
-        console.log('Points info response format incorrect:', responseData);
+        console.log('Ranking data not found in response:', rankingResponse);
       }
     } catch (error) {
       console.error('Failed to fetch points info:', error);
     }
-
-    // 获取排名信息 (如果排名接口是独立的)
-    try {
-      // 临时强制使用代理请求
-      const rankingData = await new Promise((resolve, reject) => {
-        chrome.runtime.sendMessage({
-          type: 'PROXY_API_REQUEST',
-          data: {
-            url: '/auth/invitation-info/ranking/',
-            method: 'GET',
-            headers: {
-              'Authorization': localStorage.getItem('token'),
-              'Accept': 'application/json'
-            }
-          }
-        }, (response) => {
-          if (chrome.runtime.lastError) {
-            reject(new Error(chrome.runtime.lastError.message));
-            return;
-          }
-          if (response.success) {
-            resolve(response);
-          } else {
-            reject(new Error(response.error || '请求失败'));
-          }
-        });
-      });
-
-      // 检查响应格式 - 适配代理请求的响应格式
-      console.log('Ranking API response data:', rankingData);
-
-      if (rankingData && (rankingData as any).success && (rankingData as any).data) {
-        // 代理请求的响应格式：{ success: true, data: {status: 'success', ranking: 1}, status: 200 }
-        const apiResponse = (rankingData as any).data;
-
-        if (apiResponse.status === 'success' && apiResponse.ranking !== undefined) {
-          pointsRanking.value = apiResponse.ranking;
-          console.log('Ranking info updated successfully:', pointsRanking.value);
-        } else {
-          console.log('Ranking API response status incorrect:', apiResponse);
-        }
-      } else {
-        console.log('Ranking info response format incorrect:', rankingData);
-      }
-    } catch (rankingError) {
-      console.error('Failed to fetch ranking info:', rankingError);
-    }
-
   } catch (error) {
+    console.error('Failed to fetch points info:', error);
   }
 }
 
@@ -388,14 +290,13 @@ const formatDate = (dateString: string) => {
 const copyInvitationCode = () => {
   if (!pointsInfo.value.invitation_code) return
 
-  // 获取主网站域名，而不是使用 window.location.origin（这可能是 chrome-extension://ID）
+  // 获取主网站域名
   const mainWebsiteDomain = getMainWebsiteDomain();
 
   const invitationText = t('points.share_invitation_text', {
     code: pointsInfo.value.invitation_code,
     points: pointsInfo.value.invitation_points_per_user
   }) + `\n${mainWebsiteDomain}/?code=${pointsInfo.value.invitation_code}`;
-
 
   navigator.clipboard.writeText(invitationText)
     .then(() => {
@@ -405,39 +306,10 @@ const copyInvitationCode = () => {
       }, 2000)
     })
     .catch(err => {
+      console.error('Failed to copy invitation code:', err);
     })
 }
 
-// 分享邀请码 (不再需要)
-// const shareInvitationCode = async () => {
-//   if (!pointsInfo.value.invitation_code) return
-//
-//   const shareText = t('points.share_invitation_text', {
-//     code: pointsInfo.value.invitation_code,
-//     points: pointsInfo.value.invitation_points_per_user
-//   })
-//
-//   if (navigator.share) {
-//     try {
-//       await navigator.share({
-//         title: t('points.share_invitation_title'),
-//         text: shareText,
-//         url: window.location.origin
-//       })
-//     } catch (error) {
-//     }
-//   } else {
-//     navigator.clipboard.writeText(shareText)
-//       .then(() => {
-//         showCopySuccess.value = true
-//         setTimeout(() => {
-//           showCopySuccess.value = false
-//         }, 2000)
-//       })
-//       .catch(err => {
-//       })
-//   }
-// }
 
 onMounted(() => {
   fetchPointsInfo();

@@ -90,7 +90,7 @@
         </div>
 
         <!-- Last Update 和刷新按钮 -->
-        <div class="mt-4 flex items-center justify-between px-2">
+        <div class="mt-4 flex items-center justify-between pl-2 rounded-lg bg-gradient-to-b from-gray-800/60 to-gray-900/60 border border-gray-700/50 shadow">
           <div class="flex items-center text-xs text-gray-400">
             <i class="ri-time-line mr-1"></i>
             <span>{{ t('analysis.last_update') }}: {{ formatTime(analysisData?.last_update_time) }}</span>
@@ -100,7 +100,10 @@
             placement="top"
           >
             <button
-              class="flex items-center justify-center w-8 h-8 bg-blue-600/20 hover:bg-blue-600/30 text-blue-400 rounded-lg border border-blue-500/40 transition-colors duration-200"
+              class="flex items-center justify-center w-8 h-8 rounded-lg transition-colors duration-200"
+              :class="canRefreshReport
+                ? 'bg-blue-600/20 text-blue-400 hover:bg-blue-600/30'
+                : 'bg-gray-700/30 text-gray-500 cursor-not-allowed'"
               @click="canRefreshReport && handleRefreshReport()"
               :disabled="!canRefreshReport || isRefreshing"
             >
@@ -1593,7 +1596,7 @@ const handleRefreshReport = async () => {
       try {
         // Call getLatestTechnicalAnalysis to generate a new report
         console.log('HomeView: Calling getLatestTechnicalAnalysis to generate new report')
-        const result = await getLatestTechnicalAnalysis(currentSymbol.value, true)
+        const result = await getLatestTechnicalAnalysis(currentSymbol.value)
 
         // If valid data is returned
         if (result && (result as any).status !== 'not_found') {
@@ -1614,15 +1617,10 @@ const handleRefreshReport = async () => {
         }
       } catch (error) {
         console.error('HomeView: Failed to refresh report:', error)
-
-        // If refresh fails, try to reload local data as a fallback
-        try {
-          console.log('HomeView: Refresh failed, try to reload local data')
-          await loadAnalysisData(true, false, true)
-        } catch (loadError) {
-          console.error('HomeView: Reloading local data also failed:', loadError)
-        }
-
+        // 刷新失败时只弹出错误提示，不清空数据
+        const msg = (error && typeof error === 'object' && 'message' in error) ? (error as any).message : '刷新失败';
+        ElMessage.error(msg)
+        // 不清空 analysisData，不设置 isTokenNotFound
         reject(error)
       } finally {
         setTimeout(() => { isRefreshing.value = false }, 1000)

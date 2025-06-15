@@ -40,10 +40,12 @@
       </span>
     </button>
 
-    <!-- 加载弹窗 -->
+    <!-- 刷新中模态框 -->
     <LoadingModal
+      v-if="showRefreshModal"
       :visible="showRefreshModal"
       type="generate"
+      :text="t('tokenNotFound.loading')"
     />
   </div>
 </template>
@@ -105,7 +107,8 @@ const emit = defineEmits<{
   (e: 'refresh-error', error: any): void
 }>()
 
-// 刷新状态
+// 刷新状态和模态框控制
+const isRefreshing = ref(false)
 const showRefreshModal = ref(false)
 
 // 添加请求防抖变量
@@ -123,87 +126,43 @@ const formattedSymbol = computed(() => {
   return `${props.symbol}/USDT`
 })
 
-
-
-// 简化的刷新处理函数 - 直接调用 getLatestTechnicalAnalysis 获取新报告
+// 刷新报告
 const handleRefresh = async () => {
+  if (isRefreshing.value) return
+  isRefreshing.value = true
+  showRefreshModal.value = true
+
   try {
-    if (showRefreshModal.value) {
-      return
-    }
-    showRefreshModal.value = true;
+    console.log('TokenNotFoundView: Start refreshing report...')
 
-    // 如果已经有刷新请求在进行中，直接返回
-    if (refreshPromise) {
-      return refreshPromise;
-    }
+    // 调用 getLatestTechnicalAnalysis 生成新报告
+    console.log('TokenNotFoundView: Calling getLatestTechnicalAnalysis to generate new report')
+    const result = await getLatestTechnicalAnalysis(props.symbol)
 
-    console.log('TokenNotFoundView: 开始获取新报告...')
-
-    // 创建新的刷新请求Promise
-    refreshPromise = new Promise(async (resolve, reject) => {
-      try {
-        // 直接调用 getLatestTechnicalAnalysis 获取新报告
-        console.log('TokenNotFoundView: 调用 getLatestTechnicalAnalysis 获取新报告')
-        const result = await getLatestTechnicalAnalysis(props.symbol, true)
-
-        // 检查是否获取到有效数据
-        if (result && (result as any).status !== 'not_found') {
-          console.log('TokenNotFoundView: 成功获取到新报告数据!')
-          // 发送成功事件
-          emit('refresh-success')
-          // 延迟关闭弹窗，给HomeView时间加载数据
-          handleSuccessClose()
-          resolve(result)
-          return
-        } else {
-          // 如果仍然未找到，抛出错误
-          throw new Error('生成报告失败，请稍后重试')
-        }
-      } catch (error) {
-        console.error('TokenNotFoundView: 获取新报告失败:', error)
-        emit('refresh-error', error)
-        reject(error)
-        // 只有在错误时才立即关闭弹窗
+    // 如果返回了有效数据
+    if (result && (result as any).status !== 'not_found') {
+      console.log('TokenNotFoundView: Successfully got new report data!')
+      emit('refresh-success')
+      // 延迟关闭弹窗，给父组件时间加载数据
+      setTimeout(() => {
         showRefreshModal.value = false
-      } finally {
-        refreshPromise = null
-      }
-    })
-
-    return refreshPromise
+      }, 1000)
+    } else {
+      // 如果仍然没有找到，抛出错误
+      throw new Error('Failed to generate report, please try again later')
+    }
   } catch (error) {
-    console.error('TokenNotFoundView: 刷新失败:', error)
+    console.error('TokenNotFoundView: Failed to refresh report:', error)
+    emit('refresh-error', error)
     showRefreshModal.value = false
-    refreshPromise = null
+  } finally {
+    isRefreshing.value = false
   }
 }
-
-// 监听父组件 isRefreshing 变化，刷新完成后自动关闭弹窗
-watch(() => props.isRefreshing, (newVal) => {
-  if (showRefreshModal.value && newVal === false) {
-    // 父组件刷新完成，延迟关闭弹窗确保数据已经渲染
-    setTimeout(() => {
-      showRefreshModal.value = false
-    }, 1000) // 延迟1秒关闭，确保HomeView已经渲染完成
-  }
-})
-
-// 添加一个新的监听器，当成功获取数据后延迟关闭弹窗
-const handleSuccessClose = () => {
-  if (showRefreshModal.value) {
-    // 延迟关闭弹窗，给HomeView时间来加载和渲染数据
-    // 使用更长的延迟时间，确保报告完全生成和加载
-    setTimeout(() => {
-      showRefreshModal.value = false
-    }, 3000) // 延迟3秒关闭，确保有足够时间加载数据
-  }
-}
-
-
 
 // 组件卸载时清理
 onUnmounted(() => {
-  refreshPromise = null
+  showRefreshModal.value = false
+  isRefreshing.value = false
 })
 </script>

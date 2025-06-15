@@ -1,11 +1,21 @@
 <template>
-  <div v-if="visible" class="fixed inset-0 bg-black/70 backdrop-blur-sm z-[9999] flex items-center justify-center" style="background-color: rgba(0,0,0,0.8) !important;">
-    <div class="bg-gray-900 rounded-xl p-6 w-[320px] shadow-xl border border-gray-800 flex flex-col items-center" style="background-color: #1f2937 !important; border: 2px solid #3b82f6 !important;">
-      <i class="ri-loader-4-line text-5xl text-blue-400 animate-spin mb-4"></i>
-      <h3 class="text-lg font-medium text-center mb-2">
-        {{ currentStageText }}
-      </h3>
-      <p class="text-sm text-gray-400 text-center min-h-[32px]">{{ currentSubText }}</p>
+  <div v-if="visible" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-60">
+    <div class="bg-[#232a36] rounded-xl shadow-lg px-6 py-8 flex flex-col items-center w-80 border-2 border-blue-500">
+      <div class="flex items-center justify-center mb-4">
+        <svg class="animate-spin h-10 w-10 text-blue-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+          <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
+        </svg>
+      </div>
+      <div v-if="type === 'generate'" class="w-full text-center">
+        <div class="text-white text-lg font-semibold mb-1">
+          {{ generateStages[0].title() }}
+        </div>
+        <div class="text-gray-400 text-sm">
+          {{ generateStages[0].sub() }}
+        </div>
+      </div>
+      <slot v-else />
     </div>
   </div>
 </template>

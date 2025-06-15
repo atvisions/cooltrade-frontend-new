@@ -1,6 +1,6 @@
 // Initialize environment variables
 let envConfig = {
-  baseApiUrl: 'https://www.cooltrade.xyz/api',
+  baseApiUrl: 'http://192.168.3.56:8000/api', // 固定本地后端地址
   env: 'development',
   token: null
 };
@@ -244,6 +244,7 @@ chrome.runtime.onInstalled.addListener((details) => {
 // Handle API proxy request
 async function handleApiProxyRequest(data, sendResponse) {
   try {
+    const baseApiUrl = envConfig.baseApiUrl || '/api';
     const { url, method, headers, body } = data;
     // console.log('Background script received API proxy request:', {
     //   url: url,
@@ -257,9 +258,6 @@ async function handleApiProxyRequest(data, sendResponse) {
 
     // Build complete URL
     let fullUrl = url;
-
-    // Use baseApiUrl from environment config
-    const baseApiUrl = envConfig.baseApiUrl || 'https://www.cooltrade.xyz/api';
 
     // console.log('Background script using base API URL:', baseApiUrl);
 
