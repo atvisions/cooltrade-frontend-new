@@ -1535,8 +1535,8 @@ const canRefreshReport = computed(() => {
   if (!analysisData.value?.last_update_time) return true
   const lastUpdate = new Date(analysisData.value.last_update_time).getTime()
   const now = Date.now()
-  // 1分钟（60*1000）
-  return now - lastUpdate > 60 * 1000
+  // 12小时（12*60*60*1000）
+  return now - lastUpdate > 12 * 60 * 60 * 1000
 })
 
 </script>
