@@ -1,7 +1,7 @@
 // API URLs and other constants
 // 只在生产环境用完整域名，开发环境始终用 '/api' 让 Vite 代理
-export const API_BASE_URL = 'http://192.168.3.56:8000/api';
-export const WEBSITE_URL = 'http://192.168.3.56:8000';
+export const API_BASE_URL = 'https://www.cooltrade.xyz/api';
+export const WEBSITE_URL = 'https://www.cooltrade.xyz';
 
 // Environment specific configurations
 export const getApiBaseUrl = () => {

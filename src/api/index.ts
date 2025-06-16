@@ -10,7 +10,7 @@ import { getApiBaseUrl } from '@/config/constants'
 
 // Check if it is development environment
 const isDevelopment = (): boolean => {
-  return process.env.NODE_ENV === 'development'
+  return import.meta.env.DEV
 }
 
 // Get base URL
@@ -21,7 +21,7 @@ const getBaseUrl = (): string => {
 // 创建axios实例
 const api = axios.create({
   baseURL: getBaseUrl(),
-  timeout: 30000,
+  timeout: 60000,
   headers: {
     'Content-Type': 'application/json'
   }
@@ -30,7 +30,7 @@ const api = axios.create({
 // 重试配置
 const MAX_RETRIES = 3
 const RETRY_DELAY = 2000 // 2秒
-const FORCE_REFRESH_TIMEOUT = 60000 // 强制刷新超时时间60秒
+const FORCE_REFRESH_TIMEOUT = 120000 // 强制刷新超时时间增加到120秒
 
 // 请求限制配置
 const MAX_REQUESTS_PER_MINUTE = 30
@@ -138,6 +138,11 @@ const retryRequest = async (config: any, retryCount: number = 0): Promise<any> =
     // Use longer timeout for force refresh requests
     if (config.params?.force_refresh) {
       config.timeout = FORCE_REFRESH_TIMEOUT
+    }
+
+    // Use proxy in extension environment
+    if (isExtension()) {
+      return proxyRequest(config);
     }
 
     // Use configured axios instance (api)
@@ -543,13 +548,14 @@ export const getTechnicalAnalysis = async (
   symbol: string,
   noCache: boolean = false
 ): Promise<FormattedTechnicalAnalysisData> => {
+  // 新增日志
+  console.log('[getTechnicalAnalysis] called with:', { symbol, noCache, stack: new Error().stack });
+  // 更严格的 symbol 校验
+  if (!symbol || typeof symbol !== 'string' || !symbol.trim()) {
+    console.error('getTechnicalAnalysis: Invalid symbol provided:', { symbol, type: typeof symbol });
+    throw new Error('Invalid symbol provided');
+  }
   try {
-    // Validate symbol parameter
-    if (!symbol || typeof symbol !== 'string') {
-      console.error('getTechnicalAnalysis: Invalid symbol provided:', { symbol, type: typeof symbol });
-      throw new Error('Invalid symbol provided');
-    }
-
     // Ensure symbol is uppercase
     const normalizedSymbol = symbol.toUpperCase();
 
@@ -580,6 +586,8 @@ export const getTechnicalAnalysis = async (
     const token = localStorage.getItem('token');
     const authHeader = token ? (token.startsWith('Token ') ? token : `Token ${token}`) : '';
 
+    // 请求前日志
+    console.log('[getTechnicalAnalysis] sending request', { url, params, headers: { 'Content-Type': 'application/json', 'Authorization': authHeader } });
     const response = await axios.get(url, {
       params,
       headers: {
@@ -587,6 +595,8 @@ export const getTechnicalAnalysis = async (
         'Authorization': authHeader
       }
     })
+    // 请求后日志
+    console.log('[getTechnicalAnalysis] response:', response);
 
     // Check response format
     const data = response.data
@@ -599,14 +609,17 @@ export const getTechnicalAnalysis = async (
         }
 
         if (data.status === 'success' && 'data' in data) {
-          return data.data
+          // 格式化并返回数据
+          return formatTechnicalAnalysisData(data.data)
         }
       }
     }
 
-    // Assume response is direct technical analysis data, return as is
-    return data
+    // Assume response is direct technical analysis data, format and return
+    return formatTechnicalAnalysisData(data)
   } catch (error: any) {
+    // 错误日志
+    console.error('[getTechnicalAnalysis] error:', error, { symbol, noCache, stack: new Error().stack });
     // Handle 404 error (token not found)
     if (error.response?.status === 404) {
       // Return a special not_found status instead of throwing error
@@ -633,16 +646,12 @@ let pendingRequests: Record<string, boolean> = {};
 export const getLatestTechnicalAnalysis = async (
   symbol: string
 ): Promise<FormattedTechnicalAnalysisData> => {
-  // Define at function top for access in try/catch
   let requestPath = '';
-
+  if (!symbol || typeof symbol !== 'string' || !symbol.trim()) {
+    console.error('getLatestTechnicalAnalysis: Invalid symbol provided:', { symbol, type: typeof symbol });
+    throw new Error('交易对无效，无法刷新报告');
+  }
   try {
-    // Validate symbol parameter
-    if (!symbol || typeof symbol !== 'string') {
-      console.error('getLatestTechnicalAnalysis: Invalid symbol provided:', { symbol, type: typeof symbol });
-      throw new Error('Invalid symbol provided');
-    }
-
     // Ensure symbol is uppercase
     const normalizedSymbol = symbol.toUpperCase();
 
@@ -667,63 +676,79 @@ export const getLatestTechnicalAnalysis = async (
 
     // Check if same request is in progress
     if (pendingRequests[requestId]) {
-      throw new Error('Request is already in progress, please try again later');
+      throw new Error('请求正在进行中，请稍后再试');
     }
 
     // Mark request as in progress
     pendingRequests[requestId] = true;
 
-    // Use api instance to send request
-    const response = await api.get(requestPath, {
-      params,
-      headers: {
-        'Cache-Control': 'no-cache, no-store, must-revalidate',
-        'Pragma': 'no-cache',
-        'Expires': '0'
-      }
-    })
-
-    // Check response format
-    const data = response.data
-
-    if (typeof data === 'object') {
-      // Check for special response format
-      if ('status' in data) {
-        if (data.status === 'not_found') {
-          return data as unknown as FormattedTechnicalAnalysisData
+    try {
+      // Use api instance to send request with retry mechanism
+      const response = await retryRequest({
+        url: requestPath,  // 直接使用相对路径，让 api 实例处理基础 URL
+        method: 'GET',
+        params,
+        headers: {
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Pragma': 'no-cache',
+          'Expires': '0'
         }
+      });
 
-        if (data.status === 'success' && 'data' in data) {
-          return formatTechnicalAnalysisData(data.data)
+      // Check response format
+      const data = response.data
+
+      // 兼容 data.reports[0] 结构
+      let realData = data;
+      if (data && Array.isArray(data.reports) && data.reports.length > 0) {
+        realData = data.reports[0];
+      }
+
+      if (typeof data === 'object') {
+        // Check for special response format
+        if ('status' in data) {
+          if (data.status === 'not_found') {
+            return data as unknown as FormattedTechnicalAnalysisData
+          }
+
+          if (data.status === 'success' && 'data' in data) {
+            // 已经处理过 reports[0]，此处直接返回 realData
+            return formatTechnicalAnalysisData(realData)
+          }
         }
       }
+
+      // Assume response is direct technical analysis data, format and return
+      const result = formatTechnicalAnalysisData(realData);
+
+      console.log(`getLatestTechnicalAnalysis: Successfully got report data ${fullSymbol}`)
+
+      return result;
+    } catch (error: any) {
+      console.error(`getLatestTechnicalAnalysis: Failed to get report for ${symbol}:`, error)
+
+      // Handle 404 error (token not found)
+      if (error.response?.status === 404) {
+        // Return a special not_found status instead of throwing error
+        return {
+          status: 'not_found',
+          message: error.response?.data?.message || '未找到交易对数据',
+          needs_refresh: true
+        } as unknown as FormattedTechnicalAnalysisData
+      }
+
+      // Network error, reformat to more friendly message
+      if (error.code === 'ERR_NETWORK') {
+        throw new Error('网络连接错误，请检查您的网络连接')
+      }
+
+      // Timeout error
+      if (error.code === 'ECONNABORTED') {
+        throw new Error('请求超时，服务器响应时间过长，请稍后重试')
+      }
+
+      throw error
     }
-
-    // Assume response is direct technical analysis data, format and return
-    const result = formatTechnicalAnalysisData(data);
-
-    console.log(`getLatestTechnicalAnalysis: Successfully got report data ${fullSymbol}`)
-
-    return result;
-  } catch (error: any) {
-    console.error(`getLatestTechnicalAnalysis: Failed to get report for ${symbol}:`, error)
-
-    // Handle 404 error (token not found)
-    if (error.response?.status === 404) {
-      // Return a special not_found status instead of throwing error
-      return {
-        status: 'not_found',
-        message: error.response?.data?.message || 'Token data not found',
-        needs_refresh: true
-      } as unknown as FormattedTechnicalAnalysisData
-    }
-
-    // Network error, reformat to more friendly message
-    if (error.code === 'ERR_NETWORK') {
-      throw new Error('Network connection error, please check your network')
-    }
-
-    throw error
   } finally {
     // Clear request mark
     if (requestPath) {

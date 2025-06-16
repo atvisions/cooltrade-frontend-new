@@ -1,6 +1,6 @@
 // Initialize environment variables
 let envConfig = {
-  baseApiUrl: 'http://192.168.3.56:8000/api', // 固定本地后端地址
+  baseApiUrl: 'https://www.cooltrade.xyz/api', // 固定本地后端地址
   env: 'development',
   token: null
 };
@@ -310,7 +310,7 @@ async function handleApiProxyRequest(data, sendResponse) {
     }
 
     // Set timeout
-    const timeout = isForceRefresh ? 120000 : 30000; // Force refresh uses longer timeout
+    const timeout = isForceRefresh ? 120000 : 60000; // 普通请求 60 秒，强制刷新 120 秒
 
     // Create timeout Promise
     const timeoutPromise = new Promise((_, reject) => {

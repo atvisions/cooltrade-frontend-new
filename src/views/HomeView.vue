@@ -65,7 +65,7 @@
         <div class="mt-6 p-5 rounded-lg bg-gradient-to-b from-gray-800/60 to-gray-900/60 border border-gray-700/50 shadow-lg">
           <h2 class="text-center text-gray-400 mb-1">{{ t('analysis.snapshot_price') }}</h2>
           <div class="text-center text-3xl font-bold mb-2">
-            {{ formatPrice(analysisData.snapshot_price) }}
+            {{ formatPrice(analysisData?.snapshot_price || 0) }}
             <span class="text-sm text-gray-400">USD</span>
           </div>
 
@@ -121,7 +121,7 @@
         <!-- 趋势分析卡片 -->
         <div class="mt-6 grid grid-cols-3 gap-3" v-if="analysisData?.trend_analysis?.probabilities">
           <div class="p-3 rounded-lg bg-gradient-to-br from-green-600/20 to-green-800/20 border border-green-500/30 text-center">
-            <div class="text-green-400 text-xl font-bold mb-1">{{ formatPercent(analysisData.trend_analysis.probabilities.up) }}</div>
+            <div class="text-green-400 text-xl font-bold mb-1">{{ formatPercent(analysisData?.trend_analysis?.probabilities?.up) }}</div>
             <div class="text-xs text-green-300 flex items-center justify-center">
               <i class="ri-arrow-up-line w-4 h-4 flex items-center justify-center"></i>
               <span>{{ t('analysis.uptrend') }}</span>
@@ -129,7 +129,7 @@
           </div>
 
           <div class="p-3 rounded-lg bg-gradient-to-br from-gray-700/20 to-gray-800/20 border border-gray-600/30 text-center">
-            <div class="text-gray-300 text-xl font-bold mb-1">{{ formatPercent(analysisData.trend_analysis.probabilities.sideways) }}</div>
+            <div class="text-gray-300 text-xl font-bold mb-1">{{ formatPercent(analysisData?.trend_analysis?.probabilities?.sideways) }}</div>
             <div class="text-xs text-gray-400 flex items-center justify-center">
               <i class="ri-subtract-line w-4 h-4 flex items-center justify-center"></i>
               <span>{{ t('analysis.sideways') }}</span>
@@ -137,7 +137,7 @@
           </div>
 
           <div class="p-3 rounded-lg bg-[rgba(239,68,68,0.12)] border border-red-500/30 text-center">
-            <div class="text-red-400 text-xl font-bold mb-1">{{ formatPercent(analysisData.trend_analysis.probabilities.down) }}</div>
+            <div class="text-red-400 text-xl font-bold mb-1">{{ formatPercent(analysisData?.trend_analysis?.probabilities?.down) }}</div>
             <div class="text-xs text-red-300 flex items-center justify-center">
               <i class="ri-arrow-down-line w-4 h-4 flex items-center justify-center"></i>
               <span>{{ t('analysis.downtrend') }}</span>
@@ -159,223 +159,89 @@
         <div class="mt-6" v-if="analysisData?.indicators_analysis">
           <h3 class="text-lg font-medium mb-3">{{ t('analysis.technical_indicators') }}</h3>
           <div class="flex flex-col gap-3">
-            <!-- 单参数指标 -->
+            <!-- 多参数指标横排，单独渲染 -->
+            
+            <!-- 单参数指标，两列网格 -->
             <div class="grid grid-cols-2 gap-3">
-              <!-- RSI -->
-              <div class="p-3 rounded-lg bg-gray-800/30 border border-gray-700/50">
-                <div class="text-sm text-gray-400 mb-1 flex items-center gap-1">
-                  RSI (14)
-                  <el-tooltip :content="getIndicatorExplanation('RSI')" placement="top">
-                    <i class="ri-question-line cursor-help"></i>
-                  </el-tooltip>
+              <template v-for="(indicator, key) in analysisData?.indicators_analysis" :key="key">
+                <div v-if="!['MACD','BollingerBands','DMI'].includes(key)" class="p-3 rounded-lg bg-gray-800/30 border border-gray-700/50">
+                  <div class="text-sm text-gray-400 mb-1 flex items-center gap-1">
+                    {{ key }}
+                    <el-tooltip :content="getIndicatorExplanation(key)" placement="top">
+                      <i class="ri-question-line cursor-help"></i>
+                    </el-tooltip>
+                  </div>
+                  <div class="flex items-center justify-between">
+                    <span class="font-medium">{{ typeof indicator.value === 'number' ? indicator.value.toFixed(2) : indicator.value }}</span>
+                    <span :class="getIndicatorClass(indicator.support_trend)" class="text-xs flex items-center justify-center w-5 h-5 rounded-full" :style="`background:${getIndicatorBgColor(indicator.support_trend)}`">
+                      <i :class="getTrendIconClass(indicator.support_trend)" class="text-base"></i>
+                    </span>
+                  </div>
                 </div>
-                <div class="flex items-center justify-between">
-                  <span class="font-medium">{{ analysisData.indicators_analysis.RSI.value }}</span>
-                  <span :class="getIndicatorClass(analysisData.indicators_analysis.RSI.support_trend)" class="text-xs flex items-center justify-center w-5 h-5 rounded-full" :style="`background:${getIndicatorBgColor(analysisData.indicators_analysis.RSI.support_trend)}`">
-                    <i :class="getTrendIconClass(analysisData.indicators_analysis.RSI.support_trend)" class="text-base"></i>
-                  </span>
-                </div>
-              </div>
-
-              <!-- BIAS -->
-              <div class="p-3 rounded-lg bg-gray-800/30 border border-gray-700/50">
-                <div class="text-sm text-gray-400 mb-1 flex items-center gap-1">
-                  BIAS
-                  <el-tooltip :content="getIndicatorExplanation('BIAS')" placement="top">
-                    <i class="ri-question-line cursor-help"></i>
-                  </el-tooltip>
-                </div>
-                <div class="flex items-center justify-between">
-                  <span class="font-medium">{{ analysisData.indicators_analysis.BIAS.value }}</span>
-                  <span :class="getIndicatorClass(analysisData.indicators_analysis.BIAS.support_trend)" class="text-xs flex items-center justify-center w-5 h-5 rounded-full" :style="`background:${getIndicatorBgColor(analysisData.indicators_analysis.BIAS.support_trend)}`">
-                    <i :class="getTrendIconClass(analysisData.indicators_analysis.BIAS.support_trend)" class="text-base"></i>
-                  </span>
-                </div>
-              </div>
-
-              <!-- PSY -->
-              <div class="p-3 rounded-lg bg-gray-800/30 border border-gray-700/50">
-                <div class="text-sm text-gray-400 mb-1 flex items-center gap-1">
-                  PSY
-                  <el-tooltip :content="getIndicatorExplanation('PSY')" placement="top">
-                    <i class="ri-question-line cursor-help"></i>
-                  </el-tooltip>
-                </div>
-                <div class="flex items-center justify-between">
-                  <span class="font-medium">{{ analysisData.indicators_analysis.PSY.value }}</span>
-                  <span :class="getIndicatorClass(analysisData.indicators_analysis.PSY.support_trend)" class="text-xs flex items-center justify-center w-5 h-5 rounded-full" :style="`background:${getIndicatorBgColor(analysisData.indicators_analysis.PSY.support_trend)}`">
-                    <i :class="getTrendIconClass(analysisData.indicators_analysis.PSY.support_trend)" class="text-base"></i>
-                  </span>
-                </div>
-              </div>
-
-              <!-- VWAP -->
-              <div class="p-3 rounded-lg bg-gray-800/30 border border-gray-700/50">
-                <div class="text-sm text-gray-400 mb-1 flex items-center gap-1">
-                  VWAP
-                  <el-tooltip :content="getIndicatorExplanation('VWAP')" placement="top">
-                    <i class="ri-question-line cursor-help"></i>
-                  </el-tooltip>
-                </div>
-                <div class="flex items-center justify-between">
-                  <span class="font-medium">{{ analysisData.indicators_analysis.VWAP.value.toFixed(2) }}</span>
-                  <span :class="getIndicatorClass(analysisData.indicators_analysis.VWAP.support_trend)" class="text-xs flex items-center justify-center w-5 h-5 rounded-full" :style="`background:${getIndicatorBgColor(analysisData.indicators_analysis.VWAP.support_trend)}`">
-                    <i :class="getTrendIconClass(analysisData.indicators_analysis.VWAP.support_trend)" class="text-base"></i>
-                  </span>
-                </div>
-              </div>
-
-              <!-- Funding Rate -->
-              <div class="p-3 rounded-lg bg-gray-800/30 border border-gray-700/50">
-                <div class="text-sm text-gray-400 mb-1 flex items-center gap-1">
-                  Funding Rate
-                  <el-tooltip :content="getIndicatorExplanation('FundingRate')" placement="top">
-                    <i class="ri-question-line cursor-help"></i>
-                  </el-tooltip>
-                </div>
-                <div class="flex items-center justify-between">
-                  <span class="font-medium">{{ (analysisData.indicators_analysis.FundingRate.value * 100).toFixed(4) }}%</span>
-                  <span :class="getIndicatorClass(analysisData.indicators_analysis.FundingRate.support_trend)" class="text-xs flex items-center justify-center w-5 h-5 rounded-full" :style="`background:${getIndicatorBgColor(analysisData.indicators_analysis.FundingRate.support_trend)}`">
-                    <i :class="getTrendIconClass(analysisData.indicators_analysis.FundingRate.support_trend)" class="text-base"></i>
-                  </span>
-                </div>
-              </div>
-
-              <!-- Exchange Netflow -->
-              <div class="p-3 rounded-lg bg-gray-800/30 border border-gray-700/50">
-                <div class="text-sm text-gray-400 mb-1 flex items-center gap-1">
-                  Exchange Netflow
-                  <el-tooltip :content="getIndicatorExplanation('ExchangeNetflow')" placement="top">
-                    <i class="ri-question-line cursor-help"></i>
-                  </el-tooltip>
-                </div>
-                <div class="flex items-center justify-between">
-                  <span class="font-medium">{{ analysisData.indicators_analysis.ExchangeNetflow.value.toFixed(2) }}</span>
-                  <span :class="getIndicatorClass(analysisData.indicators_analysis.ExchangeNetflow.support_trend)" class="text-xs flex items-center justify-center w-5 h-5 rounded-full" :style="`background:${getIndicatorBgColor(analysisData.indicators_analysis.ExchangeNetflow.support_trend)}`">
-                    <i :class="getTrendIconClass(analysisData.indicators_analysis.ExchangeNetflow.support_trend)" class="text-base"></i>
-                  </span>
-                </div>
-              </div>
-
-              <!-- NUPL -->
-              <div class="p-3 rounded-lg bg-gray-800/30 border border-gray-700/50">
-                <div class="text-sm text-gray-400 mb-1 flex items-center gap-1">
-                  NUPL
-                  <el-tooltip :content="getIndicatorExplanation('NUPL')" placement="top">
-                    <i class="ri-question-line cursor-help"></i>
-                  </el-tooltip>
-                </div>
-                <div class="flex items-center justify-between">
-                  <span class="font-medium">{{ analysisData.indicators_analysis.NUPL.value.toFixed(2) }}</span>
-                  <span :class="getIndicatorClass(analysisData.indicators_analysis.NUPL.support_trend)" class="text-xs flex items-center justify-center w-5 h-5 rounded-full" :style="`background:${getIndicatorBgColor(analysisData.indicators_analysis.NUPL.support_trend)}`">
-                    <i :class="getTrendIconClass(analysisData.indicators_analysis.NUPL.support_trend)" class="text-base"></i>
-                  </span>
-                </div>
-              </div>
-
-              <!-- Mayer Multiple -->
-              <div class="p-3 rounded-lg bg-gray-800/30 border border-gray-700/50">
-                <div class="text-sm text-gray-400 mb-1 flex items-center gap-1">
-                  Mayer Multiple
-                  <el-tooltip :content="getIndicatorExplanation('MayerMultiple')" placement="top">
-                    <i class="ri-question-line cursor-help"></i>
-                  </el-tooltip>
-                </div>
-                <div class="flex items-center justify-between">
-                  <span class="font-medium">{{ analysisData.indicators_analysis.MayerMultiple.value.toFixed(2) }}</span>
-                  <span :class="getIndicatorClass(analysisData.indicators_analysis.MayerMultiple.support_trend)" class="text-xs flex items-center justify-center w-5 h-5 rounded-full" :style="`background:${getIndicatorBgColor(analysisData.indicators_analysis.MayerMultiple.support_trend)}`">
-                    <i :class="getTrendIconClass(analysisData.indicators_analysis.MayerMultiple.support_trend)" class="text-base"></i>
-                  </span>
-                </div>
-              </div>
+              </template>
             </div>
-
-            <!-- MACD (独占一行) -->
-            <div class="p-3 rounded-lg bg-gray-800/30 border border-gray-700/50 mt-3">
-              <div class="flex items-center justify-between mb-2">
-                <div class="text-sm text-gray-400 flex items-center gap-1">
-                  MACD
-                  <el-tooltip :content="getIndicatorExplanation('MACD')" placement="top">
-                    <i class="ri-question-line cursor-help"></i>
-                  </el-tooltip>
+            <template v-for="key in ['MACD','BollingerBands','DMI']" :key="key">
+              <div v-if="analysisData?.indicators_analysis && (analysisData.indicators_analysis as any)[key]" class="col-span-2 p-3 rounded-lg bg-gray-800/30 border border-gray-700/50">
+                <div class="flex items-center justify-between mb-2">
+                  <div class="text-sm text-gray-400 flex items-center gap-1">
+                    {{ key }}
+                    <el-tooltip :content="getIndicatorExplanation(key)" placement="top">
+                      <i class="ri-question-line cursor-help"></i>
+                    </el-tooltip>
+                  </div>
+                  <span :class="getIndicatorClass((analysisData.indicators_analysis as any)[key].support_trend)" class="text-xs flex items-center justify-center w-5 h-5 rounded-full" :style="`background:${getIndicatorBgColor((analysisData.indicators_analysis as any)[key].support_trend)}`">
+                    <i :class="getTrendIconClass((analysisData.indicators_analysis as any)[key].support_trend)" class="text-base"></i>
+                  </span>
                 </div>
-                <span :class="getIndicatorClass(analysisData.indicators_analysis.MACD.support_trend)" class="text-xs flex items-center justify-center w-5 h-5 rounded-full" :style="`background:${getIndicatorBgColor(analysisData.indicators_analysis.MACD.support_trend)}`">
-                  <i :class="getTrendIconClass(analysisData.indicators_analysis.MACD.support_trend)" class="text-base"></i>
-                </span>
-              </div>
-              <div class="grid grid-cols-3 gap-2">
-                <div class="text-center p-1 rounded bg-blue-900/20 border border-blue-800/30">
-                  <div class="text-xs text-gray-400">Histogram</div>
-                  <div class="text-sm">{{ analysisData.indicators_analysis.MACD.value.histogram.toFixed(2) }}</div>
-                </div>
-                <div class="text-center p-1 rounded bg-blue-900/20 border border-blue-800/30">
-                  <div class="text-xs text-gray-400">MACD Line</div>
-                  <div class="text-sm">{{ analysisData.indicators_analysis.MACD.value.line.toFixed(2) }}</div>
-                </div>
-                <div class="text-center p-1 rounded bg-blue-900/20 border border-blue-800/30">
-                  <div class="text-xs text-gray-400">Signal Line</div>
-                  <div class="text-sm">{{ analysisData.indicators_analysis.MACD.value.signal.toFixed(2) }}</div>
-                </div>
-              </div>
-            </div>
-
-            <!-- Bollinger Bands (独占一行) -->
-            <div class="p-3 rounded-lg bg-gray-800/30 border border-gray-700/50 mt-3">
-              <div class="flex items-center justify-between mb-2">
-                <div class="text-sm text-gray-400 flex items-center gap-1">
-                  Bollinger Bands
-                  <el-tooltip :content="getIndicatorExplanation('BollingerBands')" placement="top">
-                    <i class="ri-question-line cursor-help"></i>
-                  </el-tooltip>
-                </div>
-                <span :class="getIndicatorClass(analysisData.indicators_analysis.BollingerBands.support_trend)" class="text-xs flex items-center justify-center w-5 h-5 rounded-full" :style="`background:${getIndicatorBgColor(analysisData.indicators_analysis.BollingerBands.support_trend)}`">
-                  <i :class="getTrendIconClass(analysisData.indicators_analysis.BollingerBands.support_trend)" class="text-base"></i>
-                </span>
-              </div>
-              <div class="grid grid-cols-3 gap-2">
-                <div class="text-center p-1 rounded bg-red-900/20 border border-red-800/30">
-                  <div class="text-xs text-gray-400">Upper Band</div>
-                  <div class="text-sm">{{ analysisData.indicators_analysis.BollingerBands.value.upper.toFixed(2) }}</div>
-                </div>
-                <div class="text-center p-1 rounded bg-gray-700/30 border border-gray-600/30">
-                  <div class="text-xs text-gray-400">Middle Band</div>
-                  <div class="text-sm">{{ analysisData.indicators_analysis.BollingerBands.value.middle.toFixed(2) }}</div>
-                </div>
-                <div class="text-center p-1 rounded bg-green-900/20 border border-green-800/30">
-                  <div class="text-xs text-gray-400">Lower Band</div>
-                  <div class="text-sm">{{ analysisData.indicators_analysis.BollingerBands.value.lower.toFixed(2) }}</div>
-                </div>
-              </div>
-            </div>
-
-            <!-- DMI (独占一行) -->
-            <div class="p-3 rounded-lg bg-gray-800/30 border border-gray-700/50 mt-3">
-              <div class="flex items-center justify-between mb-2">
-                <div class="text-sm text-gray-400 flex items-center gap-1">
-                  DMI
-                  <el-tooltip :content="getIndicatorExplanation('DMI')" placement="top">
-                    <i class="ri-question-line cursor-help"></i>
-                  </el-tooltip>
-                </div>
-                <span :class="getIndicatorClass(analysisData.indicators_analysis.DMI.support_trend)" class="text-xs flex items-center justify-center w-5 h-5 rounded-full" :style="`background:${getIndicatorBgColor(analysisData.indicators_analysis.DMI.support_trend)}`">
-                  <i :class="getTrendIconClass(analysisData.indicators_analysis.DMI.support_trend)" class="text-base"></i>
-                </span>
-              </div>
-              <div class="grid grid-cols-3 gap-2">
-                <div class="text-center p-1 rounded bg-green-900/20 border border-green-800/30">
-                  <div class="text-xs text-gray-400">+DI</div>
-                  <div class="text-sm">{{ analysisData.indicators_analysis.DMI.value.plus_di.toFixed(2) }}</div>
-                </div>
-                <div class="text-center p-1 rounded bg-red-900/20 border border-red-800/30">
-                  <div class="text-xs text-gray-400">-DI</div>
-                  <div class="text-sm">{{ analysisData.indicators_analysis.DMI.value.minus_di.toFixed(2) }}</div>
-                </div>
-                <div class="text-center p-1 rounded bg-blue-900/20 border border-blue-800/30">
-                  <div class="text-xs text-gray-400">ADX</div>
-                  <div class="text-sm">{{ analysisData.indicators_analysis.DMI.value.adx.toFixed(2) }}</div>
+                <div class="grid grid-cols-3 gap-2">
+                  <!-- MACD -->
+                  <template v-if="key === 'MACD'">
+                    <div class="text-center p-1 rounded bg-blue-900/20 border border-blue-800/30">
+                      <div class="text-xs text-gray-400">Histogram</div>
+                      <div class="text-sm">{{ typeof (analysisData.indicators_analysis as any)[key].value === 'object' && (analysisData.indicators_analysis as any)[key].value && 'histogram' in (analysisData.indicators_analysis as any)[key].value && typeof (analysisData.indicators_analysis as any)[key].value.histogram === 'number' ? (analysisData.indicators_analysis as any)[key].value.histogram.toFixed(2) : '--' }}</div>
+                    </div>
+                    <div class="text-center p-1 rounded bg-blue-900/20 border border-blue-800/30">
+                      <div class="text-xs text-gray-400">MACD Line</div>
+                      <div class="text-sm">{{ typeof (analysisData.indicators_analysis as any)[key].value === 'object' && (analysisData.indicators_analysis as any)[key].value && 'line' in (analysisData.indicators_analysis as any)[key].value && typeof (analysisData.indicators_analysis as any)[key].value.line === 'number' ? (analysisData.indicators_analysis as any)[key].value.line.toFixed(2) : '--' }}</div>
+                    </div>
+                    <div class="text-center p-1 rounded bg-blue-900/20 border border-blue-800/30">
+                      <div class="text-xs text-gray-400">Signal Line</div>
+                      <div class="text-sm">{{ typeof (analysisData.indicators_analysis as any)[key].value === 'object' && (analysisData.indicators_analysis as any)[key].value && 'signal' in (analysisData.indicators_analysis as any)[key].value && typeof (analysisData.indicators_analysis as any)[key].value.signal === 'number' ? (analysisData.indicators_analysis as any)[key].value.signal.toFixed(2) : '--' }}</div>
+                    </div>
+                  </template>
+                  <!-- Bollinger Bands -->
+                  <template v-else-if="key === 'BollingerBands'">
+                    <div class="text-center p-1 rounded bg-red-900/20 border border-red-800/30">
+                      <div class="text-xs text-gray-400">Upper Band</div>
+                      <div class="text-sm">{{ typeof (analysisData.indicators_analysis as any)[key].value === 'object' && (analysisData.indicators_analysis as any)[key].value && 'upper' in (analysisData.indicators_analysis as any)[key].value && typeof (analysisData.indicators_analysis as any)[key].value.upper === 'number' ? (analysisData.indicators_analysis as any)[key].value.upper.toFixed(2) : '--' }}</div>
+                    </div>
+                    <div class="text-center p-1 rounded bg-gray-700/30 border border-gray-600/30">
+                      <div class="text-xs text-gray-400">Middle Band</div>
+                      <div class="text-sm">{{ typeof (analysisData.indicators_analysis as any)[key].value === 'object' && (analysisData.indicators_analysis as any)[key].value && 'middle' in (analysisData.indicators_analysis as any)[key].value && typeof (analysisData.indicators_analysis as any)[key].value.middle === 'number' ? (analysisData.indicators_analysis as any)[key].value.middle.toFixed(2) : '--' }}</div>
+                    </div>
+                    <div class="text-center p-1 rounded bg-green-900/20 border border-green-800/30">
+                      <div class="text-xs text-gray-400">Lower Band</div>
+                      <div class="text-sm">{{ typeof (analysisData.indicators_analysis as any)[key].value === 'object' && (analysisData.indicators_analysis as any)[key].value && 'lower' in (analysisData.indicators_analysis as any)[key].value && typeof (analysisData.indicators_analysis as any)[key].value.lower === 'number' ? (analysisData.indicators_analysis as any)[key].value.lower.toFixed(2) : '--' }}</div>
+                    </div>
+                  </template>
+                  <!-- DMI -->
+                  <template v-else-if="key === 'DMI'">
+                    <div class="text-center p-1 rounded bg-green-900/20 border border-green-800/30">
+                      <div class="text-xs text-gray-400">+DI</div>
+                      <div class="text-sm">{{ typeof (analysisData.indicators_analysis as any)[key].value === 'object' && (analysisData.indicators_analysis as any)[key].value && 'plus_di' in (analysisData.indicators_analysis as any)[key].value && typeof (analysisData.indicators_analysis as any)[key].value.plus_di === 'number' ? (analysisData.indicators_analysis as any)[key].value.plus_di.toFixed(2) : '--' }}</div>
+                    </div>
+                    <div class="text-center p-1 rounded bg-red-900/20 border border-red-800/30">
+                      <div class="text-xs text-gray-400">-DI</div>
+                      <div class="text-sm">{{ typeof (analysisData.indicators_analysis as any)[key].value === 'object' && (analysisData.indicators_analysis as any)[key].value && 'minus_di' in (analysisData.indicators_analysis as any)[key].value && typeof (analysisData.indicators_analysis as any)[key].value.minus_di === 'number' ? (analysisData.indicators_analysis as any)[key].value.minus_di.toFixed(2) : '--' }}</div>
+                    </div>
+                    <div class="text-center p-1 rounded bg-blue-900/20 border border-blue-800/30">
+                      <div class="text-xs text-gray-400">ADX</div>
+                      <div class="text-sm">{{ typeof (analysisData.indicators_analysis as any)[key].value === 'object' && (analysisData.indicators_analysis as any)[key].value && 'adx' in (analysisData.indicators_analysis as any)[key].value && typeof (analysisData.indicators_analysis as any)[key].value.adx === 'number' ? (analysisData.indicators_analysis as any)[key].value.adx.toFixed(2) : '--' }}</div>
+                    </div>
+                  </template>
                 </div>
               </div>
-            </div>
+            </template>
           </div>
         </div>
 
@@ -602,11 +468,9 @@ const switchToToken = async (symbol: string) => {
   isTokenNotFound.value = false
   showSkeleton.value = true
 
-  // 更新当前代币
+  // 只更新 currentSymbol，watch 会自动加载数据
   currentSymbol.value = symbol
-
-  // 加载新代币的数据
-  await loadAnalysisData(true, false) // 不使用防抖，立即加载
+  // 不要再主动调用 loadAnalysisData
 }
 
 // 获取当前交易对
@@ -814,89 +678,94 @@ let loadingPromise: Promise<any> | null = null;
 let debounceTimer: NodeJS.Timeout | null = null;
 let abortController: AbortController | null = null;
 
+// 实际请求逻辑提取为独立函数，防止递归导致重复请求
+const doActualLoadAnalysisData = async (showLoading = true, noCache = false) => {
+  // 这里复制原本try块里的实际请求逻辑
+  // 增强的 symbol 验证
+  if (!currentSymbol.value || typeof currentSymbol.value !== 'string' || !currentSymbol.value.trim()) {
+    console.error('doActualLoadAnalysisData: Invalid currentSymbol.value:', currentSymbol.value)
+    error.value = '无法获取当前交易对信息'
+    ElMessage.error('交易对无效，无法加载数据');
+    return
+  }
+
+  // 如果已经有请求在进行中，取消之前的请求
+  if (loadingPromise) {
+    console.log('loadAnalysisData: 取消之前的请求，开始新请求')
+    if (abortController) {
+      abortController.abort()
+    }
+    loadingPromise = null
+  }
+
+  // 创建新的 AbortController
+  abortController = new AbortController()
+
+  error.value = null
+  isTokenNotFound.value = false
+  if (showLoading) {
+    loading.value = true
+    analysisLoading.value = true
+  }
+
+  console.log(`loadAnalysisData: 开始加载 ${currentSymbol.value} 的本地报告数据`)
+
+  // 创建新的请求Promise - 直接调用 getTechnicalAnalysis 读取本地数据
+  loadingPromise = getTechnicalAnalysis(currentSymbol.value, noCache)
+    .then(data => {
+      if (data && (data as any).status !== 'not_found') {
+        const formattedData = formatTechnicalAnalysisData(data)
+        analysisData.value = formattedData
+        isTokenNotFound.value = false
+        error.value = null // 清除之前的错误
+        console.log(`loadAnalysisData: 成功加载 ${currentSymbol.value} 的报告数据`)
+      } else {
+        isTokenNotFound.value = true
+        analysisData.value = null
+        error.value = null // 清除错误，因为这是正常的未找到状态
+        console.log(`loadAnalysisData: ${currentSymbol.value} 的报告数据未找到`)
+      }
+      return data;
+    })
+    .catch(err => {
+      console.error(`loadAnalysisData: 请求失败`, err)
+      error.value = err instanceof Error ? err.message : '加载数据失败'
+      analysisData.value = null
+      isTokenNotFound.value = false
+      return null;
+    })
+    .finally(() => {
+      loading.value = false
+      analysisLoading.value = false
+      loadingPromise = null;
+    });
+
+  return loadingPromise;
+}
+
 // 简化的数据加载函数 - 读取本地已存在的报告数据
 const loadAnalysisData = async (showLoading = true, debounce = true, noCache = false) => {
+  console.log('[loadAnalysisData] called', { showLoading, debounce, noCache, symbol: currentSymbol.value, stack: new Error().stack });
   try {
     // 防抖处理 - 避免快速连续调用
     if (debounce) {
       if (debounceTimer) {
         clearTimeout(debounceTimer)
       }
-
       return new Promise((resolve, reject) => {
         debounceTimer = setTimeout(async () => {
           try {
-            const result = await loadAnalysisData(showLoading, false, noCache) // 递归调用但不再防抖
+            // 只执行一次实际请求，不再递归调用自身
+            const result = await doActualLoadAnalysisData(showLoading, noCache)
             resolve(result)
           } catch (error) {
             reject(error)
           }
-        }, 300) // 减少防抖延迟到300ms，提高响应速度
+        }, 300)
       })
     }
-
-    // 增强的 symbol 验证
-    if (!currentSymbol.value || typeof currentSymbol.value !== 'string') {
-      console.error('loadAnalysisData: Invalid currentSymbol.value:', {
-        value: currentSymbol.value,
-        type: typeof currentSymbol.value
-      });
-      error.value = '无法获取当前交易对信息'
-      return
-    }
-
-    // 如果已经有请求在进行中，取消之前的请求
-    if (loadingPromise) {
-      console.log('loadAnalysisData: 取消之前的请求，开始新请求')
-      if (abortController) {
-        abortController.abort()
-      }
-      loadingPromise = null
-    }
-
-    // 创建新的 AbortController
-    abortController = new AbortController()
-
-    error.value = null
-    isTokenNotFound.value = false
-    if (showLoading) {
-      loading.value = true
-      analysisLoading.value = true
-    }
-
-    console.log(`loadAnalysisData: 开始加载 ${currentSymbol.value} 的本地报告数据`)
-
-    // 创建新的请求Promise - 直接调用 getTechnicalAnalysis 读取本地数据
-    loadingPromise = getTechnicalAnalysis(currentSymbol.value, noCache)
-      .then(data => {
-        if (data && (data as any).status !== 'not_found') {
-          const formattedData = formatTechnicalAnalysisData(data)
-          analysisData.value = formattedData
-          isTokenNotFound.value = false
-          error.value = null // 清除之前的错误
-          console.log(`loadAnalysisData: 成功加载 ${currentSymbol.value} 的报告数据`)
-        } else {
-          isTokenNotFound.value = true
-          analysisData.value = null
-          error.value = null // 清除错误，因为这是正常的未找到状态
-          console.log(`loadAnalysisData: ${currentSymbol.value} 的报告数据未找到`)
-        }
-        return data;
-      })
-      .catch(err => {
-        console.error(`loadAnalysisData: 请求失败`, err)
-        error.value = err instanceof Error ? err.message : '加载数据失败'
-        analysisData.value = null
-        isTokenNotFound.value = false
-        return null;
-      })
-      .finally(() => {
-        loading.value = false
-        analysisLoading.value = false
-        loadingPromise = null;
-      });
-
-    return loadingPromise;
+    // 非防抖时，直接执行实际请求
+    return await doActualLoadAnalysisData(showLoading, noCache)
   } catch (e) {
     console.error(`loadAnalysisData: 加载失败`, e)
     error.value = e instanceof Error ? e.message : '加载数据失败'
@@ -905,8 +774,6 @@ const loadAnalysisData = async (showLoading = true, debounce = true, noCache = f
     loadingPromise = null;
   }
 }
-
-
 
 // 组件卸载时清理
 onUnmounted(() => {
@@ -1485,17 +1352,14 @@ const handleRefreshSuccess = async () => {
   console.log('TokenNotFoundView 刷新成功，重新加载本地报告数据...')
   isTokenNotFound.value = false
   error.value = null
-
-  // 重新加载本地报告数据，因为新报告已经生成
+  // 只重新加载本地报告数据，不自动请求 get_report
   await loadAnalysisData(true)
-
   console.log('handleRefreshSuccess: 数据重新加载完成')
 }
 
 // 处理 TokenNotFoundView 刷新错误事件
 const handleRefreshError = async (error: any) => {
   console.error('TokenNotFoundView 刷新失败:', error)
-
   // 尝试重新加载一次本地数据，防止报告其实已经生成
   try {
     await loadAnalysisData(true)
@@ -1550,7 +1414,7 @@ if (typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.onMessage)
       // 验证新的 symbol 是否为有效字符串
       if (newSymbol && typeof newSymbol === 'string') {
         currentSymbol.value = newSymbol;
-        loadAnalysisData(); // 无论 symbol 是否变化都强制刷新
+        // 不要在这里手动调用 loadAnalysisData，交给 watch(currentSymbol) 自动处理
       }
     }
     return true;
@@ -1585,7 +1449,7 @@ let refreshPromise: Promise<any> | null = null
 // 刷新报告处理函数 - 直接使用生成的报告数据
 const handleRefreshReport = async () => {
   try {
-    if (isRefreshing.value || !currentSymbol.value) return
+    if (isRefreshing.value || !currentSymbol.value || typeof currentSymbol.value !== 'string' || !currentSymbol.value.trim()) return
     isRefreshing.value = true
 
     if (refreshPromise) return refreshPromise
@@ -1594,45 +1458,71 @@ const handleRefreshReport = async () => {
 
     refreshPromise = new Promise(async (resolve, reject) => {
       try {
-        // Call getLatestTechnicalAnalysis to generate a new report
+        // 1. 调用 getLatestTechnicalAnalysis 生成新报告
         console.log('HomeView: Calling getLatestTechnicalAnalysis to generate new report')
-        const result = await getLatestTechnicalAnalysis(currentSymbol.value)
+        await getLatestTechnicalAnalysis(currentSymbol.value)
 
-        // If valid data is returned
+        // 2. 等待后端完成报告生成 - 增加重试机制
+        console.log('HomeView: Waiting for report generation...')
+        let retryCount = 0
+        const maxRetries = 5
+        const retryInterval = 2000 // 2秒
+
+        while (retryCount < maxRetries) {
+          try {
+            // 等待一段时间后尝试读取报告
+            await new Promise(resolve => setTimeout(resolve, retryInterval))
+
+            // 尝试读取最新报告
+            console.log(`HomeView: Attempt ${retryCount + 1} to read latest report...`)
+        const result = await getTechnicalAnalysis(currentSymbol.value, true)
+
+            // 如果返回了有效数据
         if (result && (result as any).status !== 'not_found') {
           console.log('HomeView: Successfully got new report data!')
 
-          // Directly use the new report data
+          // 格式化并更新数据
           const formattedData = formatTechnicalAnalysisData(result)
-          analysisData.value = formattedData
-
-          console.log('HomeView: Updated UI with new report data')
-
-          isTokenNotFound.value = false
-          error.value = null
-          resolve(true)
-        } else {
-          // If still not found, throw error
-          throw new Error('Failed to generate report, please try again later')
+          
+          // 确保数据有效
+          if (formattedData && typeof formattedData === 'object') {
+            analysisData.value = formattedData
+            console.log('HomeView: Updated UI with new report data')
+            isTokenNotFound.value = false
+            error.value = null
+            resolve(true)
+                return
+              }
+            }
+            
+            retryCount++
+          } catch (readError) {
+            console.log(`HomeView: Attempt ${retryCount + 1} failed:`, readError)
+            retryCount++
+          }
         }
+
+        // 如果所有重试都失败
+          throw new Error('Failed to generate report, please try again later')
       } catch (error) {
         console.error('HomeView: Failed to refresh report:', error)
         // 刷新失败时只弹出错误提示，不清空数据
-        const msg = (error && typeof error === 'object' && 'message' in error) ? (error as any).message : '刷新失败';
+        const msg = (error && typeof error === 'object' && 'message' in error) ? (error as any).message : '刷新失败'
         ElMessage.error(msg)
         // 不清空 analysisData，不设置 isTokenNotFound
         reject(error)
       } finally {
-        setTimeout(() => { isRefreshing.value = false }, 1000)
+        isRefreshing.value = false
         refreshPromise = null
       }
     })
 
     return refreshPromise
   } catch (error) {
-    console.error('HomeView: Exception during refresh report:', error)
+    console.error('HomeView: Error in handleRefreshReport:', error)
     isRefreshing.value = false
     refreshPromise = null
+    throw error
   }
 }
 
@@ -1645,7 +1535,8 @@ const canRefreshReport = computed(() => {
   if (!analysisData.value?.last_update_time) return true
   const lastUpdate = new Date(analysisData.value.last_update_time).getTime()
   const now = Date.now()
-  return now - lastUpdate > 12 * 60 * 60 * 1000
+  // 1分钟（60*1000）
+  return now - lastUpdate > 60 * 1000
 })
 
 </script>
@@ -1668,5 +1559,16 @@ const canRefreshReport = computed(() => {
 }
 .animate-fade-in {
   animation: fade-in 0.2s;
+}
+
+/* 更时尚漂亮的全局字体 */
+:global(html),
+:global(body),
+:global(#app),
+:global(.relative) {
+  font-family: 'Inter', 'SF Pro Display', 'Roboto', 'PingFang SC', 'Helvetica Neue', Arial, sans-serif !important;
+  letter-spacing: 0.01em;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 </style>

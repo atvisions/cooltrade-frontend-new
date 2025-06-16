@@ -11,8 +11,7 @@
   ],
   "host_permissions": [
     "https://www.cooltrade.xyz/*",
-    "https://cooltrade.xyz/*",
-    "http://192.168.3.56:8000/*"
+    "https://cooltrade.xyz/*"
   ],
   "background": {
     "service_worker": "background.js"
