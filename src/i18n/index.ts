@@ -16,20 +16,10 @@ import koKR from './locales/ko-KR'
 
 // 获取用户设置的语言或默认语言
 const getPreferredLanguage = (): string => {
-  // 强制使用英文作为默认语言，忽略之前的设置
   const storedLang = localStorage.getItem('language')
-
-  // 如果存储的是中文，强制改为英文
-  if (storedLang === 'zh-CN') {
-    localStorage.setItem('language', 'en-US')
-    return 'en-US'
-  }
-
-  // 如果有其他有效语言设置，使用它
-  if (storedLang && ['en-US', 'ja-JP', 'ko-KR'].includes(storedLang)) {
+  if (storedLang && ['zh-CN', 'en-US', 'ja-JP', 'ko-KR'].includes(storedLang)) {
     return storedLang
   }
-
   // 默认使用英文
   localStorage.setItem('language', 'en-US')
   return 'en-US'
@@ -62,54 +52,26 @@ const i18n = createI18n({
 type SupportedLanguage = 'zh-CN' | 'en-US' | 'ja-JP' | 'ko-KR';
 
 export const setLanguage = (lang: string) => {
-  // 禁止设置中文，强制改为英文
-  if (lang === 'zh-CN') {
-    lang = 'en-US'
-  }
-
-  // 确保语言代码有效
-  if (['en-US', 'ja-JP', 'ko-KR'].includes(lang)) {
-    // 记录旧语言，用于调试
+  if (['zh-CN', 'en-US', 'ja-JP', 'ko-KR'].includes(lang)) {
     const oldLang = localStorage.getItem('language') || 'en-US';
-
-    // 如果语言没有变化，不执行后续操作
     if (oldLang === lang) {
       return;
     }
-
-    // 保存到本地存储
     localStorage.setItem('language', lang);
-
-    // 设置 i18n 全局语言
     i18n.global.locale.value = lang as SupportedLanguage;
-
-    // 同时设置直接加载器的语言
     try {
-      // 导入直接加载器
       import('./direct-loader').then(directLoader => {
         directLoader.setLocale(lang);
       });
-    } catch (e) {
-    }
-
-    // 移除调试工具相关代码
-
-    // 如果用户已登录，更新用户的语言偏好
+    } catch (e) {}
     const token = localStorage.getItem('token');
     if (token) {
-      // 调用API更新用户语言偏好
       updateUserLanguagePreference(lang);
     }
-
-    // 触发语言变更事件，通知其他组件重新加载数据
     window.dispatchEvent(new CustomEvent('language-changed', { detail: { language: lang } }));
-
-    // 强制刷新所有组件
     setTimeout(() => {
-      // 触发一个全局事件，通知所有组件重新渲染
       window.dispatchEvent(new Event('force-refresh-i18n'));
-    }, 100); // 增加延迟，确保语言设置已完成
-  } else {
+    }, 100);
   }
 }
 

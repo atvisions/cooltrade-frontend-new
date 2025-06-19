@@ -186,6 +186,7 @@ const getCurrentLanguageName = (): string => {
 // 支持的语言列表
 const languages = [
   { code: 'en-US', name: 'English' },
+  { code: 'zh-CN', name: '简体中文' },
   { code: 'ja-JP', name: '日本語' },
   { code: 'ko-KR', name: '한국어' }
 ]

@@ -27,23 +27,11 @@ let currentLocale = 'en-US'
 
 // 初始化时获取语言
 function initLocale() {
-  // 尝试从 localStorage 获取
   const storedLang = localStorage.getItem('language')
-
-  // 如果存储的是中文，强制改为英文
-  if (storedLang === 'zh-CN') {
-    currentLocale = 'en-US'
-    localStorage.setItem('language', 'en-US')
-    return
-  }
-
-  // 如果有其他有效语言设置，使用它
-  if (storedLang && ['en-US', 'ja-JP', 'ko-KR'].includes(storedLang)) {
+  if (storedLang && ['zh-CN', 'en-US', 'ja-JP', 'ko-KR'].includes(storedLang)) {
     currentLocale = storedLang
     return
   }
-
-  // 默认使用英文
   currentLocale = 'en-US'
   localStorage.setItem('language', 'en-US')
 }
@@ -58,11 +46,7 @@ export function t(key: string, params?: Record<string, any>): string {
   // 每次翻译时重新获取当前语言，以确保使用最新的语言设置
   const storedLang = localStorage.getItem('language');
 
-  // 如果存储的是中文，强制改为英文
-  if (storedLang === 'zh-CN') {
-    currentLocale = 'en-US';
-    localStorage.setItem('language', 'en-US');
-  } else if (storedLang && ['en-US', 'ja-JP', 'ko-KR'].includes(storedLang) && storedLang !== currentLocale) {
+  if (storedLang && ['zh-CN', 'en-US', 'ja-JP', 'ko-KR'].includes(storedLang) && storedLang !== currentLocale) {
     currentLocale = storedLang;
   }
 
@@ -100,20 +84,9 @@ export function t(key: string, params?: Record<string, any>): string {
 
 // 设置语言
 export function setLocale(locale: string) {
-  // 禁止设置中文，强制改为英文
-  if (locale === 'zh-CN') {
-    locale = 'en-US'
-  }
-
-  if (['en-US', 'ja-JP', 'ko-KR'].includes(locale)) {
-    // 记录旧语言，用于调试
-    // const oldLocale = currentLocale // (removed unused variable)
-
-    // 更新当前语言
+  if (['zh-CN', 'en-US', 'ja-JP', 'ko-KR'].includes(locale)) {
     currentLocale = locale
     localStorage.setItem('language', locale)
-
-    // 触发自定义事件，通知语言变化
     window.dispatchEvent(new CustomEvent('locale-changed', { detail: { locale } }));
   }
 }
