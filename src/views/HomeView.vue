@@ -150,7 +150,8 @@
           <h3 class="text-lg font-medium mb-3">{{ t('analysis.market_trend_analysis') }}</h3>
           <div class="p-4 rounded-lg bg-gray-800/30 border border-gray-700/50">
             <p class="text-gray-300 leading-relaxed">
-              {{ analysisData.trend_analysis.summary }}
+              <span v-if="loadingTranslation">翻译中...</span>
+              <span v-else>{{ translatedSummary }}</span>
             </p>
           </div>
         </div>
@@ -269,7 +270,10 @@
             </div>
             <div class="pt-2 border-t border-gray-700/50">
               <div class="text-sm text-gray-400 mb-1">{{ t('analysis.reason') }}</div>
-              <div class="text-sm text-gray-300">{{ analysisData.trading_advice.reason }}</div>
+              <div class="text-sm text-gray-300">
+                <span v-if="loadingReasonTranslation">翻译中...</span>
+                <span v-else>{{ translatedReason || analysisData.trading_advice.reason }}</span>
+              </div>
             </div>
           </div>
         </div>
@@ -304,7 +308,8 @@
             <div v-if="analysisData.risk_assessment.details && analysisData.risk_assessment.details.length > 0">
               <div class="text-sm text-gray-400 mb-1">{{ t('analysis.risk_factors') }}</div>
               <ul class="text-sm text-gray-300 list-disc pl-5 space-y-1">
-                <li v-for="(detail, index) in analysisData.risk_assessment.details" :key="index">
+                <li v-if="loadingRiskTranslation">翻译中...</li>
+                <li v-else v-for="(detail, index) in (translatedRiskFactors.length > 0 ? translatedRiskFactors : analysisData.risk_assessment.details)" :key="index">
                   {{ detail }}
                 </li>
               </ul>
@@ -409,6 +414,8 @@ import { formatTechnicalAnalysisData } from '@/utils/data-formatter'
 import TokenNotFoundView from '@/components/TokenNotFoundView.vue'
 import ChartSkeleton from '@/components/ChartSkeleton.vue'
 import LoadingModal from '@/components/LoadingModal.vue'
+// @ts-ignore
+import { googleTranslate } from '@/utils/translate'
 
 
 
@@ -798,6 +805,9 @@ const setupLanguageChangeListener = () => {
   window.addEventListener('language-changed', async (event) => {
     const newLanguage = (event as CustomEvent).detail?.language || localStorage.getItem('language') || 'en-US'
 
+    // 更新当前语言变量
+    currentLanguage.value = newLanguage as LangType
+
     if (currentSymbol.value) {
       await loadAnalysisData(false)
       await nextTick()
@@ -806,7 +816,9 @@ const setupLanguageChangeListener = () => {
 
   window.addEventListener('force-refresh-i18n', async () => {
     if (analysisData.value && currentSymbol.value) {
-      const currentLanguage = localStorage.getItem('language') || 'en-US';
+      const newLanguage = localStorage.getItem('language') || 'en-US';
+      // 更新当前语言变量
+      currentLanguage.value = newLanguage as LangType
       await loadAnalysisData(false);
       await nextTick();
     }
@@ -892,6 +904,22 @@ onMounted(async () => {
     console.error('初始化失败:', e);
     error.value = e instanceof Error ? e.message : '加载数据失败'
     loading.value = false
+  }
+
+  const summary = analysisData.value?.trend_analysis?.summary
+  const lang = currentLanguage.value // 修正为字符串
+  if (summary) {
+    if (lang === 'en-US') {
+      translatedSummary.value = summary
+    } else {
+      loadingTranslation.value = true
+      try {
+        translatedSummary.value = await googleTranslate(summary, langMap[lang] || 'zh-CN')
+      } catch (e) {
+        translatedSummary.value = summary
+      }
+      loadingTranslation.value = false
+    }
   }
 })
 
@@ -1345,7 +1373,7 @@ const getLocalizedRiskLevel = (level: RiskLevelType, lang: LangType): string => 
   return map[level.toLowerCase()] || map['medium'] || level
 }
 
-const currentLanguage: LangType = (localStorage.getItem('language') as LangType) || 'zh-CN';
+const currentLanguage = ref<LangType>((localStorage.getItem('language') as LangType) || 'en-US');
 
 // 处理 TokenNotFoundView 刷新成功事件
 const handleRefreshSuccess = async () => {
@@ -1538,6 +1566,89 @@ const canRefreshReport = computed(() => {
   // 12小时（12*60*60*1000）
   return now - lastUpdate > 12 * 60 * 60 * 1000
 })
+
+const translatedSummary = ref('')
+const translatedReason = ref('')
+const translatedRiskFactors = ref<string[]>([])
+const loadingTranslation = ref(false)
+const loadingReasonTranslation = ref(false)
+const loadingRiskTranslation = ref(false)
+const langMap: Record<string, string> = {
+  'zh-CN': 'zh-CN',
+  'en-US': 'en',
+  'ja-JP': 'ja',
+  'ko-KR': 'ko'
+}
+watch(
+  [() => analysisData.value?.trend_analysis?.summary, () => currentLanguage.value],
+  async ([summary, lang]) => {
+    if (!summary) {
+      translatedSummary.value = ''
+      return
+    }
+    if (lang === 'en-US') {
+      translatedSummary.value = summary
+      return
+    }
+    loadingTranslation.value = true
+    try {
+      translatedSummary.value = await googleTranslate(summary, langMap[lang] || 'zh-CN')
+    } catch (e) {
+      translatedSummary.value = summary
+    }
+    loadingTranslation.value = false
+  },
+  { immediate: true }
+)
+
+// 监听Trading Advice Reason的翻译
+watch(
+  [() => analysisData.value?.trading_advice?.reason, () => currentLanguage.value],
+  async ([reason, lang]) => {
+    if (!reason) {
+      translatedReason.value = ''
+      return
+    }
+    if (lang === 'en-US') {
+      translatedReason.value = reason
+      return
+    }
+    loadingReasonTranslation.value = true
+    try {
+      translatedReason.value = await googleTranslate(reason, langMap[lang] || 'zh-CN')
+    } catch (e) {
+      translatedReason.value = reason
+    }
+    loadingReasonTranslation.value = false
+  },
+  { immediate: true }
+)
+
+// 监听Risk Assessment Details的翻译
+watch(
+  [() => analysisData.value?.risk_assessment?.details, () => currentLanguage.value],
+  async ([details, lang]) => {
+    if (!details || !Array.isArray(details) || details.length === 0) {
+      translatedRiskFactors.value = []
+      return
+    }
+    if (lang === 'en-US') {
+      translatedRiskFactors.value = details
+      return
+    }
+    loadingRiskTranslation.value = true
+    try {
+      const translatedDetails = await Promise.all(
+        details.map(detail => googleTranslate(detail, langMap[lang] || 'zh-CN'))
+      )
+      translatedRiskFactors.value = translatedDetails
+    } catch (e) {
+      translatedRiskFactors.value = details
+    }
+    loadingRiskTranslation.value = false
+  },
+  { immediate: true }
+)
 
 </script>
 
