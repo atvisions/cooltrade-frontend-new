@@ -56,7 +56,11 @@ export default {
     no_data: '데이터가 없습니다',
     load_data: '데이터 로드',
     popular_tokens: '인기 토큰',
-    quick_switch: '빠른 전환'
+    popular_stocks: '인기 주식',
+    quick_switch: '빠른 전환',
+    search: '검색',
+    coming_soon: '개발 중',
+    my_favorites: '내 즐겨찾기'
   },
   auth: {
     login: '로그인',
@@ -247,5 +251,25 @@ export default {
     MACD: '이동평균 수렴확산(MACD), 추세의 강도와 전환점을 판단합니다.',
     BollingerBands: '볼린저 밴드, 가격 변동성과 지지/저항 구간을 측정합니다.',
     DMI: '방향성 지표(DMI), 추세 방향과 강도를 판단합니다.'
+  },
+  market: {
+    crypto: '암호화폐',
+    stock: '미국 주식',
+    china: 'A주'
+  },
+  search: {
+    title: '자산 검색',
+    placeholder: '심볼 또는 이름 검색...',
+    searching: '검색 중...',
+    no_results: '결과를 찾을 수 없습니다',
+    popular: '인기 자산'
+  },
+  favorites: {
+    add: '즐겨찾기에 추가',
+    remove: '즐겨찾기에서 제거',
+    title: '내 즐겨찾기',
+    empty: '즐겨찾기가 없습니다',
+    added: '즐겨찾기에 추가되었습니다',
+    removed: '즐겨찾기에서 제거되었습니다'
   }
 }

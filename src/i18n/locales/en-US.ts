@@ -25,7 +25,19 @@ export default {
     no_data: 'No data available',
     load_data: 'Load Data',
     popular_tokens: 'Popular Tokens',
-    quick_switch: 'Quick Switch'
+    popular_stocks: 'Popular Stocks',
+    quick_switch: 'Quick Switch',
+    search: 'Search',
+    coming_soon: 'Soon',
+    my_favorites: 'My Favorites',
+    items: 'items',
+    search_crypto_placeholder: 'Search crypto symbols or names...',
+    search_stock_placeholder: 'Search stock symbols or names...'
+  },
+  market: {
+    crypto: 'Crypto',
+    stock: 'US Stock',
+    china: 'A-Share'
   },
   auth: {
     login: 'Login',
@@ -250,5 +262,21 @@ export default {
     MACD: 'Moving Average Convergence Divergence, used to judge trend strength and turning points.',
     BollingerBands: 'Bollinger Bands, measures price volatility and support/resistance levels.',
     DMI: 'Directional Movement Index, used to judge trend direction and strength.'
+  },
+  search: {
+    title: 'Search Assets',
+    placeholder: 'Search symbols or names...',
+    searching: 'Searching...',
+    no_results: 'No results found',
+    popular: 'Popular Assets'
+  },
+  favorites: {
+    add: 'Add to Favorites',
+    remove: 'Remove from Favorites',
+    title: 'My Favorites',
+    empty: 'No favorites yet',
+    empty_hint: 'Click the star button to add favorites',
+    added: 'Added to favorites',
+    removed: 'Removed from favorites'
   }
 }

@@ -131,7 +131,7 @@ const retryRequest = async (config: any, retryCount: number = 0): Promise<any> =
       }
     }
 
-    // Add cache control headers
+    // Add cache control headers (后端已支持这些头部)
     config.headers['Cache-Control'] = 'no-cache'
     config.headers['Pragma'] = 'no-cache'
 
@@ -914,5 +914,132 @@ export const points = {
     }
   }
 };
+
+// Asset search and favorites interfaces
+export interface Asset {
+  symbol: string
+  name: string
+  market_type: 'crypto' | 'stock'
+  exchange?: string
+  sector?: string
+  is_active?: boolean
+}
+
+export interface SearchResponse {
+  status: 'success' | 'error'
+  data: Asset[]
+  source?: 'database' | 'external'
+  message?: string
+}
+
+export interface FavoriteResponse {
+  status: 'success' | 'error' | 'info'
+  message?: string
+  data?: {
+    id: number
+    symbol: string
+    name: string
+    market_type: string
+    added_at?: string
+  }
+}
+
+// Search and favorites API
+export const search = {
+  // Search assets
+  searchAssets: async (query: string, marketType?: 'crypto' | 'stock', limit: number = 20): Promise<SearchResponse> => {
+    try {
+      const params: Record<string, any> = { q: query, limit }
+      if (marketType) {
+        params.market_type = marketType
+      }
+
+      const response = await api.get('/crypto/search/', { params })
+      return response as unknown as SearchResponse
+    } catch (error) {
+      console.error('Search assets error:', error)
+      throw error
+    }
+  },
+
+  // Get popular assets
+  getPopularAssets: async (marketType: 'crypto' | 'stock' = 'crypto'): Promise<SearchResponse> => {
+    try {
+      const response = await api.get('/crypto/popular-assets/', {
+        params: { market_type: marketType }
+      })
+      return response as unknown as SearchResponse
+    } catch (error) {
+      console.error('Get popular assets error:', error)
+      throw error
+    }
+  }
+}
+
+export const favorites = {
+  // Get user favorites
+  getFavorites: async (): Promise<SearchResponse> => {
+    try {
+      const response = await api.get('/crypto/favorites/')
+      return response as unknown as SearchResponse
+    } catch (error) {
+      console.error('Get favorites error:', error)
+      throw error
+    }
+  },
+
+  // Add to favorites
+  addFavorite: async (asset: Asset): Promise<FavoriteResponse> => {
+    try {
+      const response = await api.post('/crypto/favorites/', {
+        symbol: asset.symbol,
+        market_type: asset.market_type,
+        name: asset.name,
+        exchange: asset.exchange,
+        sector: asset.sector
+      })
+      return response as unknown as FavoriteResponse
+    } catch (error) {
+      console.error('Add favorite error:', error)
+      throw error
+    }
+  },
+
+  // Remove from favorites
+  removeFavorite: async (symbol: string, marketType: 'crypto' | 'stock'): Promise<FavoriteResponse> => {
+    try {
+      const response = await api.delete('/crypto/favorites/', {
+        data: {
+          symbol,
+          market_type: marketType
+        }
+      })
+      return response as unknown as FavoriteResponse
+    } catch (error) {
+      console.error('Remove favorite error:', error)
+      throw error
+    }
+  },
+
+  // Check favorite status
+  checkFavoriteStatus: async (symbol: string, marketType: 'crypto' | 'stock' = 'crypto'): Promise<{
+    status: 'success' | 'error'
+    data: {
+      symbol: string
+      market_type: string
+      is_favorite: boolean
+    }
+  }> => {
+    try {
+      const response = await api.get(`/crypto/favorites/status/${symbol}/`, {
+        params: { market_type: marketType }
+      })
+      return response as any
+    } catch (error) {
+      console.error('Check favorite status error:', error)
+      throw error
+    }
+  }
+}
 
 export default api

@@ -56,7 +56,11 @@ export default {
     no_data: 'データがありません',
     load_data: 'データを読み込む',
     popular_tokens: '人気トークン',
-    quick_switch: 'クイック切替'
+    popular_stocks: '人気株式',
+    quick_switch: 'クイック切替',
+    search: '検索',
+    coming_soon: '開発中',
+    my_favorites: 'お気に入り'
   },
   auth: {
     login: 'ログイン',
@@ -247,5 +251,25 @@ export default {
     MACD: '移動平均収束拡散法（MACD）、トレンドの強さや転換点を判断します。',
     BollingerBands: 'ボリンジャーバンド、価格の変動性やサポート・レジスタンスを測定します。',
     DMI: '方向性指数（DMI）、トレンドの方向や強さを判断します。'
+  },
+  market: {
+    crypto: '暗号通貨',
+    stock: '米国株',
+    china: 'A株'
+  },
+  search: {
+    title: '資産検索',
+    placeholder: 'シンボルまたは名前を検索...',
+    searching: '検索中...',
+    no_results: '結果が見つかりません',
+    popular: '人気資産'
+  },
+  favorites: {
+    add: 'お気に入りに追加',
+    remove: 'お気に入りから削除',
+    title: 'マイお気に入り',
+    empty: 'お気に入りがありません',
+    added: 'お気に入りに追加しました',
+    removed: 'お気に入りから削除しました'
   }
 }

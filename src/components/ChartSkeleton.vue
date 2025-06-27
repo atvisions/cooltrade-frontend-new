@@ -1,62 +1,51 @@
 <template>
-  <div class="w-full">
-    <!-- 价格展示卡片骨架 -->
-    <div class="mt-6 p-5 rounded-lg bg-gradient-to-b from-gray-800/60 to-gray-900/60 border border-gray-700/50 shadow-lg">
-      <div class="text-center text-gray-400 mb-1 h-4 w-24 bg-gray-700/50 rounded animate-pulse mx-auto"></div>
-      <div class="text-center text-3xl font-bold mb-2 h-10 w-32 bg-gray-700/50 rounded animate-pulse mx-auto"></div>
-      <!-- 操作按钮骨架 -->
-      <div class="flex justify-center gap-3 mt-4 mb-2">
-        <div class="h-8 w-24 bg-gray-700/50 rounded-full animate-pulse"></div>
-        <div class="h-8 w-24 bg-gray-700/50 rounded-full animate-pulse"></div>
-      </div>
-    </div>
+  <div class="space-y-6">
+    <!-- 价格展示卡片骨架 - 完全匹配实际布局 -->
+    <div class="relative">
+      <div class="p-6 rounded-2xl bg-gradient-to-br from-slate-800/80 to-slate-900/80 border border-slate-700/50 shadow-xl">
+        <div class="text-center space-y-4">
+          <div class="space-y-1">
+            <!-- SNAPSHOT PRICE 标题骨架 -->
+            <div class="h-4 w-28 bg-slate-700/50 rounded animate-pulse mx-auto"></div>
+            <!-- 价格数字骨架 -->
+            <div class="flex items-baseline justify-center space-x-2">
+              <div class="h-12 w-48 bg-slate-700/50 rounded animate-pulse"></div>
+              <div class="h-6 w-8 bg-slate-700/50 rounded animate-pulse"></div>
+            </div>
+          </div>
 
-    <!-- Last Update skeleton card -->
-    <div class="mt-4 flex items-center justify-between pl-2 rounded-lg bg-gradient-to-b from-gray-800/60 to-gray-900/60 border border-gray-700/50 shadow">
-      <div class="flex items-center text-xs text-gray-400">
-        <div class="w-4 h-4 bg-gray-700/50 rounded-full animate-pulse mr-2"></div>
-        <div class="h-4 w-20 bg-gray-700/50 rounded animate-pulse mr-2"></div>
-        <div class="h-4 w-12 bg-gray-700/50 rounded animate-pulse"></div>
-      </div>
-      <div class="flex items-center justify-center w-8 h-8 rounded-lg bg-gray-700/30 animate-pulse"></div>
-    </div>
-
-    <!-- 趋势分析卡片骨架 -->
-    <div class="mt-6 grid grid-cols-3 gap-3">
-      <div class="p-3 rounded-lg bg-gradient-to-br from-green-600/20 to-green-800/20 border border-green-500/30 text-center">
-        <div class="h-6 w-16 bg-gray-700/50 rounded animate-pulse mx-auto mb-1"></div>
-        <div class="h-4 w-20 bg-gray-700/50 rounded animate-pulse mx-auto"></div>
-      </div>
-      <div class="p-3 rounded-lg bg-gradient-to-br from-gray-700/20 to-gray-800/20 border border-gray-600/30 text-center">
-        <div class="h-6 w-16 bg-gray-700/50 rounded animate-pulse mx-auto mb-1"></div>
-        <div class="h-4 w-20 bg-gray-700/50 rounded animate-pulse mx-auto"></div>
-      </div>
-      <div class="p-3 rounded-lg bg-[rgba(239,68,68,0.12)] border border-red-500/30 text-center">
-        <div class="h-6 w-16 bg-gray-700/50 rounded animate-pulse mx-auto mb-1"></div>
-        <div class="h-4 w-20 bg-gray-700/50 rounded animate-pulse mx-auto"></div>
-      </div>
-    </div>
-
-    <!-- 市场趋势分析骨架 -->
-    <div class="mt-6">
-      <div class="h-6 w-32 bg-gray-700/50 rounded animate-pulse mb-3"></div>
-      <div class="p-4 rounded-lg bg-gray-800/30 border border-gray-700/50">
-        <div class="space-y-2">
-          <div class="h-4 w-full bg-gray-700/50 rounded animate-pulse"></div>
-          <div class="h-4 w-3/4 bg-gray-700/50 rounded animate-pulse"></div>
-          <div class="h-4 w-5/6 bg-gray-700/50 rounded animate-pulse"></div>
+          <!-- 操作按钮骨架 -->
+          <div class="flex justify-center gap-3 pt-2">
+            <div class="h-10 w-32 bg-slate-700/50 rounded-xl animate-pulse"></div>
+            <div class="h-10 w-28 bg-slate-700/50 rounded-xl animate-pulse"></div>
+          </div>
         </div>
       </div>
     </div>
 
+    <!-- Last Update skeleton card -->
+    <div class="flex items-center justify-between p-3 rounded-xl bg-slate-800/50 border border-slate-700/50">
+      <div class="flex items-center text-xs">
+        <div class="w-4 h-4 bg-slate-700/50 rounded-full animate-pulse mr-2"></div>
+        <div class="h-3 w-24 bg-slate-700/50 rounded animate-pulse mr-2"></div>
+        <div class="h-3 w-20 bg-slate-700/50 rounded animate-pulse"></div>
+      </div>
+      <div class="w-8 h-8 bg-slate-700/50 rounded-lg animate-pulse"></div>
+    </div>
+
+    <!-- Trend Analysis 标题骨架 -->
+    <div>
+      <div class="h-6 w-32 bg-slate-700/50 rounded animate-pulse mb-4"></div>
+    </div>
+
     <!-- 加载提示 -->
-    <div class="mt-4 text-center">
-      <div class="loading-dots flex space-x-2 justify-center">
+    <div class="text-center py-8">
+      <div class="loading-dots flex space-x-2 justify-center mb-3">
         <div class="w-2 h-2 bg-blue-400 rounded-full animate-bounce" style="animation-delay: 0ms"></div>
         <div class="w-2 h-2 bg-blue-400 rounded-full animate-bounce" style="animation-delay: 150ms"></div>
         <div class="w-2 h-2 bg-blue-400 rounded-full animate-bounce" style="animation-delay: 300ms"></div>
       </div>
-      <p class="text-gray-400 text-sm mt-2">{{ loadingText }}</p>
+      <p class="text-slate-400 text-sm">{{ loadingText }}</p>
     </div>
   </div>
 </template>

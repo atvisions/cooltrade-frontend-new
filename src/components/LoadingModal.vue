@@ -1,5 +1,5 @@
 <template>
-  <div v-if="visible" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-60">
+  <div v-if="visible" class="chrome-extension-modal" style="z-index: 9999;">
     <div class="bg-[#232a36] rounded-xl shadow-lg px-6 py-8 flex flex-col items-center w-80 border-2 border-blue-500">
       <div class="flex items-center justify-center mb-4">
         <svg class="animate-spin h-10 w-10 text-blue-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
@@ -39,6 +39,11 @@ const props = withDefaults(defineProps<Props>(), {
   visible: false,
   type: 'refresh'
 })
+
+// 调试：监控visible属性变化
+watch(() => props.visible, (newVal) => {
+  console.log('LoadingModal visible changed to:', newVal)
+}, { immediate: true })
 
 const currentStageText = ref('')
 const currentSubText = ref('')
@@ -194,3 +199,30 @@ onUnmounted(() => {
   stopLoadingAnimation()
 })
 </script>
+
+<style scoped>
+.chrome-extension-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  width: 100vw;
+  height: 100vh;
+  max-width: 400px; /* Chrome扩展popup的典型宽度 */
+  max-height: 600px; /* Chrome扩展popup的典型高度 */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(4px);
+}
+
+/* 确保在Chrome扩展环境中正确显示 */
+@media (max-width: 400px) {
+  .chrome-extension-modal {
+    max-width: 100vw;
+    max-height: 100vh;
+  }
+}
+</style>

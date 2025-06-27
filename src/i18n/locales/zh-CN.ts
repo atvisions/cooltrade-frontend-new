@@ -25,7 +25,19 @@ export default {
     no_data: '暂无数据',
     load_data: '加载数据',
     popular_tokens: '热门代币',
-    quick_switch: '快速切换'
+    popular_stocks: '热门股票',
+    quick_switch: '快速切换',
+    search: '搜索',
+    coming_soon: '开发中',
+    my_favorites: '我的收藏',
+    items: '项',
+    search_crypto_placeholder: '搜索加密货币代码或名称...',
+    search_stock_placeholder: '搜索股票代码或名称...'
+  },
+  market: {
+    crypto: '加密货币',
+    stock: '美股',
+    china: 'A股'
   },
   auth: {
     login: '登录',
@@ -248,5 +260,21 @@ export default {
     MACD: '移动平均线收敛散度，用于判断趋势强弱和转折点。',
     BollingerBands: '布林带，用于衡量价格波动性和支撑阻力位。',
     DMI: '动向指标，用于判断趋势方向和强度。'
+  },
+  search: {
+    title: '搜索资产',
+    placeholder: '搜索代码或名称...',
+    searching: '搜索中...',
+    no_results: '未找到结果',
+    popular: '热门资产'
+  },
+  favorites: {
+    add: '添加到收藏',
+    remove: '取消收藏',
+    title: '我的收藏',
+    empty: '暂无收藏',
+    empty_hint: '点击星标按钮添加收藏',
+    added: '已添加到收藏',
+    removed: '已取消收藏'
   }
 }

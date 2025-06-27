@@ -1,6 +1,6 @@
 // Initialize environment variables
 let envConfig = {
-  baseApiUrl: 'https://www.cooltrade.xyz/api', // 固定本地后端地址
+  baseApiUrl: 'http://127.0.0.1:8000/api', // 本地测试服务器地址
   env: 'development',
   token: null
 };
@@ -67,17 +67,24 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     // Handle get cookie request
     const { url, name } = message.data
     chrome.cookies.get({ url: url, name: name }, (cookie) => {
-      sendResponse({ cookie: cookie })
+      if (chrome.runtime.lastError) {
+        console.warn('Cookie access error:', chrome.runtime.lastError.message)
+        sendResponse({ cookie: null, error: chrome.runtime.lastError.message })
+      } else {
+        sendResponse({ cookie: cookie })
+      }
     })
     return true // Keep connection open, wait for async response
   } else if (message.type === 'removeCookie') {
     // Handle remove cookie request
     const { url, name } = message.data
     chrome.cookies.remove({ url: url, name: name }, (details) => {
-      if (details) {
-        // console.log(`Cookie ${name} from ${url} removed successfully.`, details)
+      if (chrome.runtime.lastError) {
+        console.warn('Cookie removal error:', chrome.runtime.lastError.message)
+      } else if (details) {
+        console.log(`Cookie ${name} from ${url} removed successfully.`, details)
       } else {
-        // console.log(`Could not remove cookie ${name} from ${url}.`)
+        console.log(`Could not remove cookie ${name} from ${url}.`)
       }
     })
     return false // No async response needed

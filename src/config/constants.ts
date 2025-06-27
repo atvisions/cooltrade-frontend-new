@@ -1,19 +1,11 @@
 // API URLs and other constants
-// 只在生产环境用完整域名，开发环境始终用 '/api' 让 Vite 代理
-export const API_BASE_URL = 'https://www.cooltrade.xyz/api';
-export const WEBSITE_URL = 'https://www.cooltrade.xyz';
+// 使用本地测试服务器地址
+export const API_BASE_URL = 'http://127.0.0.1:8000/api';
+export const WEBSITE_URL = 'http://127.0.0.1:8000';
 
 // Environment specific configurations
 export const getApiBaseUrl = () => {
-    // 开发环境一律用 '/api'，不管是不是插件
-    if (import.meta.env.DEV) {
-        return '/api';
-    }
-    // 生产环境插件用线上
-    if (typeof chrome !== 'undefined' && chrome.runtime) {
-        return API_BASE_URL;
-    }
-    // 生产环境网页用线上
+    // 统一使用本地测试服务器地址
     return API_BASE_URL;
 };
 

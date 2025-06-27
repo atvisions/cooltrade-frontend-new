@@ -176,6 +176,17 @@ const attemptClaimFromCookie = async () => {
                 name: cookieNameForCookie
             }
         }, (response) => {
+            // 检查是否有权限错误
+            if (chrome.runtime.lastError) {
+                console.warn('Cookie access not available:', chrome.runtime.lastError.message);
+                return;
+            }
+
+            if (response && response.error) {
+                console.warn('Cookie access error:', response.error);
+                return;
+            }
+
             if (response && response.cookie) {
                 // 如果读取到 UUID，调用认领函数
                 claimTemporaryInvitation(response.cookie.value);
@@ -190,7 +201,7 @@ const attemptClaimFromCookie = async () => {
             }
         });
     } catch (error) {
-        console.error('Failed to read cookie:', error);
+        console.warn('Failed to read cookie:', error);
     }
 };
 
@@ -214,15 +225,19 @@ const claimTemporaryInvitation = async (uuid: string) => {
         console.error('Failed to claim temporary invitation:', error);
         // 检查是否在 Chrome 扩展环境中运行
         if (typeof chrome !== 'undefined' && chrome.runtime) {
-            // 请求出错也考虑让 background script 删除 cookie，避免无效尝试
-            const mainWebsiteDomain = getMainWebsiteDomain();
-            chrome.runtime.sendMessage({
-                type: 'removeCookie',
-                data: {
-                    url: mainWebsiteDomain,
-                    name: cookieNameForCookie
-                }
-            });
+            try {
+                // 请求出错也考虑让 background script 删除 cookie，避免无效尝试
+                const mainWebsiteDomain = getMainWebsiteDomain();
+                chrome.runtime.sendMessage({
+                    type: 'removeCookie',
+                    data: {
+                        url: mainWebsiteDomain,
+                        name: cookieNameForCookie
+                    }
+                });
+            } catch (cookieError) {
+                console.warn('Failed to remove cookie after error:', cookieError);
+            }
         }
     }
 }

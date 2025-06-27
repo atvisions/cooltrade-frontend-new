@@ -2,12 +2,31 @@
 import type { AxiosRequestConfig } from 'axios'
 
 /**
- * Check if running in extension environment
+ * Check if running in extension environment (popup or extension page)
  */
 export const isExtensionEnvironment = (): boolean => {
-  return typeof chrome !== 'undefined' &&
-         typeof chrome.runtime !== 'undefined' &&
-         typeof chrome.runtime.sendMessage === 'function'
+  // Check if we're in a Chrome extension context
+  if (typeof chrome === 'undefined' ||
+      typeof chrome.runtime === 'undefined' ||
+      typeof chrome.runtime.sendMessage !== 'function') {
+    return false
+  }
+
+  // Check if we're in an extension page (popup, options, etc.)
+  // Extension pages have chrome-extension:// protocol
+  const isExtensionPage = window.location.protocol === 'chrome-extension:' ||
+                         window.location.protocol === 'moz-extension:' ||
+                         window.location.protocol === 'extension:'
+
+  // Check if we have extension ID available (indicates we're in extension context)
+  let hasExtensionId = false
+  try {
+    hasExtensionId = !!chrome.runtime.id
+  } catch (e) {
+    // chrome.runtime.id might not be accessible in some contexts
+  }
+
+  return isExtensionPage || hasExtensionId
 }
 
 /**
@@ -61,6 +80,21 @@ export const proxyRequest = async (config: AxiosRequestConfig): Promise<any> => 
     // Send proxy request
     // Ensure method is valid string
     const requestMethod = typeof method === 'string' ? method.toUpperCase() : 'GET';
+
+    // Check if chrome extension API is available
+    if (typeof chrome === 'undefined' || !chrome.runtime || !chrome.runtime.sendMessage) {
+      reject(new Error('Chrome extension API not available. Please run in Chrome extension environment.'))
+      return
+    }
+
+    // Additional check for runtime.id (may not be available in all contexts)
+    try {
+      if (!chrome.runtime.id) {
+        console.warn('Chrome runtime.id not available, but proceeding with request')
+      }
+    } catch (e) {
+      console.warn('Cannot access chrome.runtime.id, but proceeding with request')
+    }
 
     chrome.runtime.sendMessage({
       type: 'PROXY_API_REQUEST',
