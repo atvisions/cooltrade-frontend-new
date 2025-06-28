@@ -30,7 +30,7 @@
                        :class="{
                          'bg-gradient-to-r from-orange-400 to-yellow-400': currentMarketType === 'crypto',
                          'bg-gradient-to-r from-green-400 to-emerald-400': currentMarketType === 'stock',
-                         'bg-gradient-to-r from-red-400 to-pink-400': currentMarketType === 'china'
+                         'bg-gradient-to-r from-red-400 to-pink-400': (currentMarketType as string) === 'china'
                        }">
                   </div>
 
@@ -64,7 +64,7 @@
                   </button>
 
                   <button
-                    v-if="currentMarketType !== 'china'"
+                    v-if="(currentMarketType as string) !== 'china'"
                     @click="togglePanel('popular')"
                     class="group/btn relative p-2 rounded-xl border transition-all duration-300 hover:scale-110 hover:rotate-3"
                     :class="{
@@ -154,7 +154,7 @@
           </div>
 
       <!-- A股开发中页面 -->
-      <div class="flex-1 flex items-center justify-center px-4 pt-16" v-if="currentMarketType === 'china'">
+      <div class="flex-1 flex items-center justify-center px-4 pt-16" v-if="(currentMarketType as string) === 'china'">
         <div class="text-center space-y-6">
           <div class="w-20 h-20 mx-auto bg-orange-500/20 rounded-full flex items-center justify-center">
             <i class="ri-tools-line text-3xl text-orange-400"></i>
@@ -302,13 +302,13 @@
 
                     <!-- 资产信息 -->
                     <div class="flex-1 min-w-0">
-                      <div class="font-medium text-white text-xs">{{ asset.symbol }}</div>
+                      <div class="font-medium text-white text-xs">{{ formatDisplaySymbol(asset.symbol, asset.market_type) }}</div>
                     </div>
 
-                    <!-- 删除按钮 -->
+                    <!-- 删除按钮 - 始终可见 -->
                     <button
                       @click.stop="removeFavorite(asset.symbol, asset.market_type)"
-                      class="flex-shrink-0 w-4 h-4 rounded-full bg-red-500/20 hover:bg-red-500/40 text-red-400 hover:text-red-300 flex items-center justify-center transition-all duration-200 opacity-0 group-hover:opacity-100"
+                      class="flex-shrink-0 w-5 h-5 rounded-full bg-red-500/20 hover:bg-red-500/40 text-red-400 hover:text-red-300 flex items-center justify-center transition-all duration-200"
                       :title="t('favorites.remove')"
                     >
                       <i class="ri-close-line text-xs"></i>
@@ -337,11 +337,11 @@
                            }" class="text-xs"></i>
                       </div>
                       <div class="flex-1 min-w-0">
-                        <div class="font-medium text-white text-xs">{{ asset.symbol }}</div>
+                        <div class="font-medium text-white text-xs">{{ formatDisplaySymbol(asset.symbol, asset.market_type) }}</div>
                       </div>
                       <button
                         @click.stop="removeFavorite(asset.symbol, asset.market_type)"
-                        class="flex-shrink-0 w-4 h-4 rounded-full bg-red-500/20 hover:bg-red-500/40 text-red-400 hover:text-red-300 flex items-center justify-center transition-all duration-200 opacity-0 group-hover:opacity-100"
+                        class="flex-shrink-0 w-5 h-5 rounded-full bg-red-500/20 hover:bg-red-500/40 text-red-400 hover:text-red-300 flex items-center justify-center transition-all duration-200"
                         :title="t('favorites.remove')"
                       >
                         <i class="ri-close-line text-xs"></i>
@@ -375,11 +375,11 @@
                          }" class="text-xs"></i>
                     </div>
                     <div class="flex-1 min-w-0">
-                      <div class="font-medium text-white text-xs">{{ asset.symbol }}</div>
+                      <div class="font-medium text-white text-xs">{{ formatDisplaySymbol(asset.symbol, asset.market_type) }}</div>
                     </div>
                     <button
                       @click.stop="removeFavorite(asset.symbol, asset.market_type)"
-                      class="flex-shrink-0 w-4 h-4 rounded-full bg-red-500/20 hover:bg-red-500/40 text-red-400 hover:text-red-300 flex items-center justify-center transition-all duration-200 opacity-0 group-hover:opacity-100"
+                      class="flex-shrink-0 w-5 h-5 rounded-full bg-red-500/20 hover:bg-red-500/40 text-red-400 hover:text-red-300 flex items-center justify-center transition-all duration-200"
                       :title="t('favorites.remove')"
                     >
                       <i class="ri-close-line text-xs"></i>
@@ -844,7 +844,7 @@ import { googleTranslate } from '@/utils/translate'
 interface Asset {
   symbol: string
   name: string
-  market_type: 'crypto' | 'stock'
+  market_type: 'crypto' | 'stock' | 'china'
   exchange?: string
   sector?: string
 }
@@ -1429,6 +1429,14 @@ const loadFavorites = async () => {
 
 
 
+
+// 格式化显示符号，移除USDT后缀
+const formatDisplaySymbol = (symbol: string, marketType: string) => {
+  if (marketType === 'crypto' && symbol.endsWith('USDT')) {
+    return symbol.replace('USDT', '')
+  }
+  return symbol
+}
 
 // 移除收藏 - 完全通过API
 const removeFavorite = async (symbol: string, marketType: string) => {

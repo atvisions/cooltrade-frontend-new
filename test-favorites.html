@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Favorites Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        .button {
+            background: #007cba;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            margin: 5px;
+            border-radius: 3px;
+            cursor: pointer;
+        }
+        .log {
+            background: #f5f5f5;
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 3px;
+            font-family: monospace;
+            white-space: pre-wrap;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        .error { color: red; }
+        .success { color: green; }
+        .info { color: blue; }
+    </style>
+</head>
+<body>
+    <h1>收藏功能测试</h1>
+    
+    <div class="test-section">
+        <h3>环境检查</h3>
+        <button class="button" onclick="checkEnvironment()">检查环境</button>
+        <div id="env-log" class="log"></div>
+    </div>
+
+    <div class="test-section">
+        <h3>Token检查</h3>
+        <button class="button" onclick="checkToken()">检查Token</button>
+        <div id="token-log" class="log"></div>
+    </div>
+
+    <div class="test-section">
+        <h3>收藏功能测试</h3>
+        <button class="button" onclick="testGetFavorites()">获取收藏列表</button>
+        <button class="button" onclick="testAddFavorite()">添加收藏</button>
+        <button class="button" onclick="testRemoveFavorite()">移除收藏</button>
+        <button class="button" onclick="testCheckStatus()">检查收藏状态</button>
+        <div id="api-log" class="log"></div>
+    </div>
+
+    <script>
+        function log(elementId, message, type = 'info') {
+            const element = document.getElementById(elementId);
+            const timestamp = new Date().toLocaleTimeString();
+            const className = type === 'error' ? 'error' : type === 'success' ? 'success' : 'info';
+            element.innerHTML += `<span class="${className}">[${timestamp}] ${message}</span>\n`;
+            element.scrollTop = element.scrollHeight;
+        }
+
+        function checkEnvironment() {
+            const envLog = document.getElementById('env-log');
+            envLog.innerHTML = '';
+            
+            log('env-log', '检查环境...', 'info');
+            
+            if (typeof chrome !== 'undefined') {
+                log('env-log', '✓ Chrome APIs 可用', 'success');
+                if (chrome.runtime && chrome.runtime.id) {
+                    log('env-log', `✓ 扩展ID: ${chrome.runtime.id}`, 'success');
+                }
+            } else {
+                log('env-log', '✗ Chrome APIs 不可用', 'error');
+            }
+        }
+
+        function checkToken() {
+            const tokenLog = document.getElementById('token-log');
+            tokenLog.innerHTML = '';
+            
+            const token = localStorage.getItem('token');
+            if (token) {
+                log('token-log', '✓ Token 存在', 'success');
+                log('token-log', `Token 长度: ${token.length}`, 'info');
+            } else {
+                log('token-log', '✗ Token 不存在', 'error');
+            }
+        }
+
+        function testGetFavorites() {
+            const apiLog = document.getElementById('api-log');
+            apiLog.innerHTML = '';
+            
+            log('api-log', '测试获取收藏列表...', 'info');
+            
+            const token = localStorage.getItem('token');
+            if (!token) {
+                log('api-log', '✗ 没有Token', 'error');
+                return;
+            }
+            
+            if (typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.sendMessage) {
+                chrome.runtime.sendMessage({
+                    type: 'PROXY_API_REQUEST',
+                    data: {
+                        url: '/crypto/favorites/',
+                        method: 'GET',
+                        headers: {
+                            'Authorization': token,
+                            'Accept': 'application/json'
+                        }
+                    }
+                }, (response) => {
+                    if (chrome.runtime.lastError) {
+                        log('api-log', '✗ Chrome runtime 错误: ' + chrome.runtime.lastError.message, 'error');
+                        return;
+                    }
+                    
+                    if (response && response.success) {
+                        log('api-log', '✓ 获取收藏列表成功', 'success');
+                        log('api-log', '响应: ' + JSON.stringify(response.data, null, 2), 'info');
+                    } else {
+                        log('api-log', '✗ 获取收藏列表失败', 'error');
+                        log('api-log', '错误: ' + (response?.error || '未知错误'), 'error');
+                    }
+                });
+            } else {
+                log('api-log', '✗ Chrome 扩展 APIs 不可用', 'error');
+            }
+        }
+
+        function testAddFavorite() {
+            const apiLog = document.getElementById('api-log');
+            
+            log('api-log', '测试添加收藏...', 'info');
+            
+            const token = localStorage.getItem('token');
+            if (!token) {
+                log('api-log', '✗ 没有Token', 'error');
+                return;
+            }
+            
+            if (typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.sendMessage) {
+                chrome.runtime.sendMessage({
+                    type: 'PROXY_API_REQUEST',
+                    data: {
+                        url: '/crypto/favorites/',
+                        method: 'POST',
+                        headers: {
+                            'Authorization': token,
+                            'Content-Type': 'application/json'
+                        },
+                        body: {
+                            symbol: 'BTCUSDT',
+                            market_type: 'crypto',
+                            name: 'Bitcoin',
+                            exchange: 'binance',
+                            sector: null
+                        }
+                    }
+                }, (response) => {
+                    if (chrome.runtime.lastError) {
+                        log('api-log', '✗ Chrome runtime 错误: ' + chrome.runtime.lastError.message, 'error');
+                        return;
+                    }
+                    
+                    if (response && response.success) {
+                        log('api-log', '✓ 添加收藏成功', 'success');
+                        log('api-log', '响应: ' + JSON.stringify(response.data, null, 2), 'info');
+                    } else {
+                        log('api-log', '✗ 添加收藏失败', 'error');
+                        log('api-log', '错误: ' + (response?.error || '未知错误'), 'error');
+                    }
+                });
+            } else {
+                log('api-log', '✗ Chrome 扩展 APIs 不可用', 'error');
+            }
+        }
+
+        function testRemoveFavorite() {
+            const apiLog = document.getElementById('api-log');
+            
+            log('api-log', '测试移除收藏...', 'info');
+            
+            const token = localStorage.getItem('token');
+            if (!token) {
+                log('api-log', '✗ 没有Token', 'error');
+                return;
+            }
+            
+            if (typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.sendMessage) {
+                chrome.runtime.sendMessage({
+                    type: 'PROXY_API_REQUEST',
+                    data: {
+                        url: '/crypto/favorites/',
+                        method: 'DELETE',
+                        headers: {
+                            'Authorization': token,
+                            'Content-Type': 'application/json'
+                        },
+                        body: {
+                            symbol: 'BTCUSDT',
+                            market_type: 'crypto'
+                        }
+                    }
+                }, (response) => {
+                    if (chrome.runtime.lastError) {
+                        log('api-log', '✗ Chrome runtime 错误: ' + chrome.runtime.lastError.message, 'error');
+                        return;
+                    }
+                    
+                    if (response && response.success) {
+                        log('api-log', '✓ 移除收藏成功', 'success');
+                        log('api-log', '响应: ' + JSON.stringify(response.data, null, 2), 'info');
+                    } else {
+                        log('api-log', '✗ 移除收藏失败', 'error');
+                        log('api-log', '错误: ' + (response?.error || '未知错误'), 'error');
+                    }
+                });
+            } else {
+                log('api-log', '✗ Chrome 扩展 APIs 不可用', 'error');
+            }
+        }
+
+        function testCheckStatus() {
+            const apiLog = document.getElementById('api-log');
+            
+            log('api-log', '测试检查收藏状态...', 'info');
+            
+            const token = localStorage.getItem('token');
+            if (!token) {
+                log('api-log', '✗ 没有Token', 'error');
+                return;
+            }
+            
+            if (typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.sendMessage) {
+                chrome.runtime.sendMessage({
+                    type: 'PROXY_API_REQUEST',
+                    data: {
+                        url: '/crypto/favorites/status/BTCUSDT/?market_type=crypto',
+                        method: 'GET',
+                        headers: {
+                            'Authorization': token,
+                            'Accept': 'application/json'
+                        }
+                    }
+                }, (response) => {
+                    if (chrome.runtime.lastError) {
+                        log('api-log', '✗ Chrome runtime 错误: ' + chrome.runtime.lastError.message, 'error');
+                        return;
+                    }
+                    
+                    if (response && response.success) {
+                        log('api-log', '✓ 检查收藏状态成功', 'success');
+                        log('api-log', '响应: ' + JSON.stringify(response.data, null, 2), 'info');
+                    } else {
+                        log('api-log', '✗ 检查收藏状态失败', 'error');
+                        log('api-log', '错误: ' + (response?.error || '未知错误'), 'error');
+                    }
+                });
+            } else {
+                log('api-log', '✗ Chrome 扩展 APIs 不可用', 'error');
+            }
+        }
+
+        // 页面加载时自动检查环境
+        window.addEventListener('load', () => {
+            checkEnvironment();
+        });
+    </script>
+</body>
+</html> 

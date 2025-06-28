@@ -1004,26 +1004,40 @@ export const favorites = {
     try {
       // 在扩展环境中使用代理请求，类似points功能的实现
       if (isExtension()) {
+        console.log('favorites.getFavorites: 在扩展环境中使用代理请求')
+        const token = localStorage.getItem('token')
+        console.log('favorites.getFavorites: token存在:', !!token)
+        
         const response = await new Promise((resolve, reject) => {
-          chrome.runtime.sendMessage({
+          const requestData = {
             type: 'PROXY_API_REQUEST',
             data: {
               url: '/crypto/favorites/',
               method: 'GET',
               headers: {
-                'Authorization': localStorage.getItem('token'),
+                'Authorization': token,
                 'Accept': 'application/json'
               }
             }
-          }, (response) => {
+          }
+          
+          console.log('favorites.getFavorites: 发送请求:', requestData)
+          
+          chrome.runtime.sendMessage(requestData, (response) => {
+            console.log('favorites.getFavorites: 收到响应:', response)
+            
             if (chrome.runtime.lastError) {
+              console.error('favorites.getFavorites: Chrome runtime错误:', chrome.runtime.lastError.message)
               reject(new Error(chrome.runtime.lastError.message));
               return;
             }
-            if (response.success) {
+            
+            if (response && response.success) {
+              console.log('favorites.getFavorites: 请求成功')
               resolve(response.data);
             } else {
-              reject(new Error(response.error || '获取收藏列表失败'));
+              console.error('favorites.getFavorites: 请求失败:', response?.error || '未知错误')
+              reject(new Error(response?.error || '获取收藏列表失败'));
             }
           });
         });
@@ -1031,6 +1045,7 @@ export const favorites = {
       }
 
       // 非扩展环境使用普通axios请求
+      console.log('favorites.getFavorites: 在非扩展环境中使用axios请求')
       const response = await api.get('/crypto/favorites/')
       return response as unknown as SearchResponse
     } catch (error) {
@@ -1044,14 +1059,19 @@ export const favorites = {
     try {
       // 在扩展环境中使用代理请求，类似points功能的实现
       if (isExtension()) {
+        console.log('favorites.addFavorite: 在扩展环境中使用代理请求')
+        const token = localStorage.getItem('token')
+        console.log('favorites.addFavorite: token存在:', !!token)
+        console.log('favorites.addFavorite: 添加资产:', asset)
+        
         const response = await new Promise((resolve, reject) => {
-          chrome.runtime.sendMessage({
+          const requestData = {
             type: 'PROXY_API_REQUEST',
             data: {
               url: '/crypto/favorites/',
               method: 'POST',
               headers: {
-                'Authorization': localStorage.getItem('token'),
+                'Authorization': token,
                 'Accept': 'application/json',
                 'Content-Type': 'application/json'
               },
@@ -1063,15 +1083,41 @@ export const favorites = {
                 sector: asset.sector
               }
             }
-          }, (response) => {
+          }
+          
+          console.log('favorites.addFavorite: 发送请求:', requestData)
+          
+          chrome.runtime.sendMessage(requestData, (response) => {
+            console.log('favorites.addFavorite: 收到响应:', response)
+            
             if (chrome.runtime.lastError) {
+              console.error('favorites.addFavorite: Chrome runtime错误:', chrome.runtime.lastError.message)
               reject(new Error(chrome.runtime.lastError.message));
               return;
             }
-            if (response.success) {
-              resolve(response.data);
+            
+            if (response && response.success) {
+              console.log('favorites.addFavorite: 请求成功')
+              // 检查响应数据结构，确保返回正确的格式
+              if (response.data && (response.data.status === 'success' || response.data.status === 'info')) {
+                resolve(response.data);
+              } else if (response.data && typeof response.data === 'object') {
+                // 如果后端直接返回了成功状态，构造标准响应格式
+                resolve({
+                  status: response.data.status || 'success',
+                  message: response.data.message || 'Asset added to favorites',
+                  data: response.data.data || response.data
+                });
+              } else {
+                // 兜底情况，构造成功响应
+                resolve({
+                  status: 'success',
+                  message: 'Asset added to favorites'
+                });
+              }
             } else {
-              reject(new Error(response.error || '添加收藏失败'));
+              console.error('favorites.addFavorite: 请求失败:', response?.error || '未知错误')
+              reject(new Error(response?.error || '添加收藏失败'));
             }
           });
         });
@@ -1079,6 +1125,7 @@ export const favorites = {
       }
 
       // 非扩展环境使用普通axios请求
+      console.log('favorites.addFavorite: 在非扩展环境中使用axios请求')
       const response = await api.post('/crypto/favorites/', {
         symbol: asset.symbol,
         market_type: asset.market_type,
@@ -1098,14 +1145,19 @@ export const favorites = {
     try {
       // 在扩展环境中使用代理请求，类似points功能的实现
       if (isExtension()) {
+        console.log('favorites.removeFavorite: 在扩展环境中使用代理请求')
+        const token = localStorage.getItem('token')
+        console.log('favorites.removeFavorite: token存在:', !!token)
+        console.log('favorites.removeFavorite: 移除资产:', { symbol, marketType })
+        
         const response = await new Promise((resolve, reject) => {
-          chrome.runtime.sendMessage({
+          const requestData = {
             type: 'PROXY_API_REQUEST',
             data: {
               url: '/crypto/favorites/',
               method: 'DELETE',
               headers: {
-                'Authorization': localStorage.getItem('token'),
+                'Authorization': token,
                 'Accept': 'application/json',
                 'Content-Type': 'application/json'
               },
@@ -1114,15 +1166,47 @@ export const favorites = {
                 market_type: marketType
               }
             }
-          }, (response) => {
+          }
+          
+          console.log('favorites.removeFavorite: 发送请求:', requestData)
+          
+          chrome.runtime.sendMessage(requestData, (response) => {
+            console.log('favorites.removeFavorite: 收到响应:', response)
+            
             if (chrome.runtime.lastError) {
+              console.error('favorites.removeFavorite: Chrome runtime错误:', chrome.runtime.lastError.message)
               reject(new Error(chrome.runtime.lastError.message));
               return;
             }
-            if (response.success) {
-              resolve(response.data);
+            
+            if (response && response.success) {
+              console.log('favorites.removeFavorite: 请求成功')
+              // 检查响应数据结构，确保返回正确的格式
+              if (response.data && response.data.status === 'success') {
+                resolve(response.data);
+              } else if (response.data && typeof response.data === 'object') {
+                // 如果后端直接返回了成功状态，构造标准响应格式
+                resolve({
+                  status: 'success',
+                  message: response.data.message || 'Asset removed from favorites'
+                });
+              } else {
+                // 兜底情况，构造成功响应
+                resolve({
+                  status: 'success',
+                  message: 'Asset removed from favorites'
+                });
+              }
+            } else if (response && response.status === 404) {
+              // 404错误表示收藏不存在，这也算是成功的移除操作
+              console.log('favorites.removeFavorite: 收藏不存在，视为成功移除')
+              resolve({
+                status: 'success',
+                message: 'Asset was not in favorites (already removed)'
+              });
             } else {
-              reject(new Error(response.error || '移除收藏失败'));
+              console.error('favorites.removeFavorite: 请求失败:', response?.error || '未知错误')
+              reject(new Error(response?.error || '移除收藏失败'));
             }
           });
         });
@@ -1130,6 +1214,7 @@ export const favorites = {
       }
 
       // 非扩展环境使用普通axios请求
+      console.log('favorites.removeFavorite: 在非扩展环境中使用axios请求')
       const response = await api.delete('/crypto/favorites/', {
         data: {
           symbol,
@@ -1155,26 +1240,71 @@ export const favorites = {
     try {
       // 在扩展环境中使用代理请求，类似points功能的实现
       if (isExtension()) {
+        console.log('favorites.checkFavoriteStatus: 在扩展环境中使用代理请求')
+        const token = localStorage.getItem('token')
+        console.log('favorites.checkFavoriteStatus: token存在:', !!token)
+        console.log('favorites.checkFavoriteStatus: 检查状态:', { symbol, marketType })
+        
         const response = await new Promise((resolve, reject) => {
-          chrome.runtime.sendMessage({
+          const requestData = {
             type: 'PROXY_API_REQUEST',
             data: {
               url: `/crypto/favorites/status/${symbol}/?market_type=${marketType}`,
               method: 'GET',
               headers: {
-                'Authorization': localStorage.getItem('token'),
+                'Authorization': token,
                 'Accept': 'application/json'
               }
             }
-          }, (response) => {
+          }
+          
+          console.log('favorites.checkFavoriteStatus: 发送请求:', requestData)
+          
+          chrome.runtime.sendMessage(requestData, (response) => {
+            console.log('favorites.checkFavoriteStatus: 收到响应:', response)
+            
             if (chrome.runtime.lastError) {
+              console.error('favorites.checkFavoriteStatus: Chrome runtime错误:', chrome.runtime.lastError.message)
               reject(new Error(chrome.runtime.lastError.message));
               return;
             }
-            if (response.success) {
-              resolve(response.data);
+            
+            if (response && response.success) {
+              console.log('favorites.checkFavoriteStatus: 请求成功')
+              // 检查响应数据结构，确保返回正确的格式
+              if (response.data && response.data.status === 'success') {
+                resolve(response.data);
+              } else if (response.data && typeof response.data === 'object') {
+                // 如果后端直接返回了数据，构造标准响应格式
+                resolve({
+                  status: 'success',
+                  data: response.data.data || response.data
+                });
+              } else {
+                // 兜底情况，构造失败响应
+                resolve({
+                  status: 'error',
+                  data: {
+                    symbol,
+                    market_type: marketType,
+                    is_favorite: false
+                  }
+                });
+              }
+            } else if (response && response.status === 404) {
+              // 404错误表示资产不存在或未收藏
+              console.log('favorites.checkFavoriteStatus: 资产未收藏')
+              resolve({
+                status: 'success',
+                data: {
+                  symbol,
+                  market_type: marketType,
+                  is_favorite: false
+                }
+              });
             } else {
-              reject(new Error(response.error || '检查收藏状态失败'));
+              console.error('favorites.checkFavoriteStatus: 请求失败:', response?.error || '未知错误')
+              reject(new Error(response?.error || '检查收藏状态失败'));
             }
           });
         });
@@ -1182,6 +1312,7 @@ export const favorites = {
       }
 
       // 非扩展环境使用普通axios请求
+      console.log('favorites.checkFavoriteStatus: 在非扩展环境中使用axios请求')
       const response = await api.get(`/crypto/favorites/status/${symbol}/`, {
         params: { market_type: marketType }
       })

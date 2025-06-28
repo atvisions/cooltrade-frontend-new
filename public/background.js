@@ -262,6 +262,13 @@ async function handleApiProxyRequest(data, sendResponse) {
   const maxRetries = 3;
   let lastError = null;
 
+  console.log('Background script: 开始处理API代理请求:', {
+    url: data.url,
+    method: data.method,
+    hasHeaders: !!data.headers,
+    hasBody: !!data.body
+  });
+
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     try {
       const baseApiUrl = envConfig.baseApiUrl || '/api';
@@ -283,6 +290,8 @@ async function handleApiProxyRequest(data, sendResponse) {
       } else if (!url.startsWith('http')) {
         fullUrl = baseApiUrl + '/' + url;
       }
+
+      console.log('Background script: 完整URL:', fullUrl);
 
     // Build request options
     const options = {
@@ -326,10 +335,19 @@ async function handleApiProxyRequest(data, sendResponse) {
     // Add request body (if any)
     if (body && (method === 'POST' || method === 'PUT' || method === 'PATCH' || method === 'DELETE')) {
       options.body = JSON.stringify(body);
+      console.log('Background script: 请求体:', JSON.stringify(body, null, 2));
     }
 
     // Set timeout
     const timeout = isForceRefresh ? 120000 : 60000; // 普通请求 60 秒，强制刷新 120 秒
+
+    console.log('Background script: 发送请求:', {
+      url: fullUrl,
+      method: options.method,
+      headers: options.headers,
+      hasBody: !!options.body,
+      timeout: timeout
+    });
 
     // Create timeout Promise
     const timeoutPromise = new Promise((_, reject) => {
@@ -351,6 +369,13 @@ async function handleApiProxyRequest(data, sendResponse) {
       // Use Promise.race, whoever completes first wins
       const response = await Promise.race([fetchPromise, timeoutPromise]);
 
+      console.log('Background script: 收到响应:', {
+        status: response.status,
+        statusText: response.statusText,
+        ok: response.ok,
+        url: response.url
+      });
+
       // Get response headers
       const responseHeaders = {};
       response.headers.forEach((value, key) => {
@@ -362,19 +387,27 @@ async function handleApiProxyRequest(data, sendResponse) {
       let responseData;
       try {
         responseData = JSON.parse(responseText);
+        console.log('Background script: 响应数据:', responseData);
       } catch (e) {
-        // console.warn('Background script response is not JSON format:', responseText);
+        console.warn('Background script response is not JSON format:', responseText);
         responseData = responseText;
       }
 
       // Success - send response and return
-      sendResponse({
+      // 对于收藏功能，即使是404也应该被视为成功的响应（只是收藏不存在）
+      const isSuccessfulResponse = response.ok ||
+        (response.status === 404 && fullUrl.includes('/favorites/'));
+
+      const finalResponse = {
         status: response.status,
         statusText: response.statusText,
         headers: responseHeaders,
         data: responseData,
-        success: response.ok
-      });
+        success: isSuccessfulResponse
+      };
+
+      console.log('Background script: 发送最终响应:', finalResponse);
+      sendResponse(finalResponse);
       return; // Exit the retry loop on success
 
     } catch (error) {
@@ -398,7 +431,7 @@ async function handleApiProxyRequest(data, sendResponse) {
   sendResponse({
     success: false,
     error: lastError?.message || 'Request failed after retries',
-    errorDetail: lastError?.toString() || 'Unknown error'
+    status: 500
   });
 }
 

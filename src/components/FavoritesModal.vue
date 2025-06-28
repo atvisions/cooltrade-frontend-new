@@ -52,7 +52,7 @@
                   :class="getMarketIcon(favorite.market_type)" 
                   class="text-gray-400"
                 ></i>
-                <span class="font-medium text-white">{{ favorite.symbol }}</span>
+                <span class="font-medium text-white">{{ formatDisplaySymbol(favorite.symbol, favorite.market_type) }}</span>
                 <span class="text-xs text-gray-500 px-2 py-1 rounded bg-gray-700/50">
                   {{ getMarketLabel(favorite.market_type) }}
                 </span>
@@ -62,10 +62,10 @@
             <!-- 取消收藏按钮 -->
             <button
               @click="removeFavorite(favorite)"
-              class="ml-3 p-1 text-gray-400 hover:text-red-400 transition-colors"
+              class="ml-3 w-6 h-6 rounded-full bg-red-500/20 hover:bg-red-500/40 text-red-400 hover:text-red-300 flex items-center justify-center transition-all duration-200"
               :title="t('favorites.remove')"
             >
-              <i class="ri-bookmark-fill text-yellow-400 hover:text-gray-400"></i>
+              <i class="ri-close-line text-sm"></i>
             </button>
           </div>
         </div>
@@ -122,6 +122,14 @@ const getMarketLabel = (marketType: string) => {
     case 'china': return t('market.china')
     default: return marketType
   }
+}
+
+// 格式化显示符号，移除USDT后缀
+const formatDisplaySymbol = (symbol: string, marketType: string) => {
+  if (marketType === 'crypto' && symbol.endsWith('USDT')) {
+    return symbol.replace('USDT', '')
+  }
+  return symbol
 }
 
 // 加载收藏列表

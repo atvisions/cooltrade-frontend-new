@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>收藏功能展现测试</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #1a1a1a;
+            color: white;
+        }
+        .demo-section {
+            margin: 20px 0;
+            padding: 20px;
+            border: 1px solid #333;
+            border-radius: 10px;
+            background: #2a2a2a;
+        }
+        .favorites-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 8px;
+            margin: 10px 0;
+        }
+        .favorite-item {
+            display: flex;
+            align-items: center;
+            padding: 8px;
+            background: rgba(71, 85, 105, 0.3);
+            border: 1px solid rgba(71, 85, 105, 0.3);
+            border-radius: 8px;
+            transition: all 0.2s;
+            position: relative;
+        }
+        .favorite-item:hover {
+            background: rgba(71, 85, 105, 0.4);
+            border-color: rgba(251, 191, 36, 0.4);
+        }
+        .market-icon {
+            width: 16px;
+            height: 16px;
+            border-radius: 4px;
+            margin-right: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 10px;
+        }
+        .crypto-icon {
+            background: rgba(59, 130, 246, 0.2);
+            color: #60a5fa;
+        }
+        .stock-icon {
+            background: rgba(34, 197, 94, 0.2);
+            color: #4ade80;
+        }
+        .symbol-text {
+            flex: 1;
+            font-weight: 500;
+            font-size: 12px;
+            color: white;
+        }
+        .remove-btn {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: rgba(239, 68, 68, 0.2);
+            color: #f87171;
+            border: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 10px;
+        }
+        .remove-btn:hover {
+            background: rgba(239, 68, 68, 0.4);
+            color: #fca5a5;
+        }
+        .current-indicator {
+            position: absolute;
+            top: 4px;
+            right: 4px;
+            width: 6px;
+            height: 6px;
+            background: #fbbf24;
+            border-radius: 50%;
+        }
+        .comparison {
+            display: flex;
+            gap: 20px;
+        }
+        .comparison > div {
+            flex: 1;
+        }
+        .old-style .symbol-text {
+            color: #94a3b8;
+        }
+        .old-style .remove-btn {
+            opacity: 0;
+        }
+        .old-style .favorite-item:hover .remove-btn {
+            opacity: 1;
+        }
+    </style>
+</head>
+<body>
+    <h1>收藏功能展现改进对比</h1>
+    
+    <div class="comparison">
+        <div class="demo-section old-style">
+            <h3>改进前 (有问题的设计)</h3>
+            <p>问题：显示USDT后缀，删除按钮被遮挡</p>
+            <div class="favorites-grid">
+                <div class="favorite-item">
+                    <div class="current-indicator"></div>
+                    <div class="market-icon crypto-icon">₿</div>
+                    <div class="symbol-text">DOGEUSDT</div>
+                    <button class="remove-btn">×</button>
+                </div>
+                <div class="favorite-item">
+                    <div class="market-icon crypto-icon">₿</div>
+                    <div class="symbol-text">AVAXUSDT</div>
+                    <button class="remove-btn">×</button>
+                </div>
+                <div class="favorite-item">
+                    <div class="market-icon crypto-icon">₿</div>
+                    <div class="symbol-text">SOLUSDT</div>
+                    <button class="remove-btn">×</button>
+                </div>
+                <div class="favorite-item">
+                    <div class="market-icon crypto-icon">₿</div>
+                    <div class="symbol-text">ADAUSDT</div>
+                    <button class="remove-btn">×</button>
+                </div>
+            </div>
+            <div style="text-align: center; margin-top: 10px;">
+                <span style="font-size: 12px; color: #94a3b8;">+2 more</span>
+            </div>
+        </div>
+
+        <div class="demo-section">
+            <h3>改进后 (新设计)</h3>
+            <p>改进：移除USDT后缀，删除按钮始终可见</p>
+            <div class="favorites-grid">
+                <div class="favorite-item">
+                    <div class="current-indicator"></div>
+                    <div class="market-icon crypto-icon">₿</div>
+                    <div class="symbol-text">DOGE</div>
+                    <button class="remove-btn">×</button>
+                </div>
+                <div class="favorite-item">
+                    <div class="market-icon crypto-icon">₿</div>
+                    <div class="symbol-text">AVAX</div>
+                    <button class="remove-btn">×</button>
+                </div>
+                <div class="favorite-item">
+                    <div class="market-icon crypto-icon">₿</div>
+                    <div class="symbol-text">SOL</div>
+                    <button class="remove-btn">×</button>
+                </div>
+                <div class="favorite-item">
+                    <div class="market-icon crypto-icon">₿</div>
+                    <div class="symbol-text">ADA</div>
+                    <button class="remove-btn">×</button>
+                </div>
+            </div>
+            <div style="text-align: center; margin-top: 10px;">
+                <span style="font-size: 12px; color: #94a3b8;">+2 more</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="demo-section">
+        <h3>混合市场类型示例</h3>
+        <p>显示加密货币和股票的混合收藏列表</p>
+        <div class="favorites-grid">
+            <div class="favorite-item">
+                <div class="market-icon crypto-icon">₿</div>
+                <div class="symbol-text">BTC</div>
+                <button class="remove-btn">×</button>
+            </div>
+            <div class="favorite-item">
+                <div class="market-icon stock-icon">📈</div>
+                <div class="symbol-text">AAPL</div>
+                <button class="remove-btn">×</button>
+            </div>
+            <div class="favorite-item">
+                <div class="market-icon crypto-icon">₿</div>
+                <div class="symbol-text">ETH</div>
+                <button class="remove-btn">×</button>
+            </div>
+            <div class="favorite-item">
+                <div class="market-icon stock-icon">📈</div>
+                <div class="symbol-text">TSLA</div>
+                <button class="remove-btn">×</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="demo-section">
+        <h3>改进要点</h3>
+        <ul style="line-height: 1.6;">
+            <li><strong>移除USDT后缀</strong>：加密货币符号不再显示USDT，界面更简洁</li>
+            <li><strong>删除按钮始终可见</strong>：不再需要hover才能看到删除按钮，提高可用性</li>
+            <li><strong>更大的删除按钮</strong>：从4x4增加到5x5像素，更容易点击</li>
+            <li><strong>更好的视觉反馈</strong>：删除按钮有明确的背景色和hover效果</li>
+            <li><strong>保持功能完整</strong>：所有原有功能保持不变，只是改进展现形式</li>
+        </ul>
+    </div>
+
+    <script>
+        // 添加交互效果
+        document.querySelectorAll('.remove-btn').forEach(btn => {
+            btn.addEventListener('click', function(e) {
+                e.stopPropagation();
+                const item = this.closest('.favorite-item');
+                item.style.opacity = '0.5';
+                item.style.transform = 'scale(0.95)';
+                setTimeout(() => {
+                    item.style.opacity = '1';
+                    item.style.transform = 'scale(1)';
+                }, 200);
+            });
+        });
+
+        document.querySelectorAll('.favorite-item').forEach(item => {
+            item.addEventListener('click', function() {
+                // 移除其他选中状态
+                document.querySelectorAll('.current-indicator').forEach(indicator => {
+                    indicator.style.display = 'none';
+                });
+                
+                // 添加当前选中状态
+                let indicator = this.querySelector('.current-indicator');
+                if (!indicator) {
+                    indicator = document.createElement('div');
+                    indicator.className = 'current-indicator';
+                    this.appendChild(indicator);
+                }
+                indicator.style.display = 'block';
+            });
+        });
+    </script>
+</body>
+</html>
