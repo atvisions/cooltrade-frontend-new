@@ -27,12 +27,13 @@ export default {
     popular_tokens: 'Popular Tokens',
     popular_stocks: 'Popular Stocks',
     quick_switch: 'Quick Switch',
-    search: 'Search',
     coming_soon: 'Soon',
     my_favorites: 'My Favorites',
     items: 'items',
+    more: 'more',
     search_crypto_placeholder: 'Search crypto symbols or names...',
-    search_stock_placeholder: 'Search stock symbols or names...'
+    search_stock_placeholder: 'Search stock symbols or names...',
+    live_price: 'Live Price'
   },
   market: {
     crypto: 'Crypto',
@@ -129,6 +130,7 @@ export default {
     snapshot_price: 'Snapshot Price',
     share_to_twitter: 'Share to Twitter',
     save_image: 'Save Image',
+    share_analysis: 'Share Analysis',
     uptrend: 'Uptrend',
     sideways: 'Sideways',
     downtrend: 'Downtrend',
@@ -268,7 +270,8 @@ export default {
     placeholder: 'Search symbols or names...',
     searching: 'Searching...',
     no_results: 'No results found',
-    popular: 'Popular Assets'
+    popular: 'Popular Assets',
+    popular_searches: 'Popular Searches'
   },
   favorites: {
     add: 'Add to Favorites',

@@ -15,87 +15,142 @@
       <main class="flex-1 pt-16 pb-16 overflow-y-auto" v-if="currentMarketType !== 'china'">
         <div class="max-w-[375px] mx-auto px-4 space-y-4">
 
-          <!-- 资产信息卡片 -->
-          <div class="relative overflow-hidden rounded-2xl bg-gradient-to-br from-blue-600/10 via-purple-600/10 to-indigo-600/10 p-5 backdrop-blur-sm border border-white/10">
-            <div class="absolute inset-0 bg-gradient-to-br from-blue-500/5 via-purple-500/5 to-indigo-500/5"></div>
-            <div class="relative">
-              <!-- 资产标题行 -->
-              <div class="flex items-center justify-between mb-4">
+          <!-- 资产信息卡片 - 现代化设计 -->
+          <div class="group relative overflow-hidden rounded-3xl bg-gradient-to-br from-slate-800/95 via-slate-900/95 to-slate-800/95 backdrop-blur-xl border border-slate-700/40 hover:border-slate-600/60 transition-all duration-500 hover:shadow-2xl hover:shadow-blue-500/10">
+            <!-- 动态背景光效 -->
+            <div class="absolute inset-0 bg-gradient-to-br from-blue-500/5 via-purple-500/5 to-indigo-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-700"></div>
+
+            <div class="relative p-4">
+              <!-- 顶部区域：标题和导航 -->
+              <div class="flex items-center justify-between mb-3">
+                <!-- 左侧：资产信息 -->
                 <div class="flex items-center space-x-3">
-                  <h1 class="text-xl font-bold text-white tracking-tight">
+                  <!-- 市场指示器 -->
+                  <div class="w-3 h-3 rounded-full"
+                       :class="{
+                         'bg-gradient-to-r from-orange-400 to-yellow-400': currentMarketType === 'crypto',
+                         'bg-gradient-to-r from-green-400 to-emerald-400': currentMarketType === 'stock',
+                         'bg-gradient-to-r from-red-400 to-pink-400': currentMarketType === 'china'
+                       }">
+                  </div>
+
+                  <!-- 标题 -->
+                  <h1 class="text-xl font-bold bg-gradient-to-r from-white to-slate-200 bg-clip-text text-transparent">
                     {{ currentSymbol ? getDisplayTitle() : t('common.loading') }}
                   </h1>
+
+                  <!-- 收藏按钮 -->
                   <FavoriteButton
                     v-if="currentSymbol"
                     :symbol="currentSymbol"
                     :market-type="currentMarketType"
                     @favorite-changed="handleFavoriteChanged"
-                    class="scale-110"
+                    class="scale-110 hover:scale-125 transition-transform duration-300"
                   />
                 </div>
 
-                <!-- 快速操作按钮 -->
+                <!-- 右侧：导航按钮 -->
                 <div class="flex items-center space-x-2">
-                  <!-- 收藏按钮 -->
                   <button
                     @click="togglePanel('favorites')"
-                    class="p-2 rounded-lg border transition-all duration-200 hover:scale-105"
+                    class="group/btn relative p-2 rounded-xl border transition-all duration-300 hover:scale-110 hover:rotate-3"
                     :class="{
-                      'bg-yellow-500/20 border-yellow-400/50 text-yellow-300': activePanel === 'favorites',
-                      'bg-yellow-500/10 hover:bg-yellow-500/20 border-yellow-500/30 text-yellow-400': activePanel !== 'favorites'
+                      'bg-yellow-500/20 border-yellow-400/60 text-yellow-300 shadow-lg shadow-yellow-500/20': activePanel === 'favorites',
+                      'bg-yellow-500/10 hover:bg-yellow-500/20 border-yellow-500/30 text-yellow-400 hover:border-yellow-400/50': activePanel !== 'favorites'
                     }"
                     :title="t('common.my_favorites')"
                   >
-                    <i class="ri-bookmark-line text-sm"></i>
+                    <i class="ri-bookmark-line text-sm transition-transform duration-200 group-hover/btn:scale-110"></i>
                   </button>
 
-                  <!-- 热门资产按钮 -->
                   <button
                     v-if="currentMarketType !== 'china'"
                     @click="togglePanel('popular')"
-                    class="p-2 rounded-lg border transition-all duration-200 hover:scale-105"
+                    class="group/btn relative p-2 rounded-xl border transition-all duration-300 hover:scale-110 hover:rotate-3"
                     :class="{
-                      'bg-green-500/20 border-green-400/50 text-green-300': activePanel === 'popular',
-                      'bg-green-500/10 hover:bg-green-500/20 border-green-500/30 text-green-400': activePanel !== 'popular'
+                      'bg-green-500/20 border-green-400/60 text-green-300 shadow-lg shadow-green-500/20': activePanel === 'popular',
+                      'bg-green-500/10 hover:bg-green-500/20 border-green-500/30 text-green-400 hover:border-green-400/50': activePanel !== 'popular'
                     }"
                     :title="currentMarketType === 'crypto' ? t('common.popular_tokens') : t('common.popular_stocks')"
                   >
-                    <i class="ri-fire-line text-sm"></i>
+                    <i class="ri-fire-line text-sm transition-transform duration-200 group-hover/btn:scale-110"></i>
                   </button>
                 </div>
               </div>
 
-              <!-- 价格信息 -->
-              <div class="flex items-baseline space-x-3 mb-3">
-                <span class="text-2xl font-bold text-white">
-                  {{ formatPrice(analysisData?.current_price) }}
-                </span>
-                <span class="text-sm text-gray-400 uppercase">{{ currentMarketType === 'crypto' ? 'USD' : 'USD' }}</span>
+              <!-- 价格区域 -->
+              <div class="mb-3">
+                <!-- 快照标签 -->
+                <div class="flex items-center space-x-2 mb-2">
+                  <i class="ri-camera-line text-blue-400 text-sm"></i>
+                  <span class="text-blue-300 text-xs font-medium uppercase tracking-wide">{{ t('analysis.snapshot_price') }}</span>
+                </div>
+
+                <!-- 价格显示 -->
+                <div class="flex items-baseline space-x-3">
+                  <span class="text-3xl font-bold bg-gradient-to-r from-white via-slate-100 to-slate-200 bg-clip-text text-transparent tracking-tight">
+                    {{ formatPrice(analysisData?.current_price) }}
+                  </span>
+                  <span class="text-sm text-slate-400 uppercase font-medium tracking-wider">{{ currentMarketType === 'crypto' ? 'USD' : 'USD' }}</span>
+                </div>
               </div>
 
-              <!-- 更新时间和刷新按钮 -->
-              <div class="flex items-center justify-between">
-                <div class="flex items-center text-xs text-gray-400">
-                  <i class="ri-time-line mr-1"></i>
+              <!-- 底部操作区域 -->
+              <div class="flex items-center justify-between pt-2 border-t border-slate-700/30">
+                <!-- 时间信息 -->
+                <div class="flex items-center text-xs text-slate-400">
+                  <i class="ri-time-line mr-2 text-blue-400/60"></i>
                   <span>{{ formatTime(analysisData?.last_update_time) }}</span>
                 </div>
-                <el-tooltip
-                  :content="!canRefreshReport ? t('analysis.refresh_report_too_soon') : t('analysis.refresh_report')"
-                  placement="top"
-                >
-                  <button
-                    @click="canRefreshReport && handleRefreshReport()"
-                    :disabled="!canRefreshReport || isRefreshing"
-                    class="p-1.5 rounded-lg transition-all duration-200 hover:scale-105"
-                    :class="canRefreshReport
-                      ? 'bg-blue-500/15 text-blue-400 hover:bg-blue-500/25 border border-blue-500/30'
-                      : 'bg-slate-700/30 text-slate-500 cursor-not-allowed border border-slate-700/30'"
-                  >
-                    <i class="ri-refresh-line text-sm" :class="{ 'animate-spin': isRefreshing }"></i>
-                  </button>
-                </el-tooltip>
+
+                <!-- 操作按钮组 -->
+                <div class="flex items-center space-x-2">
+                  <!-- 刷新按钮 -->
+                  <el-tooltip :content="!canRefreshReport ? t('analysis.refresh_report_too_soon') : t('analysis.refresh_report')" placement="top">
+                    <button
+                      @click="canRefreshReport && handleRefreshReport()"
+                      :disabled="!canRefreshReport || isRefreshing"
+                      class="group/refresh relative p-2 rounded-xl transition-all duration-300 hover:scale-110"
+                      :class="canRefreshReport
+                        ? 'bg-green-500/15 text-green-400 hover:bg-green-500/25 border border-green-500/40 hover:border-green-400/60 hover:shadow-lg hover:shadow-green-500/20'
+                        : 'bg-slate-700/30 text-slate-500 cursor-not-allowed border border-slate-700/30'"
+                    >
+                      <i class="ri-refresh-line text-sm transition-transform duration-300 group-hover/refresh:rotate-180" :class="{ 'animate-spin': isRefreshing }"></i>
+                    </button>
+                  </el-tooltip>
+
+                  <!-- 分享到Twitter -->
+                  <el-tooltip :content="t('analysis.share_to_twitter')" placement="top">
+                    <button
+                      @click="shareToTwitter"
+                      class="group/share relative p-2 rounded-xl transition-all duration-300 hover:scale-110 bg-blue-500/15 text-blue-400 hover:bg-blue-500/25 border border-blue-500/40 hover:border-blue-400/60 hover:shadow-lg hover:shadow-blue-500/20"
+                    >
+                      <i class="ri-twitter-fill text-sm transition-transform duration-200 group-hover/share:scale-110"></i>
+                    </button>
+                  </el-tooltip>
+
+                  <!-- 保存图片 -->
+                  <el-tooltip :content="t('analysis.save_image')" placement="top">
+                    <button
+                      @click="saveChartImage"
+                      class="group/save relative p-2 rounded-xl transition-all duration-300 hover:scale-110 bg-slate-600/15 text-slate-400 hover:bg-slate-600/25 border border-slate-600/40 hover:border-slate-500/60 hover:shadow-lg hover:shadow-slate-500/20"
+                    >
+                      <i class="ri-image-line text-sm transition-transform duration-200 group-hover/save:scale-110"></i>
+                    </button>
+                  </el-tooltip>
+                </div>
               </div>
             </div>
+          </div>
+
+          <!-- 代币未找到状态 -->
+          <div v-if="isTokenNotFound && !loading && !analysisLoading">
+            <TokenNotFoundView
+              :symbol="currentSymbol"
+              :marketType="currentMarketType"
+              @refresh-success="handleRefreshSuccess"
+              @refresh-error="handleRefreshError"
+            />
           </div>
 
       <!-- A股开发中页面 -->
@@ -115,43 +170,46 @@
         </div>
       </div>
 
-          <!-- 覆盖面板区域 - 绝对定位，在所有状态下都可用 -->
-          <div v-if="activePanel" class="absolute inset-0 z-50 p-4">
-          <div class="h-full flex items-start justify-center">
+          <!-- 覆盖面板区域 - 与价格卡片对齐 -->
+          <div v-if="activePanel" class="absolute top-0 left-0 right-0 z-50 px-4 pt-12">
             <!-- 搜索面板 -->
             <div v-if="activePanel === 'search'"
-                 class="w-full max-w-md bg-slate-800 rounded-2xl border border-blue-500/30 p-6 backdrop-blur-sm"
+                 class="w-full max-w-[375px] mx-auto bg-gradient-to-br from-slate-800/95 via-slate-900/95 to-slate-800/95 rounded-3xl border border-blue-500/40 backdrop-blur-xl shadow-2xl shadow-blue-500/10"
                  @click.stop>
-              <h3 class="text-base font-semibold text-blue-400 mb-4 flex items-center">
-                <i class="ri-search-line mr-2"></i>
-                {{ t('common.search') }}
-              </h3>
-              <div class="space-y-4">
-                <input
-                  v-model="searchQuery"
-                  @input="handleSearch"
-                  @click.stop
-                  type="text"
-                  :placeholder="currentMarketType === 'crypto' ? t('common.search_crypto_placeholder') : t('common.search_stock_placeholder')"
-                  class="w-full px-4 py-3 bg-slate-700 border border-slate-600 rounded-xl text-white placeholder-slate-400 focus:outline-none focus:border-blue-500 transition-colors"
-                />
-                <div v-if="searchLoading" class="flex items-center justify-center py-4 text-slate-400">
-                  <i class="ri-loader-4-line animate-spin text-lg mr-2"></i>
-                  <span class="text-sm">{{ t('search.searching') }}</span>
+              <!-- 搜索表单区域 - 现代化设计 -->
+              <div class="p-5">
+                <!-- 搜索输入框 -->
+                <div class="relative mb-4">
+                  <div class="absolute left-4 top-1/2 transform -translate-y-1/2">
+                    <i class="ri-search-line text-blue-400/60"></i>
+                  </div>
+                  <input
+                    v-model="searchQuery"
+                    @input="handleSearch"
+                    @click.stop
+                    type="text"
+                    :placeholder="currentMarketType === 'crypto' ? t('common.search_crypto_placeholder') : t('common.search_stock_placeholder')"
+                    class="w-full pl-10 pr-4 py-3 bg-slate-700/30 border border-slate-600/30 rounded-2xl text-white placeholder-slate-400 focus:outline-none focus:border-blue-500/60 focus:bg-slate-700/50 transition-all duration-300 text-sm backdrop-blur-sm"
+                  />
                 </div>
-                <div v-else-if="searchQuery && searchResults.length === 0" class="text-center py-4 text-slate-400">
-                  <i class="ri-search-line text-2xl mb-2 opacity-50"></i>
-                  <div class="text-sm">{{ t('search.no_results') }}</div>
+
+                <!-- 搜索结果 -->
+                <div v-if="searchLoading" class="flex items-center justify-center py-2 text-slate-400">
+                  <i class="ri-loader-4-line animate-spin text-sm mr-2"></i>
+                  <span class="text-xs">{{ t('search.searching') }}</span>
                 </div>
-                <div v-else-if="searchResults.length > 0" class="max-h-32 overflow-y-auto space-y-2">
+                <div v-else-if="searchQuery && searchResults.length === 0" class="text-center py-2 text-slate-400">
+                  <div class="text-xs">{{ t('search.no_results') }}</div>
+                </div>
+                <div v-else-if="searchResults.length > 0" class="max-h-20 overflow-y-auto space-y-1">
                   <button
                     v-for="result in searchResults"
                     :key="result.symbol"
                     @click="handleAssetSwitch(result.symbol)"
-                    class="w-full text-left p-3 bg-slate-700/50 hover:bg-slate-600/50 rounded-lg border border-slate-600/50 hover:border-slate-500 transition-all"
+                    class="w-full text-left p-2 bg-slate-700/30 hover:bg-slate-600/40 rounded-lg border border-slate-600/30 hover:border-slate-500 transition-all"
                   >
-                    <div class="flex items-center space-x-3">
-                      <div class="w-6 h-6 rounded-lg flex items-center justify-center"
+                    <div class="flex items-center space-x-2">
+                      <div class="w-4 h-4 rounded flex items-center justify-center"
                            :class="{
                              'bg-blue-500/20 text-blue-400': result.market_type === 'crypto',
                              'bg-green-500/20 text-green-400': result.market_type === 'stock'
@@ -162,10 +220,30 @@
                            }" class="text-xs"></i>
                       </div>
                       <div class="flex-1">
-                        <div class="font-semibold text-white text-sm">{{ result.symbol }}</div>
-                        <div class="text-xs text-slate-400">{{ result.name }}</div>
+                        <div class="font-medium text-white text-xs">{{ result.symbol }}</div>
                       </div>
                     </div>
+                  </button>
+                </div>
+              </div>
+
+              <!-- 热门搜索区域 -->
+              <div v-if="!searchQuery" class="border-t border-slate-700/30 p-5">
+                <div class="flex items-center justify-between mb-4">
+                  <div class="flex items-center space-x-2">
+                    <span class="text-sm font-medium text-slate-300">{{ t('search.popular_searches') }}</span>
+                  </div>
+                  <i class="ri-fire-line text-sm text-orange-400"></i>
+                </div>
+                <div class="grid grid-cols-4 gap-3">
+                  <button
+                    v-for="asset in getPopularSearches()"
+                    :key="asset.symbol"
+                    @click="handleAssetSwitch(asset.symbol)"
+                    class="group relative p-3 rounded-2xl bg-gradient-to-br from-slate-700/30 to-slate-800/30 hover:from-slate-600/40 hover:to-slate-700/40 border border-slate-600/30 hover:border-slate-500/60 transition-all duration-300 text-center hover:scale-105 hover:shadow-lg"
+                  >
+                    <div class="text-xs font-semibold text-white group-hover:text-blue-300 transition-colors duration-200">{{ asset.display }}</div>
+                    <div class="absolute inset-0 rounded-2xl bg-gradient-to-br from-blue-500/5 to-purple-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
                   </button>
                 </div>
               </div>
@@ -173,71 +251,147 @@
 
             <!-- 收藏面板 -->
             <div v-if="activePanel === 'favorites'"
-                 class="w-full max-w-md bg-slate-800 rounded-2xl border border-yellow-500/30 p-6 backdrop-blur-sm"
+                 class="w-full max-w-[375px] mx-auto bg-gradient-to-br from-slate-800/95 via-slate-900/95 to-slate-800/95 rounded-3xl border border-yellow-500/40 backdrop-blur-xl shadow-2xl shadow-yellow-500/10 min-h-[120px]"
                  @click.stop>
-              <div class="flex items-center justify-between mb-4">
-                <h3 class="text-base font-semibold text-yellow-400 flex items-center">
-                  <i class="ri-bookmark-fill mr-2"></i>
-                  {{ t('favorites.title') }}
-                </h3>
-                <div v-if="favoriteAssets.length > 0" class="text-xs text-slate-400">
-                  {{ favoriteAssets.length }} {{ t('common.items') }}
+              <!-- 基础信息区域 - 现代化设计 -->
+              <div class="p-5">
+                <div class="flex items-center justify-between mb-4">
+                  <div class="flex items-center space-x-3">
+                    <i class="ri-bookmark-fill text-lg text-yellow-400"></i>
+                    <h3 class="text-lg font-bold bg-gradient-to-r from-yellow-400 to-orange-400 bg-clip-text text-transparent">{{ t('favorites.title') }}</h3>
+                  </div>
+                  <div v-if="favoriteAssets.length > 0" class="px-3 py-1 bg-yellow-500/10 border border-yellow-500/30 rounded-full">
+                    <span class="text-xs text-yellow-300 font-medium">{{ favoriteAssets.length }} {{ t('common.items') }}</span>
+                  </div>
+                </div>
+
+                <!-- 加载状态 -->
+                <div v-if="favoritesLoading" class="flex items-center justify-center py-4 text-slate-400">
+                  <i class="ri-loader-4-line animate-spin text-sm mr-2"></i>
+                  <span class="text-xs">{{ t('common.loading') }}</span>
+                </div>
+
+                <!-- 空状态 -->
+                <div v-else-if="favoriteAssets.length === 0" class="text-center py-4 text-slate-400">
+                  <i class="ri-bookmark-line text-lg mb-2 opacity-50"></i>
+                  <div class="text-xs">{{ t('favorites.empty') }}</div>
+                </div>
+
+                <!-- 有收藏数据时显示前几个 -->
+                <div v-else-if="favoriteAssets.length <= 4" class="grid grid-cols-2 gap-2">
+                  <div
+                    v-for="asset in favoriteAssets"
+                    :key="`${asset.symbol}-${asset.market_type}`"
+                    class="group relative flex items-center p-2 bg-slate-700/30 hover:bg-slate-600/40 rounded-lg border border-slate-600/30 hover:border-yellow-500/40 transition-all duration-200 cursor-pointer"
+                    @click="handleAssetSwitch(asset.symbol)"
+                  >
+                    <!-- 当前选中指示器 -->
+                    <div v-if="asset.symbol === currentSymbol" class="absolute top-1 right-1 w-1.5 h-1.5 bg-yellow-400 rounded-full"></div>
+
+                    <!-- 市场类型图标 -->
+                    <div class="flex-shrink-0 w-4 h-4 rounded flex items-center justify-center mr-2"
+                         :class="{
+                           'bg-blue-500/20 text-blue-400': asset.market_type === 'crypto',
+                           'bg-green-500/20 text-green-400': asset.market_type === 'stock'
+                         }">
+                      <i :class="{
+                           'ri-currency-line': asset.market_type === 'crypto',
+                           'ri-line-chart-line': asset.market_type === 'stock'
+                         }" class="text-xs"></i>
+                    </div>
+
+                    <!-- 资产信息 -->
+                    <div class="flex-1 min-w-0">
+                      <div class="font-medium text-white text-xs">{{ asset.symbol }}</div>
+                    </div>
+
+                    <!-- 删除按钮 -->
+                    <button
+                      @click.stop="removeFavorite(asset.symbol, asset.market_type)"
+                      class="flex-shrink-0 w-4 h-4 rounded-full bg-red-500/20 hover:bg-red-500/40 text-red-400 hover:text-red-300 flex items-center justify-center transition-all duration-200 opacity-0 group-hover:opacity-100"
+                      :title="t('favorites.remove')"
+                    >
+                      <i class="ri-close-line text-xs"></i>
+                    </button>
+                  </div>
+                </div>
+
+                <!-- 收藏数量较多时显示部分 -->
+                <div v-else class="space-y-2">
+                  <div class="grid grid-cols-2 gap-2">
+                    <div
+                      v-for="asset in favoriteAssets.slice(0, 4)"
+                      :key="`${asset.symbol}-${asset.market_type}`"
+                      class="group relative flex items-center p-2 bg-slate-700/30 hover:bg-slate-600/40 rounded-lg border border-slate-600/30 hover:border-yellow-500/40 transition-all duration-200 cursor-pointer"
+                      @click="handleAssetSwitch(asset.symbol)"
+                    >
+                      <div v-if="asset.symbol === currentSymbol" class="absolute top-1 right-1 w-1.5 h-1.5 bg-yellow-400 rounded-full"></div>
+                      <div class="flex-shrink-0 w-4 h-4 rounded flex items-center justify-center mr-2"
+                           :class="{
+                             'bg-blue-500/20 text-blue-400': asset.market_type === 'crypto',
+                             'bg-green-500/20 text-green-400': asset.market_type === 'stock'
+                           }">
+                        <i :class="{
+                             'ri-currency-line': asset.market_type === 'crypto',
+                             'ri-line-chart-line': asset.market_type === 'stock'
+                           }" class="text-xs"></i>
+                      </div>
+                      <div class="flex-1 min-w-0">
+                        <div class="font-medium text-white text-xs">{{ asset.symbol }}</div>
+                      </div>
+                      <button
+                        @click.stop="removeFavorite(asset.symbol, asset.market_type)"
+                        class="flex-shrink-0 w-4 h-4 rounded-full bg-red-500/20 hover:bg-red-500/40 text-red-400 hover:text-red-300 flex items-center justify-center transition-all duration-200 opacity-0 group-hover:opacity-100"
+                        :title="t('favorites.remove')"
+                      >
+                        <i class="ri-close-line text-xs"></i>
+                      </button>
+                    </div>
+                  </div>
+                  <div v-if="favoriteAssets.length > 4" class="text-center">
+                    <span class="text-xs text-slate-400">+{{ favoriteAssets.length - 4 }} {{ t('common.more') }}</span>
+                  </div>
                 </div>
               </div>
 
-              <div v-if="favoritesLoading" class="flex flex-col items-center justify-center py-12 text-slate-400">
-                <i class="ri-loader-4-line animate-spin text-2xl mb-3"></i>
-                <div class="text-sm">{{ t('common.loading') }}</div>
-              </div>
-
-              <div v-else-if="favoriteAssets.length === 0" class="flex flex-col items-center justify-center py-12 text-slate-400">
-                <i class="ri-bookmark-line text-3xl mb-3 opacity-50"></i>
-                <div class="text-sm">{{ t('favorites.empty') }}</div>
-                <div class="text-xs mt-1 opacity-70">{{ t('favorites.empty_hint') }}</div>
-              </div>
-
-              <div v-else class="grid grid-cols-2 gap-3 max-h-40 overflow-y-auto">
-                <div
-                  v-for="asset in favoriteAssets"
-                  :key="`${asset.symbol}-${asset.market_type}`"
-                  class="group relative flex items-center p-3 bg-slate-700/30 hover:bg-slate-600/40 rounded-lg border border-slate-600/30 hover:border-yellow-500/40 transition-all duration-200 cursor-pointer"
-                  @click="handleAssetSwitch(asset.symbol)"
-                >
-                  <!-- 当前选中指示器 - 右上角 -->
-                  <div v-if="asset.symbol === currentSymbol" class="absolute top-1 right-1 w-2 h-2 bg-yellow-400 rounded-full"></div>
-
-                  <!-- 市场类型图标 -->
-                  <div class="flex-shrink-0 w-5 h-5 rounded flex items-center justify-center mr-3"
-                       :class="{
-                         'bg-blue-500/20 text-blue-400': asset.market_type === 'crypto',
-                         'bg-green-500/20 text-green-400': asset.market_type === 'stock'
-                       }">
-                    <i :class="{
-                         'ri-currency-line': asset.market_type === 'crypto',
-                         'ri-line-chart-line': asset.market_type === 'stock'
-                       }" class="text-sm"></i>
-                  </div>
-
-                  <!-- 资产信息 -->
-                  <div class="flex-1 min-w-0">
-                    <div class="font-medium text-white text-sm">{{ asset.symbol }}</div>
-                  </div>
-
-                  <!-- 删除按钮 -->
-                  <button
-                    @click.stop="removeFavorite(asset.symbol, asset.market_type)"
-                    class="flex-shrink-0 w-5 h-5 rounded-full bg-red-500/20 hover:bg-red-500/40 text-red-400 hover:text-red-300 flex items-center justify-center transition-all duration-200 opacity-0 group-hover:opacity-100"
-                    :title="t('favorites.remove')"
+              <!-- 扩展区域 - 当收藏数量多时显示 -->
+              <div v-if="favoriteAssets.length > 4" class="border-t border-slate-700/50 p-4">
+                <div class="grid grid-cols-3 gap-2 max-h-32 overflow-y-auto">
+                  <div
+                    v-for="asset in favoriteAssets.slice(4)"
+                    :key="`${asset.symbol}-${asset.market_type}-extended`"
+                    class="group relative flex items-center p-2 bg-slate-700/30 hover:bg-slate-600/40 rounded-lg border border-slate-600/30 hover:border-yellow-500/40 transition-all duration-200 cursor-pointer"
+                    @click="handleAssetSwitch(asset.symbol)"
                   >
-                    <i class="ri-close-line text-sm"></i>
-                  </button>
+                    <div v-if="asset.symbol === currentSymbol" class="absolute top-1 right-1 w-1.5 h-1.5 bg-yellow-400 rounded-full"></div>
+                    <div class="flex-shrink-0 w-4 h-4 rounded flex items-center justify-center mr-2"
+                         :class="{
+                           'bg-blue-500/20 text-blue-400': asset.market_type === 'crypto',
+                           'bg-green-500/20 text-green-400': asset.market_type === 'stock'
+                         }">
+                      <i :class="{
+                           'ri-currency-line': asset.market_type === 'crypto',
+                           'ri-line-chart-line': asset.market_type === 'stock'
+                         }" class="text-xs"></i>
+                    </div>
+                    <div class="flex-1 min-w-0">
+                      <div class="font-medium text-white text-xs">{{ asset.symbol }}</div>
+                    </div>
+                    <button
+                      @click.stop="removeFavorite(asset.symbol, asset.market_type)"
+                      class="flex-shrink-0 w-4 h-4 rounded-full bg-red-500/20 hover:bg-red-500/40 text-red-400 hover:text-red-300 flex items-center justify-center transition-all duration-200 opacity-0 group-hover:opacity-100"
+                      :title="t('favorites.remove')"
+                    >
+                      <i class="ri-close-line text-xs"></i>
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
 
             <!-- 热门资产面板 -->
             <div v-if="activePanel === 'popular'"
-                 class="w-full max-w-md bg-slate-800 rounded-2xl border border-green-500/30 p-6 backdrop-blur-sm"
+                 class="w-full max-w-[375px] mx-auto bg-gradient-to-br from-slate-800/95 via-slate-900/95 to-slate-800/95 rounded-3xl border border-green-500/40 backdrop-blur-xl shadow-2xl shadow-green-500/10 p-5"
                  @click.stop>
               <h3 class="text-base font-semibold text-green-400 mb-4 flex items-center">
                 <i class="ri-fire-line mr-2"></i>
@@ -265,7 +419,11 @@
               </div>
             </div>
           </div>
-        </div>
+
+        <!-- 点击遮罩关闭面板 -->
+        <div v-if="activePanel"
+             @click="activePanel = null"
+             class="fixed inset-0 z-40 bg-black/20"></div>
 
         <!-- 骨架屏 - 没有数据且没有错误时显示 -->
         <div v-if="showSkeleton" class="p-4 space-y-6 pb-24">
@@ -273,73 +431,61 @@
         </div>
 
         <!-- 正常内容 - 有数据时显示 -->
-        <div v-else-if="analysisData" class="p-4 pt-6 space-y-6 pb-24">
+        <div v-else-if="analysisData" class="space-y-6 pb-10">
 
-          <!-- 操作按钮卡片 -->
-          <div class="p-4 rounded-2xl bg-slate-800/40 border border-slate-700/50">
-            <div class="flex justify-center gap-3">
-              <button
-                @click="shareToTwitter"
-                class="flex items-center gap-2 px-4 py-2.5 bg-blue-500/15 hover:bg-blue-500/25 text-blue-400 rounded-xl transition-all duration-200 hover:scale-105 border border-blue-500/30"
-              >
-                <i class="ri-twitter-fill text-lg"></i>
-                <span class="text-sm font-medium">{{ t('analysis.share_to_twitter') }}</span>
-              </button>
-              <button
-                @click="saveChartImage"
-                class="flex items-center gap-2 px-4 py-2.5 bg-slate-600/20 hover:bg-slate-600/30 text-slate-300 rounded-xl transition-all duration-200 hover:scale-105 border border-slate-600/40"
-              >
-                <i class="ri-image-line text-lg"></i>
-                <span class="text-sm font-medium">{{ t('analysis.save_image') }}</span>
-              </button>
-            </div>
-          </div>
+
 
 
 
           <!-- 趋势分析卡片 -->
           <div v-if="analysisData?.trend_analysis?.probabilities">
-            <h3 class="text-base font-bold text-white mb-4">{{ t('analysis.trend_analysis') }}</h3>
+            <h3 class="text-lg font-bold text-white mb-5 flex items-center">
+              <div class="w-1 h-6 bg-gradient-to-b from-emerald-400 to-red-400 rounded-full mr-3"></div>
+              {{ t('analysis.trend_analysis') }}
+            </h3>
             <div class="grid grid-cols-3 gap-4">
               <!-- 上涨趋势 -->
-              <div class="p-4 rounded-xl bg-gradient-to-br from-emerald-500/15 to-emerald-600/10 border border-emerald-500/30 text-center space-y-2">
-                <div class="w-8 h-8 mx-auto bg-emerald-500/20 rounded-full flex items-center justify-center">
-                  <i class="ri-arrow-up-line text-emerald-400"></i>
+              <div class="group p-5 rounded-2xl bg-gradient-to-br from-emerald-500/15 to-emerald-600/10 border border-emerald-500/30 hover:border-emerald-400/50 text-center space-y-3 transition-all duration-300 hover:scale-105 hover:shadow-lg hover:shadow-emerald-500/20">
+                <div class="w-10 h-10 mx-auto bg-emerald-500/20 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform duration-200">
+                  <i class="ri-arrow-up-line text-emerald-400 text-lg"></i>
                 </div>
-                <div class="text-xl font-bold text-emerald-400">{{ formatPercent(analysisData?.trend_analysis?.probabilities?.up) }}</div>
-                <div class="text-xs text-emerald-300 font-medium">{{ t('analysis.uptrend') }}</div>
+                <div class="text-2xl font-bold text-emerald-400">{{ formatPercent(analysisData?.trend_analysis?.probabilities?.up) }}</div>
+                <div class="text-sm text-emerald-300 font-medium">{{ t('analysis.uptrend') }}</div>
               </div>
 
               <!-- 横盘趋势 -->
-              <div class="p-4 rounded-xl bg-gradient-to-br from-slate-500/15 to-slate-600/10 border border-slate-500/30 text-center space-y-2">
-                <div class="w-8 h-8 mx-auto bg-slate-500/20 rounded-full flex items-center justify-center">
-                  <i class="ri-subtract-line text-slate-400"></i>
+              <div class="group p-5 rounded-2xl bg-gradient-to-br from-slate-500/15 to-slate-600/10 border border-slate-500/30 hover:border-slate-400/50 text-center space-y-3 transition-all duration-300 hover:scale-105 hover:shadow-lg hover:shadow-slate-500/20">
+                <div class="w-10 h-10 mx-auto bg-slate-500/20 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform duration-200">
+                  <i class="ri-subtract-line text-slate-400 text-lg"></i>
                 </div>
-                <div class="text-xl font-bold text-slate-300">{{ formatPercent(analysisData?.trend_analysis?.probabilities?.sideways) }}</div>
-                <div class="text-xs text-slate-400 font-medium">{{ t('analysis.sideways') }}</div>
+                <div class="text-2xl font-bold text-slate-300">{{ formatPercent(analysisData?.trend_analysis?.probabilities?.sideways) }}</div>
+                <div class="text-sm text-slate-400 font-medium">{{ t('analysis.sideways') }}</div>
               </div>
 
               <!-- 下跌趋势 -->
-              <div class="p-4 rounded-xl bg-gradient-to-br from-red-500/15 to-red-600/10 border border-red-500/30 text-center space-y-2">
-                <div class="w-8 h-8 mx-auto bg-red-500/20 rounded-full flex items-center justify-center">
-                  <i class="ri-arrow-down-line text-red-400"></i>
+              <div class="group p-5 rounded-2xl bg-gradient-to-br from-red-500/15 to-red-600/10 border border-red-500/30 hover:border-red-400/50 text-center space-y-3 transition-all duration-300 hover:scale-105 hover:shadow-lg hover:shadow-red-500/20">
+                <div class="w-10 h-10 mx-auto bg-red-500/20 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform duration-200">
+                  <i class="ri-arrow-down-line text-red-400 text-lg"></i>
                 </div>
-                <div class="text-xl font-bold text-red-400">{{ formatPercent(analysisData?.trend_analysis?.probabilities?.down) }}</div>
-                <div class="text-xs text-red-300 font-medium">{{ t('analysis.downtrend') }}</div>
+                <div class="text-2xl font-bold text-red-400">{{ formatPercent(analysisData?.trend_analysis?.probabilities?.down) }}</div>
+                <div class="text-sm text-red-300 font-medium">{{ t('analysis.downtrend') }}</div>
               </div>
             </div>
           </div>
 
           <!-- 市场趋势分析 -->
           <div v-if="analysisData?.trend_analysis?.summary">
-            <h3 class="text-base font-bold text-white mb-4">{{ t('analysis.market_trend_analysis') }}</h3>
-            <div class="p-5 rounded-xl bg-gradient-to-br from-slate-800/60 to-slate-900/60 border border-slate-700/50">
-              <div class="flex items-start space-x-3">
-                <div class="w-8 h-8 bg-blue-500/20 rounded-full flex items-center justify-center flex-shrink-0 mt-1">
-                  <i class="ri-line-chart-line text-blue-400"></i>
+            <h3 class="text-lg font-bold text-white mb-5 flex items-center">
+              <div class="w-1 h-6 bg-gradient-to-b from-blue-400 to-purple-400 rounded-full mr-3"></div>
+              {{ t('analysis.market_trend_analysis') }}
+            </h3>
+            <div class="group p-6 rounded-2xl bg-gradient-to-br from-slate-800/60 to-slate-900/60 border border-slate-700/50 hover:border-slate-600/60 transition-all duration-300 hover:shadow-lg hover:shadow-blue-500/10">
+              <div class="flex items-start space-x-4">
+                <div class="w-10 h-10 bg-blue-500/20 rounded-xl flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform duration-200">
+                  <i class="ri-line-chart-line text-blue-400 text-lg"></i>
                 </div>
                 <div class="flex-1">
-                  <p class="text-slate-200 leading-relaxed">
+                  <p class="text-base text-slate-200 leading-relaxed">
                     <span v-if="loadingTranslation" class="text-slate-400">翻译中...</span>
                     <span v-else>{{ translatedSummary }}</span>
                   </p>
@@ -350,98 +496,101 @@
 
           <!-- 技术指标分析 -->
           <div v-if="analysisData?.indicators_analysis">
-            <h3 class="text-base font-bold text-white mb-4">{{ t('analysis.technical_indicators') }}</h3>
+            <h3 class="text-lg font-bold text-white mb-5 flex items-center">
+              <div class="w-1 h-6 bg-gradient-to-b from-cyan-400 to-blue-400 rounded-full mr-3"></div>
+              {{ t('analysis.technical_indicators') }}
+            </h3>
 
             <!-- 单参数指标网格 -->
-            <div class="grid grid-cols-2 gap-3 mb-4">
+            <div class="grid grid-cols-2 gap-4 mb-6">
               <template v-for="(indicator, key) in analysisData?.indicators_analysis" :key="key">
-                <div v-if="!['MACD','BollingerBands','DMI'].includes(key) && shouldShowIndicator(key)" class="p-4 rounded-xl bg-slate-800/40 border border-slate-700/50">
-                  <div class="flex items-center justify-between mb-2">
+                <div v-if="!['MACD','BollingerBands','DMI'].includes(key) && shouldShowIndicator(key)" class="group p-5 rounded-2xl bg-slate-800/40 border border-slate-700/50 hover:border-slate-600/60 transition-all duration-300 hover:scale-105 hover:shadow-lg hover:shadow-slate-500/10">
+                  <div class="flex items-center justify-between mb-3">
                     <div class="flex items-center space-x-2 flex-1 min-w-0">
-                      <span class="text-sm font-medium text-slate-300 truncate">{{ getIndicatorDisplayName(key) }}</span>
+                      <span class="text-sm font-semibold text-slate-300 truncate">{{ getIndicatorDisplayName(key) }}</span>
                       <el-tooltip :content="getIndicatorExplanation(key)" placement="top">
-                        <i class="ri-question-line text-slate-500 cursor-help text-xs flex-shrink-0"></i>
+                        <i class="ri-question-line text-slate-500 cursor-help text-sm flex-shrink-0 hover:text-slate-400 transition-colors"></i>
                       </el-tooltip>
                     </div>
                     <div
-                      class="w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 ml-2"
+                      class="w-7 h-7 rounded-xl flex items-center justify-center flex-shrink-0 ml-2 group-hover:scale-110 transition-transform duration-200"
                       :class="getIndicatorClass(indicator.support_trend)"
                       :style="`background:${getIndicatorBgColor(indicator.support_trend)}`"
                     >
-                      <i :class="getTrendIconClass(indicator.support_trend)" class="text-xs"></i>
+                      <i :class="getTrendIconClass(indicator.support_trend)" class="text-sm"></i>
                     </div>
                   </div>
-                  <div class="text-base font-bold text-white">
+                  <div class="text-lg font-bold text-white">
                     {{ typeof indicator.value === 'number' ? indicator.value.toFixed(2) : indicator.value }}
                   </div>
                 </div>
               </template>
             </div>
             <!-- 复杂指标 -->
-            <div class="space-y-4">
+            <div class="space-y-6">
               <template v-for="key in ['MACD','BollingerBands','DMI']" :key="key">
-                <div v-if="analysisData?.indicators_analysis && (analysisData.indicators_analysis as any)[key]" class="p-5 rounded-xl bg-slate-800/40 border border-slate-700/50">
-                  <div class="flex items-center justify-between mb-4">
-                    <div class="flex items-center space-x-2">
-                      <span class="text-base font-bold text-white">{{ key }}</span>
+                <div v-if="analysisData?.indicators_analysis && (analysisData.indicators_analysis as any)[key]" class="group p-6 rounded-2xl bg-slate-800/40 border border-slate-700/50 hover:border-slate-600/60 transition-all duration-300 hover:shadow-lg hover:shadow-slate-500/10">
+                  <div class="flex items-center justify-between mb-5">
+                    <div class="flex items-center space-x-3">
+                      <span class="text-lg font-bold text-white">{{ key }}</span>
                       <el-tooltip :content="getIndicatorExplanation(key)" placement="top">
-                        <i class="ri-question-line text-slate-500 cursor-help"></i>
+                        <i class="ri-question-line text-slate-500 cursor-help text-base hover:text-slate-400 transition-colors"></i>
                       </el-tooltip>
                     </div>
                     <div
-                      class="w-8 h-8 rounded-full flex items-center justify-center"
+                      class="w-10 h-10 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform duration-200"
                       :class="getIndicatorClass((analysisData.indicators_analysis as any)[key].support_trend)"
                       :style="`background:${getIndicatorBgColor((analysisData.indicators_analysis as any)[key].support_trend)}`"
                     >
-                      <i :class="getTrendIconClass((analysisData.indicators_analysis as any)[key].support_trend)" class="text-sm"></i>
+                      <i :class="getTrendIconClass((analysisData.indicators_analysis as any)[key].support_trend)" class="text-base"></i>
                     </div>
                   </div>
 
-                  <div :class="key === 'DMI' && currentMarketType === 'stock' ? 'grid grid-cols-2 gap-3' : 'grid grid-cols-3 gap-3'">
+                  <div :class="key === 'DMI' && currentMarketType === 'stock' ? 'grid grid-cols-2 gap-4' : 'grid grid-cols-3 gap-4'">
                     <!-- MACD -->
                     <template v-if="key === 'MACD'">
-                      <div class="text-center p-3 rounded-lg bg-blue-500/10 border border-blue-500/30">
-                        <div class="text-xs text-blue-300 font-medium mb-1">Histogram</div>
-                        <div class="text-sm font-bold text-white">{{ typeof (analysisData.indicators_analysis as any)[key].value === 'object' && (analysisData.indicators_analysis as any)[key].value && 'histogram' in (analysisData.indicators_analysis as any)[key].value && typeof (analysisData.indicators_analysis as any)[key].value.histogram === 'number' ? (analysisData.indicators_analysis as any)[key].value.histogram.toFixed(2) : '--' }}</div>
+                      <div class="group/item text-center p-4 rounded-xl bg-blue-500/10 border border-blue-500/30 hover:border-blue-400/50 transition-all duration-200 hover:scale-105">
+                        <div class="text-sm text-blue-300 font-semibold mb-2">Histogram</div>
+                        <div class="text-base font-bold text-white">{{ typeof (analysisData.indicators_analysis as any)[key].value === 'object' && (analysisData.indicators_analysis as any)[key].value && 'histogram' in (analysisData.indicators_analysis as any)[key].value && typeof (analysisData.indicators_analysis as any)[key].value.histogram === 'number' ? (analysisData.indicators_analysis as any)[key].value.histogram.toFixed(2) : '--' }}</div>
                       </div>
-                      <div class="text-center p-3 rounded-lg bg-blue-500/10 border border-blue-500/30">
-                        <div class="text-xs text-blue-300 font-medium mb-1">MACD Line</div>
-                        <div class="text-sm font-bold text-white">{{ typeof (analysisData.indicators_analysis as any)[key].value === 'object' && (analysisData.indicators_analysis as any)[key].value && 'line' in (analysisData.indicators_analysis as any)[key].value && typeof (analysisData.indicators_analysis as any)[key].value.line === 'number' ? (analysisData.indicators_analysis as any)[key].value.line.toFixed(2) : '--' }}</div>
+                      <div class="group/item text-center p-4 rounded-xl bg-blue-500/10 border border-blue-500/30 hover:border-blue-400/50 transition-all duration-200 hover:scale-105">
+                        <div class="text-sm text-blue-300 font-semibold mb-2">MACD Line</div>
+                        <div class="text-base font-bold text-white">{{ typeof (analysisData.indicators_analysis as any)[key].value === 'object' && (analysisData.indicators_analysis as any)[key].value && 'line' in (analysisData.indicators_analysis as any)[key].value && typeof (analysisData.indicators_analysis as any)[key].value.line === 'number' ? (analysisData.indicators_analysis as any)[key].value.line.toFixed(2) : '--' }}</div>
                       </div>
-                      <div class="text-center p-3 rounded-lg bg-blue-500/10 border border-blue-500/30">
-                        <div class="text-xs text-blue-300 font-medium mb-1">Signal Line</div>
-                        <div class="text-sm font-bold text-white">{{ typeof (analysisData.indicators_analysis as any)[key].value === 'object' && (analysisData.indicators_analysis as any)[key].value && 'signal' in (analysisData.indicators_analysis as any)[key].value && typeof (analysisData.indicators_analysis as any)[key].value.signal === 'number' ? (analysisData.indicators_analysis as any)[key].value.signal.toFixed(2) : '--' }}</div>
+                      <div class="group/item text-center p-4 rounded-xl bg-blue-500/10 border border-blue-500/30 hover:border-blue-400/50 transition-all duration-200 hover:scale-105">
+                        <div class="text-sm text-blue-300 font-semibold mb-2">Signal Line</div>
+                        <div class="text-base font-bold text-white">{{ typeof (analysisData.indicators_analysis as any)[key].value === 'object' && (analysisData.indicators_analysis as any)[key].value && 'signal' in (analysisData.indicators_analysis as any)[key].value && typeof (analysisData.indicators_analysis as any)[key].value.signal === 'number' ? (analysisData.indicators_analysis as any)[key].value.signal.toFixed(2) : '--' }}</div>
                       </div>
                     </template>
                     <!-- Bollinger Bands -->
                     <template v-else-if="key === 'BollingerBands'">
-                      <div class="text-center p-3 rounded-lg bg-red-500/10 border border-red-500/30">
-                        <div class="text-xs text-red-300 font-medium mb-1">Upper Band</div>
-                        <div class="text-sm font-bold text-white">{{ typeof (analysisData.indicators_analysis as any)[key].value === 'object' && (analysisData.indicators_analysis as any)[key].value && 'upper' in (analysisData.indicators_analysis as any)[key].value && typeof (analysisData.indicators_analysis as any)[key].value.upper === 'number' ? (analysisData.indicators_analysis as any)[key].value.upper.toFixed(2) : '--' }}</div>
+                      <div class="group/item text-center p-4 rounded-xl bg-red-500/10 border border-red-500/30 hover:border-red-400/50 transition-all duration-200 hover:scale-105">
+                        <div class="text-sm text-red-300 font-semibold mb-2">Upper Band</div>
+                        <div class="text-base font-bold text-white">{{ typeof (analysisData.indicators_analysis as any)[key].value === 'object' && (analysisData.indicators_analysis as any)[key].value && 'upper' in (analysisData.indicators_analysis as any)[key].value && typeof (analysisData.indicators_analysis as any)[key].value.upper === 'number' ? (analysisData.indicators_analysis as any)[key].value.upper.toFixed(2) : '--' }}</div>
                       </div>
-                      <div class="text-center p-3 rounded-lg bg-slate-500/10 border border-slate-500/30">
-                        <div class="text-xs text-slate-300 font-medium mb-1">Middle Band</div>
-                        <div class="text-sm font-bold text-white">{{ typeof (analysisData.indicators_analysis as any)[key].value === 'object' && (analysisData.indicators_analysis as any)[key].value && 'middle' in (analysisData.indicators_analysis as any)[key].value && typeof (analysisData.indicators_analysis as any)[key].value.middle === 'number' ? (analysisData.indicators_analysis as any)[key].value.middle.toFixed(2) : '--' }}</div>
+                      <div class="group/item text-center p-4 rounded-xl bg-slate-500/10 border border-slate-500/30 hover:border-slate-400/50 transition-all duration-200 hover:scale-105">
+                        <div class="text-sm text-slate-300 font-semibold mb-2">Middle Band</div>
+                        <div class="text-base font-bold text-white">{{ typeof (analysisData.indicators_analysis as any)[key].value === 'object' && (analysisData.indicators_analysis as any)[key].value && 'middle' in (analysisData.indicators_analysis as any)[key].value && typeof (analysisData.indicators_analysis as any)[key].value.middle === 'number' ? (analysisData.indicators_analysis as any)[key].value.middle.toFixed(2) : '--' }}</div>
                       </div>
-                      <div class="text-center p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/30">
-                        <div class="text-xs text-emerald-300 font-medium mb-1">Lower Band</div>
-                        <div class="text-sm font-bold text-white">{{ typeof (analysisData.indicators_analysis as any)[key].value === 'object' && (analysisData.indicators_analysis as any)[key].value && 'lower' in (analysisData.indicators_analysis as any)[key].value && typeof (analysisData.indicators_analysis as any)[key].value.lower === 'number' ? (analysisData.indicators_analysis as any)[key].value.lower.toFixed(2) : '--' }}</div>
+                      <div class="group/item text-center p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/30 hover:border-emerald-400/50 transition-all duration-200 hover:scale-105">
+                        <div class="text-sm text-emerald-300 font-semibold mb-2">Lower Band</div>
+                        <div class="text-base font-bold text-white">{{ typeof (analysisData.indicators_analysis as any)[key].value === 'object' && (analysisData.indicators_analysis as any)[key].value && 'lower' in (analysisData.indicators_analysis as any)[key].value && typeof (analysisData.indicators_analysis as any)[key].value.lower === 'number' ? (analysisData.indicators_analysis as any)[key].value.lower.toFixed(2) : '--' }}</div>
                       </div>
                     </template>
                     <!-- DMI -->
                     <template v-else-if="key === 'DMI'">
-                      <div class="text-center p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/30">
-                        <div class="text-xs text-emerald-300 font-medium mb-1">+DI</div>
-                        <div class="text-sm font-bold text-white">{{ typeof (analysisData.indicators_analysis as any)[key].value === 'object' && (analysisData.indicators_analysis as any)[key].value && 'plus_di' in (analysisData.indicators_analysis as any)[key].value && typeof (analysisData.indicators_analysis as any)[key].value.plus_di === 'number' ? (analysisData.indicators_analysis as any)[key].value.plus_di.toFixed(2) : '--' }}</div>
+                      <div class="group/item text-center p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/30 hover:border-emerald-400/50 transition-all duration-200 hover:scale-105">
+                        <div class="text-sm text-emerald-300 font-semibold mb-2">+DI</div>
+                        <div class="text-base font-bold text-white">{{ typeof (analysisData.indicators_analysis as any)[key].value === 'object' && (analysisData.indicators_analysis as any)[key].value && 'plus_di' in (analysisData.indicators_analysis as any)[key].value && typeof (analysisData.indicators_analysis as any)[key].value.plus_di === 'number' ? (analysisData.indicators_analysis as any)[key].value.plus_di.toFixed(2) : '--' }}</div>
                       </div>
-                      <div class="text-center p-3 rounded-lg bg-red-500/10 border border-red-500/30">
-                        <div class="text-xs text-red-300 font-medium mb-1">-DI</div>
-                        <div class="text-sm font-bold text-white">{{ typeof (analysisData.indicators_analysis as any)[key].value === 'object' && (analysisData.indicators_analysis as any)[key].value && 'minus_di' in (analysisData.indicators_analysis as any)[key].value && typeof (analysisData.indicators_analysis as any)[key].value.minus_di === 'number' ? (analysisData.indicators_analysis as any)[key].value.minus_di.toFixed(2) : '--' }}</div>
+                      <div class="group/item text-center p-4 rounded-xl bg-red-500/10 border border-red-500/30 hover:border-red-400/50 transition-all duration-200 hover:scale-105">
+                        <div class="text-sm text-red-300 font-semibold mb-2">-DI</div>
+                        <div class="text-base font-bold text-white">{{ typeof (analysisData.indicators_analysis as any)[key].value === 'object' && (analysisData.indicators_analysis as any)[key].value && 'minus_di' in (analysisData.indicators_analysis as any)[key].value && typeof (analysisData.indicators_analysis as any)[key].value.minus_di === 'number' ? (analysisData.indicators_analysis as any)[key].value.minus_di.toFixed(2) : '--' }}</div>
                       </div>
                       <!-- 只在加密货币市场显示ADX -->
-                      <div v-if="currentMarketType === 'crypto'" class="text-center p-3 rounded-lg bg-blue-500/10 border border-blue-500/30">
-                        <div class="text-xs text-blue-300 font-medium mb-1">ADX</div>
-                        <div class="text-sm font-bold text-white">{{ typeof (analysisData.indicators_analysis as any)[key].value === 'object' && (analysisData.indicators_analysis as any)[key].value && 'adx' in (analysisData.indicators_analysis as any)[key].value && typeof (analysisData.indicators_analysis as any)[key].value.adx === 'number' ? (analysisData.indicators_analysis as any)[key].value.adx.toFixed(2) : '--' }}</div>
+                      <div v-if="currentMarketType === 'crypto'" class="group/item text-center p-4 rounded-xl bg-blue-500/10 border border-blue-500/30 hover:border-blue-400/50 transition-all duration-200 hover:scale-105">
+                        <div class="text-sm text-blue-300 font-semibold mb-2">ADX</div>
+                        <div class="text-base font-bold text-white">{{ typeof (analysisData.indicators_analysis as any)[key].value === 'object' && (analysisData.indicators_analysis as any)[key].value && 'adx' in (analysisData.indicators_analysis as any)[key].value && typeof (analysisData.indicators_analysis as any)[key].value.adx === 'number' ? (analysisData.indicators_analysis as any)[key].value.adx.toFixed(2) : '--' }}</div>
                       </div>
                     </template>
                   </div>
@@ -452,45 +601,48 @@
 
           <!-- 交易建议 -->
           <div v-if="analysisData?.trading_advice">
-            <h3 class="text-base font-bold text-white mb-4">{{ t('analysis.trading_advice') }}</h3>
-            <div class="p-5 rounded-xl bg-gradient-to-br from-slate-800/60 to-slate-900/60 border border-slate-700/50 space-y-4">
+            <h3 class="text-lg font-bold text-white mb-5 flex items-center">
+              <div class="w-1 h-6 bg-gradient-to-b from-amber-400 to-orange-400 rounded-full mr-3"></div>
+              {{ t('analysis.trading_advice') }}
+            </h3>
+            <div class="group p-6 rounded-2xl bg-gradient-to-br from-slate-800/60 to-slate-900/60 border border-slate-700/50 hover:border-slate-600/60 transition-all duration-300 hover:shadow-lg hover:shadow-amber-500/10 space-y-5">
 
               <!-- 推荐操作 -->
-              <div class="flex items-center justify-between p-3 rounded-lg bg-slate-700/30">
-                <div class="text-sm font-medium text-slate-300">{{ t('analysis.recommended_action') }}</div>
-                <div class="px-3 py-1 rounded-full text-sm font-bold"
-                  :class="analysisData.trading_advice.action === '买入' ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/40' :
-                          analysisData.trading_advice.action === '卖出' ? 'bg-red-500/20 text-red-400 border border-red-500/40' :
-                          'bg-slate-500/20 text-slate-400 border border-slate-500/40'">
+              <div class="flex items-center justify-between p-4 rounded-xl bg-slate-700/30 hover:bg-slate-700/40 transition-colors duration-200">
+                <div class="text-base font-semibold text-slate-300">{{ t('analysis.recommended_action') }}</div>
+                <div class="px-4 py-2 rounded-xl text-base font-bold transition-all duration-200 hover:scale-105"
+                  :class="analysisData.trading_advice.action === '买入' ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 hover:bg-emerald-500/30' :
+                          analysisData.trading_advice.action === '卖出' ? 'bg-red-500/20 text-red-400 border border-red-500/40 hover:bg-red-500/30' :
+                          'bg-slate-500/20 text-slate-400 border border-slate-500/40 hover:bg-slate-500/30'">
                   {{ getLocalizedAction(analysisData.trading_advice.action, currentLanguage) }}
                 </div>
               </div>
 
               <!-- 价格信息 -->
-              <div class="grid grid-cols-3 gap-3">
-                <div class="text-center p-3 rounded-lg bg-blue-500/10 border border-blue-500/30">
-                  <div class="text-xs text-blue-300 font-medium mb-1">{{ t('analysis.entry_price') }}</div>
-                  <div class="text-sm font-bold text-white">{{ formatPrice(analysisData.trading_advice.entry_price) }}</div>
+              <div class="grid grid-cols-3 gap-4">
+                <div class="group/price text-center p-4 rounded-xl bg-blue-500/10 border border-blue-500/30 hover:border-blue-400/50 transition-all duration-200 hover:scale-105">
+                  <div class="text-sm text-blue-300 font-semibold mb-2">{{ t('analysis.entry_price') }}</div>
+                  <div class="text-base font-bold text-white">{{ formatPrice(analysisData.trading_advice.entry_price) }}</div>
                 </div>
-                <div class="text-center p-3 rounded-lg bg-red-500/10 border border-red-500/30">
-                  <div class="text-xs text-red-300 font-medium mb-1">{{ t('analysis.stop_loss') }}</div>
-                  <div class="text-sm font-bold text-red-400">{{ formatPrice(analysisData.trading_advice.stop_loss) }}</div>
+                <div class="group/price text-center p-4 rounded-xl bg-red-500/10 border border-red-500/30 hover:border-red-400/50 transition-all duration-200 hover:scale-105">
+                  <div class="text-sm text-red-300 font-semibold mb-2">{{ t('analysis.stop_loss') }}</div>
+                  <div class="text-base font-bold text-red-400">{{ formatPrice(analysisData.trading_advice.stop_loss) }}</div>
                 </div>
-                <div class="text-center p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/30">
-                  <div class="text-xs text-emerald-300 font-medium mb-1">{{ t('analysis.take_profit') }}</div>
-                  <div class="text-sm font-bold text-emerald-400">{{ formatPrice(analysisData.trading_advice.take_profit) }}</div>
+                <div class="group/price text-center p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/30 hover:border-emerald-400/50 transition-all duration-200 hover:scale-105">
+                  <div class="text-sm text-emerald-300 font-semibold mb-2">{{ t('analysis.take_profit') }}</div>
+                  <div class="text-base font-bold text-emerald-400">{{ formatPrice(analysisData.trading_advice.take_profit) }}</div>
                 </div>
               </div>
 
               <!-- 理由说明 -->
-              <div class="p-4 rounded-lg bg-slate-700/20 border border-slate-600/30">
-                <div class="flex items-start space-x-3">
-                  <div class="w-6 h-6 bg-amber-500/20 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
-                    <i class="ri-lightbulb-line text-amber-400 text-sm"></i>
+              <div class="p-5 rounded-xl bg-slate-700/20 border border-slate-600/30 hover:border-slate-600/40 transition-colors duration-200">
+                <div class="flex items-start space-x-4">
+                  <div class="w-8 h-8 bg-amber-500/20 rounded-xl flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform duration-200">
+                    <i class="ri-lightbulb-line text-amber-400 text-base"></i>
                   </div>
                   <div class="flex-1">
-                    <div class="text-sm font-medium text-slate-300 mb-2">{{ t('analysis.reason') }}</div>
-                    <div class="text-slate-200 leading-relaxed">
+                    <div class="text-base font-semibold text-slate-300 mb-3">{{ t('analysis.reason') }}</div>
+                    <div class="text-base text-slate-200 leading-relaxed">
                       <span v-if="loadingReasonTranslation" class="text-slate-400">翻译中...</span>
                       <span v-else>{{ translatedReason || analysisData.trading_advice.reason }}</span>
                     </div>
@@ -502,34 +654,37 @@
 
           <!-- 风险评估 -->
           <div v-if="analysisData?.risk_assessment">
-            <h3 class="text-base font-bold text-white mb-4">{{ t('analysis.risk_assessment') }}</h3>
-            <div class="p-5 rounded-xl bg-gradient-to-br from-slate-800/60 to-slate-900/60 border border-slate-700/50 space-y-4">
+            <h3 class="text-lg font-bold text-white mb-5 flex items-center">
+              <div class="w-1 h-6 bg-gradient-to-b from-red-400 to-orange-400 rounded-full mr-3"></div>
+              {{ t('analysis.risk_assessment') }}
+            </h3>
+            <div class="group p-6 rounded-2xl bg-gradient-to-br from-slate-800/60 to-slate-900/60 border border-slate-700/50 hover:border-slate-600/60 transition-all duration-300 hover:shadow-lg hover:shadow-red-500/10 space-y-5">
 
               <!-- 风险等级 -->
-              <div class="flex items-center justify-between p-3 rounded-lg bg-slate-700/30">
-                <div class="text-sm font-medium text-slate-300">{{ t('analysis.risk_level') }}</div>
-                <div class="px-3 py-1 rounded-full text-sm font-bold"
+              <div class="flex items-center justify-between p-4 rounded-xl bg-slate-700/30 hover:bg-slate-700/40 transition-colors duration-200">
+                <div class="text-base font-semibold text-slate-300">{{ t('analysis.risk_level') }}</div>
+                <div class="px-4 py-2 rounded-xl text-base font-bold transition-all duration-200 hover:scale-105"
                   :class="{
-                    'bg-red-500/20 text-red-400 border border-red-500/40': analysisData.risk_assessment.level === '高',
-                    'bg-amber-500/20 text-amber-400 border border-amber-500/40': analysisData.risk_assessment.level === '中',
-                    'bg-emerald-500/20 text-emerald-400 border border-emerald-500/40': analysisData.risk_assessment.level === '低'
+                    'bg-red-500/20 text-red-400 border border-red-500/40 hover:bg-red-500/30': analysisData.risk_assessment.level === '高',
+                    'bg-amber-500/20 text-amber-400 border border-amber-500/40 hover:bg-amber-500/30': analysisData.risk_assessment.level === '中',
+                    'bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 hover:bg-emerald-500/30': analysisData.risk_assessment.level === '低'
                   }">
                   {{ getLocalizedRiskLevel(analysisData.risk_assessment.level, currentLanguage) }}
                 </div>
               </div>
 
               <!-- 风险评分 -->
-              <div class="space-y-2">
+              <div class="space-y-3">
                 <div class="flex items-center justify-between">
-                  <span class="text-sm font-medium text-slate-300">{{ t('analysis.risk_score') }}</span>
-                  <span class="text-base font-bold text-white">{{ analysisData.risk_assessment.score }}%</span>
+                  <span class="text-base font-semibold text-slate-300">{{ t('analysis.risk_score') }}</span>
+                  <span class="text-xl font-bold text-white">{{ analysisData.risk_assessment.score }}%</span>
                 </div>
-                <div class="w-full bg-slate-700/50 rounded-full h-3 overflow-hidden">
-                  <div class="h-full rounded-full transition-all duration-500"
+                <div class="w-full bg-slate-700/50 rounded-full h-4 overflow-hidden shadow-inner">
+                  <div class="h-full rounded-full transition-all duration-700 shadow-lg"
                     :class="{
-                      'bg-gradient-to-r from-red-500 to-red-400': analysisData.risk_assessment.score > 70,
-                      'bg-gradient-to-r from-amber-500 to-amber-400': analysisData.risk_assessment.score > 30 && analysisData.risk_assessment.score <= 70,
-                      'bg-gradient-to-r from-emerald-500 to-emerald-400': analysisData.risk_assessment.score <= 30
+                      'bg-gradient-to-r from-red-500 to-red-400 shadow-red-500/30': analysisData.risk_assessment.score > 70,
+                      'bg-gradient-to-r from-amber-500 to-amber-400 shadow-amber-500/30': analysisData.risk_assessment.score > 30 && analysisData.risk_assessment.score <= 70,
+                      'bg-gradient-to-r from-emerald-500 to-emerald-400 shadow-emerald-500/30': analysisData.risk_assessment.score <= 30
                     }"
                     :style="{ width: `${analysisData.risk_assessment.score}%` }">
                   </div>
@@ -537,21 +692,21 @@
               </div>
 
               <!-- 风险因素 -->
-              <div v-if="analysisData.risk_assessment.details && analysisData.risk_assessment.details.length > 0" class="space-y-3">
-                <div class="flex items-center space-x-2">
-                  <div class="w-6 h-6 bg-orange-500/20 rounded-full flex items-center justify-center">
-                    <i class="ri-alert-line text-orange-400 text-sm"></i>
+              <div v-if="analysisData.risk_assessment.details && analysisData.risk_assessment.details.length > 0" class="space-y-4">
+                <div class="flex items-center space-x-3">
+                  <div class="w-8 h-8 bg-orange-500/20 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform duration-200">
+                    <i class="ri-alert-line text-orange-400 text-base"></i>
                   </div>
-                  <span class="text-sm font-medium text-slate-300">{{ t('analysis.risk_factors') }}</span>
+                  <span class="text-base font-semibold text-slate-300">{{ t('analysis.risk_factors') }}</span>
                 </div>
-                <div class="pl-8 space-y-2">
-                  <div v-if="loadingRiskTranslation" class="text-slate-400 text-sm">翻译中...</div>
-                  <div v-else class="space-y-2">
+                <div class="pl-11 space-y-3">
+                  <div v-if="loadingRiskTranslation" class="text-slate-400 text-base">翻译中...</div>
+                  <div v-else class="space-y-3">
                     <div v-for="(detail, index) in (translatedRiskFactors.length > 0 ? translatedRiskFactors : analysisData.risk_assessment.details)"
                          :key="index"
-                         class="flex items-start space-x-2 text-sm text-slate-200">
-                      <div class="w-1.5 h-1.5 bg-slate-400 rounded-full mt-2 flex-shrink-0"></div>
-                      <span>{{ detail }}</span>
+                         class="flex items-start space-x-3 text-base text-slate-200 p-3 rounded-lg bg-slate-700/20 hover:bg-slate-700/30 transition-colors duration-200">
+                      <div class="w-2 h-2 bg-orange-400 rounded-full mt-2 flex-shrink-0"></div>
+                      <span class="leading-relaxed">{{ detail }}</span>
                     </div>
                   </div>
                 </div>
@@ -563,16 +718,6 @@
 
         </div>
       </main>
-
-        <!-- 代币未找到状态 -->
-        <div v-else-if="isTokenNotFound && !loading && !analysisLoading">
-          <TokenNotFoundView
-            :symbol="currentSymbol"
-            :marketType="currentMarketType"
-            @refresh-success="handleRefreshSuccess"
-            @refresh-error="handleRefreshError"
-          />
-        </div>
 
         <!-- 错误状态 -->
         <div v-else-if="error && !loading && !analysisLoading" class="w-full max-w-[375px] mx-auto space-y-4">
@@ -783,6 +928,17 @@ const currentPopularAssets = computed(() => {
   }
 })
 
+// 获取热门搜索数据
+const getPopularSearches = () => {
+  if (currentMarketType.value === 'crypto') {
+    return popularTokens.value.slice(0, 8) // 取前8个
+  } else if (currentMarketType.value === 'stock') {
+    return popularStocks.value.slice(0, 8) // 取前8个
+  } else {
+    return []
+  }
+}
+
 // 简化骨架屏逻辑 - 基于数据状态而不是加载状态
 const showSkeleton = ref(true) // 默认显示骨架屏
 
@@ -928,7 +1084,7 @@ const getCurrentSymbol = async (): Promise<string> => {
     }
 
     // fallback: background script
-    if (isExtensionEnvironment() && typeof chrome !== 'undefined' && chrome.runtime) {
+    if (typeof chrome !== 'undefined' && chrome.runtime) {
       try {
         const response = await new Promise<{ symbol?: string }>((resolve) => {
           chrome.runtime.sendMessage({ type: 'GET_CURRENT_SYMBOL' }, (resp) => {
@@ -1034,24 +1190,20 @@ const formatPrice = (price?: number | string | null) => {
       // 极小值使用科学计数法
       return numPrice.toExponential(8)
     } else {
-      // 小值但不是极小值，显示更多小数位
-      return numPrice.toFixed(8)
+      // 小值但不是极小值，显示更多小数位，去掉末尾的0
+      return parseFloat(numPrice.toFixed(8)).toString()
     }
   } else if (numPrice < 1) {
-    // 小于1的价格显示6位小数
-    return numPrice.toFixed(6)
+    // 小于1的价格显示6位小数，去掉末尾的0
+    return parseFloat(numPrice.toFixed(6)).toString()
   } else if (numPrice < 1000) {
-    // 普通价格显示2位小数
-    return numPrice.toLocaleString('en-US', {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2
-    })
+    // 普通价格显示2位小数，去掉末尾的0
+    const formatted = numPrice.toFixed(2)
+    return parseFloat(formatted).toLocaleString('en-US')
   } else {
-    // 大额价格显示2位小数
-    return numPrice.toLocaleString('en-US', {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2
-    })
+    // 大额价格显示2位小数，去掉末尾的0
+    const formatted = numPrice.toFixed(2)
+    return parseFloat(formatted).toLocaleString('en-US')
   }
 }
 
@@ -1184,116 +1336,62 @@ const handleSearch = () => {
   }, 300)
 }
 
-// 加载收藏数据
+// 加载收藏数据 - 完全通过API接口
 const loadFavorites = async () => {
   favoritesLoading.value = true
   try {
-    let allFavorites = []
+    console.log('loadFavorites: 开始通过API加载收藏数据')
+    console.log('loadFavorites: 当前市场类型:', currentMarketType.value)
 
-    // 检查是否在Chrome扩展环境中
-    if (isExtensionEnvironment()) {
-      try {
-        const response = await favorites.getFavorites()
-        if (response.status === 'success' && response.data) {
-          allFavorites = response.data
-        }
-      } catch (error) {
-        console.error('API加载收藏失败，使用本地存储:', error)
-        // 回退到本地存储
-        allFavorites = loadFavoritesFromLocalStorage()
-      }
+    // 直接调用API获取收藏数据
+    const response = await favorites.getFavorites()
+    console.log('loadFavorites: API响应:', response)
+
+    if (response.status === 'success' && response.data) {
+      // 根据当前市场类型过滤收藏数据
+      const filteredFavorites = response.data.filter((asset: any) =>
+        asset.market_type === currentMarketType.value
+      )
+      console.log('loadFavorites: 过滤后的收藏数据:', filteredFavorites)
+
+      favoriteAssets.value = filteredFavorites
     } else {
-      // 非扩展环境，使用本地存储
-      allFavorites = loadFavoritesFromLocalStorage()
+      console.log('loadFavorites: API返回无数据或失败')
+      favoriteAssets.value = []
     }
 
-    // 根据当前市场类型过滤收藏数据
-    favoriteAssets.value = allFavorites.filter((asset: any) =>
-      asset.market_type === currentMarketType.value
-    )
-
   } catch (error) {
-    console.error('加载收藏数据失败:', error)
+    console.error('loadFavorites: API加载收藏数据失败:', error)
     favoriteAssets.value = []
   } finally {
     favoritesLoading.value = false
   }
 }
 
-// 从本地存储加载收藏数据
-const loadFavoritesFromLocalStorage = () => {
-  try {
-    const localFavorites = JSON.parse(localStorage.getItem('favorites') || '[]')
-    return localFavorites.map((favoriteKey: string) => {
-      const [symbol, market_type] = favoriteKey.split('-')
-      return {
-        symbol,
-        market_type,
-        name: symbol // 简单使用symbol作为name
-      }
-    })
-  } catch (error) {
-    console.error('从本地存储加载收藏失败:', error)
-    return []
-  }
-}
 
-// 检查是否在Chrome扩展环境中
-const isExtensionEnvironment = (): boolean => {
-  // Check if we're in a Chrome extension context
-  if (typeof chrome === 'undefined' ||
-      typeof chrome.runtime === 'undefined' ||
-      typeof chrome.runtime.sendMessage !== 'function') {
-    return false
-  }
 
-  // Check if we're in an extension page (popup, options, etc.)
-  // Extension pages have chrome-extension:// protocol
-  const isExtensionPage = window.location.protocol === 'chrome-extension:' ||
-                         window.location.protocol === 'moz-extension:' ||
-                         window.location.protocol === 'extension:'
 
-  // Check if we have extension ID available (indicates we're in extension context)
-  let hasExtensionId = false
-  try {
-    hasExtensionId = !!chrome.runtime.id
-  } catch (e) {
-    // chrome.runtime.id might not be accessible in some contexts
-  }
 
-  // 更宽松的检测：只要Chrome API可用就认为是扩展环境
-  const hasChromeAPI = typeof chrome !== 'undefined' && chrome.runtime && typeof chrome.runtime.sendMessage === 'function';
-  return isExtensionPage || hasExtensionId || hasChromeAPI;
-}
-
-// 移除收藏
+// 移除收藏 - 完全通过API
 const removeFavorite = async (symbol: string, marketType: string) => {
   try {
-    if (isExtensionEnvironment()) {
-      try {
-        await favorites.removeFavorite(symbol, marketType as 'crypto' | 'stock')
-      } catch (error) {
-        console.error('API移除收藏失败，使用本地存储:', error)
-        // 回退到本地存储
-        const localFavorites = JSON.parse(localStorage.getItem('favorites') || '[]')
-        const favoriteKey = `${symbol}-${marketType}`
-        const updatedFavorites = localFavorites.filter((key: string) => key !== favoriteKey)
-        localStorage.setItem('favorites', JSON.stringify(updatedFavorites))
-      }
-    } else {
-      // 非扩展环境，使用本地存储
-      const localFavorites = JSON.parse(localStorage.getItem('favorites') || '[]')
-      const favoriteKey = `${symbol}-${marketType}`
-      const updatedFavorites = localFavorites.filter((key: string) => key !== favoriteKey)
-      localStorage.setItem('favorites', JSON.stringify(updatedFavorites))
-    }
+    console.log('removeFavorite: 开始移除收藏', symbol, marketType)
 
-    // 更新本地状态
-    favoriteAssets.value = favoriteAssets.value.filter(asset =>
-      !(asset.symbol === symbol && asset.market_type === marketType)
-    )
+    // 直接调用API移除收藏
+    const response = await favorites.removeFavorite(symbol, marketType as 'crypto' | 'stock')
+    console.log('removeFavorite: API响应:', response)
+
+    if (response.status === 'success') {
+      // 更新本地状态
+      favoriteAssets.value = favoriteAssets.value.filter(asset =>
+        !(asset.symbol === symbol && asset.market_type === marketType)
+      )
+      console.log('removeFavorite: 成功移除收藏并更新本地状态')
+    } else {
+      console.error('removeFavorite: API返回失败状态')
+    }
   } catch (error) {
-    console.error('移除收藏失败:', error)
+    console.error('removeFavorite: API调用失败:', error)
   }
 }
 
@@ -1694,7 +1792,7 @@ const testUrlParsing = async () => {
 
         // 也测试一下 background script 的结果
         let bgSymbol = 'NOT_IN_EXTENSION_ENV'
-        if (isExtensionEnvironment()) {
+        if (typeof chrome !== 'undefined' && chrome.runtime) {
           bgSymbol = await new Promise((resolve) => {
             chrome.runtime.sendMessage({ type: 'GET_CURRENT_SYMBOL' }, (response) => {
               resolve(response?.symbol || 'NO_RESPONSE');
@@ -2119,7 +2217,7 @@ const shouldShowIndicator = (key: string) => {
 }
 
 // 监听 SYMBOL_UPDATED 消息，确保 popup 能及时同步 symbol
-if (isExtensionEnvironment() && typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.onMessage) {
+if (typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.onMessage) {
   chrome.runtime.onMessage.addListener((message, _sender, _sendResponse) => {
     if (message.type === 'SYMBOL_UPDATED' && message.data && message.data.symbol) {
       const newSymbol = message.data.symbol;

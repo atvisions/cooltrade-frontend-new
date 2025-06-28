@@ -46,105 +46,75 @@ const favoriteStatus = ref(false)
 // 计算是否为收藏状态
 const isFavorite = computed(() => favoriteStatus.value)
 
-// 切换收藏状态
+// 切换收藏状态 - 完全通过API
 const toggleFavorite = async () => {
   if (loading.value) return
 
   loading.value = true
 
-  if (isExtensionEnvironment()) {
-    try {
-      const asset: Asset = {
-        symbol: props.symbol,
-        name: props.name || props.symbol,
-        market_type: props.marketType,
-        exchange: props.exchange,
-        sector: props.sector
-      }
-
-      if (favoriteStatus.value) {
-        // Remove from favorites
-        const response = await favorites.removeFavorite(props.symbol, props.marketType)
-        if (response.status === 'success') {
-          favoriteStatus.value = false
-          emit('favoriteChanged', false)
-          console.log('Removed from favorites')
-        }
-      } else {
-        // Add to favorites
-        const response = await favorites.addFavorite(asset)
-        if (response.status === 'success' || response.status === 'info') {
-          favoriteStatus.value = true
-          emit('favoriteChanged', true)
-          console.log('Added to favorites')
-        }
-      }
-    } catch (error) {
-      console.error('Failed to toggle favorite:', error)
-      // Fallback to localStorage
-      await mockToggleFavorite(props.symbol, props.marketType, !favoriteStatus.value)
-      favoriteStatus.value = !favoriteStatus.value
-      emit('favoriteChanged', favoriteStatus.value)
+  try {
+    const asset: Asset = {
+      symbol: props.symbol,
+      name: props.name || props.symbol,
+      market_type: props.marketType,
+      exchange: props.exchange,
+      sector: props.sector
     }
-  } else {
-    // 直接使用本地存储
-    await mockToggleFavorite(props.symbol, props.marketType, !favoriteStatus.value)
-    favoriteStatus.value = !favoriteStatus.value
-    emit('favoriteChanged', favoriteStatus.value)
+
+    if (favoriteStatus.value) {
+      // Remove from favorites
+      console.log('FavoriteButton: 移除收藏', props.symbol, props.marketType)
+      const response = await favorites.removeFavorite(props.symbol, props.marketType)
+      console.log('FavoriteButton: 移除收藏API响应:', response)
+
+      if (response.status === 'success') {
+        favoriteStatus.value = false
+        emit('favoriteChanged', false)
+        console.log('FavoriteButton: 成功移除收藏')
+      } else {
+        console.error('FavoriteButton: 移除收藏失败')
+      }
+    } else {
+      // Add to favorites
+      console.log('FavoriteButton: 添加收藏', asset)
+      const response = await favorites.addFavorite(asset)
+      console.log('FavoriteButton: 添加收藏API响应:', response)
+
+      if (response.status === 'success' || response.status === 'info') {
+        favoriteStatus.value = true
+        emit('favoriteChanged', true)
+        console.log('FavoriteButton: 成功添加收藏')
+      } else {
+        console.error('FavoriteButton: 添加收藏失败')
+      }
+    }
+  } catch (error) {
+    console.error('FavoriteButton: API调用失败:', error)
   }
 
   loading.value = false
 }
 
-// 模拟API调用 - 替换为实际的API调用
-const mockToggleFavorite = async (symbol: string, marketType: 'crypto' | 'stock', isFavorite: boolean) => {
-  // 模拟网络延迟
-  await new Promise(resolve => setTimeout(resolve, 300))
-  
-  // 模拟API调用
-  const favorites = JSON.parse(localStorage.getItem('favorites') || '[]')
-  const favoriteKey = `${symbol}-${marketType}`
-  
-  if (isFavorite) {
-    if (!favorites.includes(favoriteKey)) {
-      favorites.push(favoriteKey)
-    }
-  } else {
-    const index = favorites.indexOf(favoriteKey)
-    if (index > -1) {
-      favorites.splice(index, 1)
-    }
-  }
-  
-  localStorage.setItem('favorites', JSON.stringify(favorites))
-}
 
-// 检查是否在Chrome扩展环境中
-const isExtensionEnvironment = () => {
-  return typeof chrome !== 'undefined' &&
-         chrome.runtime &&
-         chrome.runtime.sendMessage &&
-         chrome.runtime.id // 确保有扩展ID
-}
 
-// 检查初始收藏状态
+// 检查初始收藏状态 - 完全通过API
 const checkFavoriteStatus = async () => {
-  if (isExtensionEnvironment()) {
-    try {
-      const response = await favorites.checkFavoriteStatus(props.symbol, props.marketType)
-      if (response.status === 'success') {
-        favoriteStatus.value = response.data.is_favorite
-        return
-      }
-    } catch (error) {
-      console.error('Check favorite status error:', error)
-    }
-  }
+  try {
+    console.log('FavoriteButton: 检查收藏状态', props.symbol, props.marketType)
+    const response = await favorites.checkFavoriteStatus(props.symbol, props.marketType)
+    console.log('FavoriteButton: 收藏状态API响应:', response)
 
-  // Fallback to localStorage
-  const localFavorites = JSON.parse(localStorage.getItem('favorites') || '[]')
-  const favoriteKey = `${props.symbol}-${props.marketType}`
-  favoriteStatus.value = localFavorites.includes(favoriteKey)
+    if (response.status === 'success') {
+      favoriteStatus.value = response.data.is_favorite
+      console.log('FavoriteButton: 收藏状态:', response.data.is_favorite)
+    } else {
+      favoriteStatus.value = false
+      console.log('FavoriteButton: API返回失败，设置为未收藏')
+    }
+  } catch (error) {
+    console.error('FavoriteButton: 检查收藏状态失败:', error)
+    favoriteStatus.value = false
+  }
 }
 
 // 初始化

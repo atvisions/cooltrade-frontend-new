@@ -20,10 +20,10 @@
         <!-- 右侧：搜索图标 -->
         <button
           @click="$emit('search-click')"
-          class="p-2 rounded-xl border transition-all duration-200 hover:scale-105"
+          class="p-2 rounded-lg transition-all duration-200 hover:scale-105"
           :class="{
-            'bg-blue-500/20 border-blue-400/50 text-blue-300': isSearchActive,
-            'bg-blue-500/10 hover:bg-blue-500/20 border-blue-500/30 text-blue-400': !isSearchActive
+            'text-blue-300': isSearchActive,
+            'text-blue-400 hover:text-blue-300': !isSearchActive
           }"
         >
           <i class="ri-search-line text-lg"></i>
@@ -59,8 +59,7 @@
                  ]"></i>
               <span class="font-medium"
                     :class="{
-                      'text-white': modelValue === market.value && !market.disabled,
-                      'text-white': modelValue !== market.value && !market.disabled,
+                      'text-white': !market.disabled,
                       'text-gray-500': market.disabled
                     }">{{ t(market.label) }}</span>
               <div 

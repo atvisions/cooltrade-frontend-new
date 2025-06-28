@@ -1,59 +1,58 @@
 <template>
-  <!-- 使用与其他卡片一致的布局和样式 -->
-  <div class="w-full max-w-[375px] mx-auto space-y-4">
-    <!-- 404状态卡片 -->
-    <div class="relative overflow-hidden rounded-2xl bg-gradient-to-br from-yellow-600/10 via-orange-600/10 to-red-600/10 p-6 backdrop-blur-sm border border-yellow-500/20">
-      <div class="absolute inset-0 bg-gradient-to-br from-yellow-500/5 via-orange-500/5 to-red-500/5"></div>
-      <div class="relative text-center space-y-4">
-        <!-- 图标 -->
-        <div class="w-16 h-16 mx-auto bg-yellow-500/20 rounded-full flex items-center justify-center">
-          <i class="ri-database-2-line text-3xl text-yellow-400"></i>
+  <!-- 紧凑的数据未找到卡片 -->
+  <div class="w-full max-w-[375px] mx-auto">
+    <div class="relative overflow-hidden rounded-2xl bg-gradient-to-br from-slate-800/95 to-slate-900/95 backdrop-blur-xl border border-slate-700/40 transition-all duration-300">
+      <!-- 背景光效 -->
+      <div class="absolute inset-0 bg-gradient-to-br from-orange-500/5 to-yellow-500/5 opacity-60"></div>
+
+      <div class="relative p-5">
+        <!-- 图标和标题 -->
+        <div class="flex items-center space-x-3 mb-4">
+          <div class="w-12 h-12 bg-gradient-to-br from-orange-500/20 to-yellow-500/20 rounded-xl flex items-center justify-center border border-orange-500/30">
+            <i class="ri-database-2-line text-2xl text-orange-400"></i>
+          </div>
+          <div>
+            <h2 class="text-lg font-bold text-white">
+              {{ getTranslation('tokenNotFound.title',
+                 currentLang === 'zh-CN' ? `${formattedSymbol} 数据未找到` :
+                 currentLang === 'en-US' ? `${formattedSymbol} Data Not Found` :
+                 currentLang === 'ja-JP' ? `${formattedSymbol} データが見つかりません` :
+                 currentLang === 'ko-KR' ? `${formattedSymbol} 데이터를 찾을 수 없습니다` :
+                 `${formattedSymbol} Data Not Found`,
+                 { symbol: formattedSymbol })
+              }}
+            </h2>
+            <p class="text-slate-400 text-xs">
+              {{ getTranslation('tokenNotFound.description',
+                 currentLang === 'zh-CN' ? '点击下方按钮获取数据' :
+                 currentLang === 'en-US' ? 'Click below to get data' :
+                 currentLang === 'ja-JP' ? '下のボタンでデータを取得' :
+                 currentLang === 'ko-KR' ? '아래 버튼으로 데이터 가져오기' :
+                 'Click below to get data')
+              }}
+            </p>
+          </div>
         </div>
 
-        <!-- 标题 -->
-        <h2 class="text-xl font-bold text-white">
-          {{ getTranslation('tokenNotFound.title',
-             currentLang === 'zh-CN' ? `${formattedSymbol} 数据未找到` :
-             currentLang === 'en-US' ? `${formattedSymbol} Data Not Found` :
-             currentLang === 'ja-JP' ? `${formattedSymbol} データが見つかりません` :
-             currentLang === 'ko-KR' ? `${formattedSymbol} 데이터를 찾을 수 없습니다` :
-             `${formattedSymbol} Data Not Found`,
-             { symbol: formattedSymbol })
-          }}
-        </h2>
-
-        <!-- 描述 -->
-        <p class="text-slate-300 text-sm leading-relaxed">
-          {{ getTranslation('tokenNotFound.description',
-             currentLang === 'zh-CN' ? '该代币尚未在我们的数据库中，点击下方按钮获取最新数据' :
-             currentLang === 'en-US' ? 'This token is not yet in our database. Click the button below to get the latest data.' :
-             currentLang === 'ja-JP' ? 'このトークンはまだデータベースにありません。下のボタンをクリックして最新データを取得してください。' :
-             currentLang === 'ko-KR' ? '이 토큰은 아직 데이터베이스에 없습니다. 아래 버튼을 클릭하여 최신 데이터를 가져오세요.' :
-             'This token is not yet in our database. Click the button below to get the latest data.')
-          }}
-        </p>
+        <!-- 操作按钮 -->
+        <button
+          class="w-full px-4 py-3 bg-gradient-to-r from-blue-500/15 to-blue-600/15 hover:from-blue-500/25 hover:to-blue-600/25 text-blue-400 rounded-xl font-medium transition-all duration-200 border border-blue-500/40 hover:border-blue-400/60 flex items-center justify-center space-x-2 group"
+          @click="handleRefresh"
+          :disabled="showRefreshModal"
+          :class="{ 'opacity-50 cursor-not-allowed': showRefreshModal }"
+        >
+          <i class="ri-refresh-line text-base transition-transform duration-200 group-hover:rotate-180" :class="{ 'animate-spin': showRefreshModal }"></i>
+          <span class="text-sm">
+            {{ getTranslation('tokenNotFound.refreshButton',
+               currentLang === 'zh-CN' ? '获取最新数据' :
+               currentLang === 'en-US' ? 'Get Latest Data' :
+               currentLang === 'ja-JP' ? '最新データを取得' :
+               currentLang === 'ko-KR' ? '최신 데이터 가져오기' :
+               'Get Latest Data')
+            }}
+          </span>
+        </button>
       </div>
-    </div>
-
-    <!-- 操作按钮卡片 -->
-    <div class="p-4 rounded-2xl bg-slate-800/40 border border-slate-700/50">
-      <button
-        class="w-full px-6 py-3 bg-blue-500/15 hover:bg-blue-500/25 text-blue-400 rounded-xl font-medium transition-all duration-200 hover:scale-[1.02] border border-blue-500/30 flex items-center justify-center space-x-2"
-        @click="handleRefresh"
-        :disabled="showRefreshModal"
-        :class="{ 'opacity-50 cursor-not-allowed': showRefreshModal }"
-      >
-        <i class="ri-refresh-line text-lg" :class="{ 'animate-spin': showRefreshModal }"></i>
-        <span>
-          {{ getTranslation('tokenNotFound.refreshButton',
-             currentLang === 'zh-CN' ? '获取最新市场数据' :
-             currentLang === 'en-US' ? 'Get Latest Market Data' :
-             currentLang === 'ja-JP' ? '最新の市場データを取得' :
-             currentLang === 'ko-KR' ? '최신 시장 데이터 가져오기' :
-             'Get Latest Market Data')
-          }}
-        </span>
-      </button>
     </div>
 
     <!-- 刷新中模态框 -->

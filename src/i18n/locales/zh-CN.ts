@@ -27,12 +27,13 @@ export default {
     popular_tokens: '热门代币',
     popular_stocks: '热门股票',
     quick_switch: '快速切换',
-    search: '搜索',
     coming_soon: '开发中',
     my_favorites: '我的收藏',
     items: '项',
+    more: '更多',
     search_crypto_placeholder: '搜索加密货币代码或名称...',
-    search_stock_placeholder: '搜索股票代码或名称...'
+    search_stock_placeholder: '搜索股票代码或名称...',
+    live_price: '实时价格'
   },
   market: {
     crypto: '加密货币',
@@ -129,6 +130,7 @@ export default {
     snapshot_price: '快照价格',
     share_to_twitter: '分享到推特',
     save_image: '保存图片',
+    share_analysis: '分享分析',
     uptrend: '上涨趋势',
     sideways: '横盘整理',
     downtrend: '下跌趋势',
@@ -266,7 +268,8 @@ export default {
     placeholder: '搜索代码或名称...',
     searching: '搜索中...',
     no_results: '未找到结果',
-    popular: '热门资产'
+    popular: '热门资产',
+    popular_searches: '热门搜索'
   },
   favorites: {
     add: '添加到收藏',
