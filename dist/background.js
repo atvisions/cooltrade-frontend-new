@@ -296,13 +296,15 @@ async function handleApiProxyRequest(data, sendResponse) {
 
     // Ensure authentication token is properly passed
     if (headers && headers.Authorization) {
-      console.log('Background script request contains authentication token');
+      console.log('Background script request contains authentication token:', headers.Authorization.substring(0, 20) + '...');
 
       // Ensure token format is correct, add prefix if not starting with "Token " or "Bearer "
       if (headers.Authorization && !headers.Authorization.startsWith('Token ') && !headers.Authorization.startsWith('Bearer ')) {
         options.headers.Authorization = `Token ${headers.Authorization}`;
+        console.log('Background script added Token prefix to authorization header');
       } else {
         options.headers.Authorization = headers.Authorization;
+        console.log('Background script using authorization header as-is');
       }
     } else {
       console.warn('Background script request does not contain authentication token, this may cause 401 error');
@@ -315,13 +317,14 @@ async function handleApiProxyRequest(data, sendResponse) {
         } else {
           options.headers.Authorization = envConfig.token;
         }
+        console.log('Background script using token from environment config');
       } else {
         console.warn('Background script environment config also has no token, request will not contain authentication info');
       }
     }
 
     // Add request body (if any)
-    if (body && (method === 'POST' || method === 'PUT' || method === 'PATCH')) {
+    if (body && (method === 'POST' || method === 'PUT' || method === 'PATCH' || method === 'DELETE')) {
       options.body = JSON.stringify(body);
     }
 

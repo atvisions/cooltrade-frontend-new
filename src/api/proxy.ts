@@ -73,8 +73,18 @@ export const proxyRequest = async (config: AxiosRequestConfig): Promise<any> => 
     if (!updatedHeaders.Authorization) {
       const token = localStorage.getItem('token');
       if (token) {
-        updatedHeaders = { ...updatedHeaders, Authorization: token };
+        // Ensure token format is correct
+        if (token.startsWith('Token ') || token.startsWith('Bearer ')) {
+          updatedHeaders = { ...updatedHeaders, Authorization: token };
+        } else {
+          updatedHeaders = { ...updatedHeaders, Authorization: `Token ${token}` };
+        }
+        console.log('Proxy: Added token to headers:', token.substring(0, 20) + '...');
+      } else {
+        console.warn('Proxy: No token found in localStorage');
       }
+    } else {
+      console.log('Proxy: Using existing Authorization header:', updatedHeaders.Authorization.substring(0, 20) + '...');
     }
 
     // Send proxy request
@@ -95,6 +105,13 @@ export const proxyRequest = async (config: AxiosRequestConfig): Promise<any> => 
     } catch (e) {
       console.warn('Cannot access chrome.runtime.id, but proceeding with request')
     }
+
+    console.log('Proxy request details:', {
+      url: fullUrl,
+      method: requestMethod,
+      hasAuth: !!updatedHeaders.Authorization,
+      authPrefix: updatedHeaders.Authorization ? updatedHeaders.Authorization.substring(0, 10) + '...' : 'none'
+    });
 
     chrome.runtime.sendMessage({
       type: 'PROXY_API_REQUEST',
@@ -126,15 +143,35 @@ export const proxyRequest = async (config: AxiosRequestConfig): Promise<any> => 
       }
 
       try {
-        // Return simplified response object with necessary data only
+        // Process response data similar to axios response interceptor
+        let processedData = response.data;
+
+        // Check if response data has the standard format
+        if (processedData && typeof processedData === 'object') {
+          // If response is already in standard format, use it directly
+          if (processedData.status === 'success' || processedData.status === 'error') {
+            processedData = processedData;
+          } else {
+            // If not standard format, wrap as standard format
+            processedData = {
+              status: 'success',
+              data: processedData
+            };
+          }
+        }
+
+        console.log('Proxy response processed data:', processedData);
+
+        // Return simplified response object with processed data
         resolve({
-          data: response.data,
+          data: processedData,
           status: response.status,
           statusText: response.statusText,
           headers: {},  // Use empty object to avoid undefined
           config: {}
         })
       } catch (error) {
+        console.error('Proxy response processing error:', error);
         // If error, return minimal response object
         resolve({
           data: response.data,

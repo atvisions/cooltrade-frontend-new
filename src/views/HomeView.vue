@@ -1023,6 +1023,10 @@ const switchToToken = async (symbol: string) => {
 // 收藏变化处理函数
 const handleFavoriteChanged = (isFavorite: boolean) => {
   console.log(`Asset ${currentSymbol.value} favorite status changed to:`, isFavorite)
+
+  // 重新加载收藏列表以反映最新状态
+  loadFavorites()
+
   // 这里可以添加额外的逻辑，比如显示提示消息
 }
 
@@ -1343,25 +1347,79 @@ const loadFavorites = async () => {
     console.log('loadFavorites: 开始通过API加载收藏数据')
     console.log('loadFavorites: 当前市场类型:', currentMarketType.value)
 
+    // 检查是否在扩展环境
+    const isExtension = typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.id
+    console.log('loadFavorites: 扩展环境:', isExtension)
+
+    // 检查token
+    const token = localStorage.getItem('token')
+    console.log('loadFavorites: token状态:', token ? '存在' : '不存在')
+
+    if (!token) {
+      console.warn('loadFavorites: 没有token，无法加载收藏数据')
+      favoriteAssets.value = []
+      return
+    }
+
+    // 在扩展环境下，添加额外的调试信息
+    if (isExtension) {
+      console.log('loadFavorites: 在Chrome扩展环境中加载收藏数据')
+      console.log('loadFavorites: Token前缀检查:', token.startsWith('Token ') ? 'Token前缀正确' : 'Token前缀可能有问题')
+      console.log('loadFavorites: 准备调用API: /crypto/favorites/')
+    }
+
     // 直接调用API获取收藏数据
     const response = await favorites.getFavorites()
-    console.log('loadFavorites: API响应:', response)
+    console.log('loadFavorites: API响应完整数据:', JSON.stringify(response, null, 2))
+    console.log('loadFavorites: response.status:', response.status)
+    console.log('loadFavorites: response.data:', response.data)
+    console.log('loadFavorites: response.data类型:', typeof response.data)
+    console.log('loadFavorites: response.data是否为数组:', Array.isArray(response.data))
 
     if (response.status === 'success' && response.data) {
+      // 确保data是数组
+      const dataArray = Array.isArray(response.data) ? response.data : []
+      console.log('loadFavorites: 数据数组长度:', dataArray.length)
+
       // 根据当前市场类型过滤收藏数据
-      const filteredFavorites = response.data.filter((asset: any) =>
-        asset.market_type === currentMarketType.value
-      )
+      const filteredFavorites = dataArray.filter((asset: any) => {
+        console.log('loadFavorites: 检查资产:', asset.symbol, '市场类型:', asset.market_type, '当前市场:', currentMarketType.value)
+        return asset.market_type === currentMarketType.value
+      })
       console.log('loadFavorites: 过滤后的收藏数据:', filteredFavorites)
 
       favoriteAssets.value = filteredFavorites
     } else {
-      console.log('loadFavorites: API返回无数据或失败')
+      console.log('loadFavorites: API返回无数据或失败，status:', response.status)
       favoriteAssets.value = []
     }
 
-  } catch (error) {
+  } catch (error: any) {
     console.error('loadFavorites: API加载收藏数据失败:', error)
+    console.error('loadFavorites: 错误详情:', {
+      message: error?.message || 'Unknown error',
+      stack: error?.stack || 'No stack trace',
+      name: error?.name || 'Unknown error type'
+    })
+
+    // 在扩展环境下，提供更详细的错误信息
+    const isExtension = typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.id
+    if (isExtension) {
+      console.error('loadFavorites: Chrome扩展环境下加载收藏数据失败')
+      if (error?.message && error.message.includes('proxy')) {
+        console.error('loadFavorites: 可能是代理相关问题')
+      }
+      if (error?.message && error.message.includes('401')) {
+        console.error('loadFavorites: 可能是认证问题，检查token是否正确传递')
+      }
+      if (error?.message && error.message.includes('timeout')) {
+        console.error('loadFavorites: 请求超时，可能是网络问题')
+      }
+      if (error?.message && error.message.includes('CORS')) {
+        console.error('loadFavorites: CORS问题，检查代理配置')
+      }
+    }
+
     favoriteAssets.value = []
   } finally {
     favoritesLoading.value = false

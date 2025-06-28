@@ -7,13 +7,18 @@
     "storage",
     "activeTab",
     "cookies",
-    "tabs"
+    "tabs",
+    "scripting",
+    "webRequest"
   ],
   "host_permissions": [
     "http://127.0.0.1:8000/*",
     "http://localhost:8000/*",
+    "http://127.0.0.1:*/*",
+    "http://localhost:*/*",
     "https://www.cooltrade.xyz/*",
-    "https://cooltrade.xyz/*"
+    "https://cooltrade.xyz/*",
+    "https://api.cooltrade.xyz/*"
   ],
   "background": {
     "service_worker": "background.js"
