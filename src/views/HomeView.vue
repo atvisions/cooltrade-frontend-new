@@ -3,80 +3,103 @@
     <!-- 主容器 -->
     <div class="relative max-w-md mx-auto bg-slate-900/95 backdrop-blur-sm min-h-screen shadow-2xl flex flex-col">
 
-      <!-- 顶部固定区域 -->
-      <header class="flex-shrink-0 bg-slate-900/98 backdrop-blur-md border-b border-slate-700/50">
-        <!-- 市场切换器 -->
-        <div class="p-4 pb-3">
-          <MarketTabSelector v-model="currentMarketType" @change="handleMarketTypeChange" />
-        </div>
+      <!-- 新的顶部导航 -->
+      <MarketHeader
+        v-model="currentMarketType"
+        @change="handleMarketTypeChange"
+        @search-click="togglePanel('search')"
+        :is-search-active="activePanel === 'search'"
+      />
 
-        <!-- 当前资产信息栏 -->
-        <div class="px-4 pb-4" v-if="currentMarketType !== 'china'">
-          <div class="flex items-center justify-between">
-            <!-- 资产标题和收藏 -->
-            <div class="flex items-center space-x-3">
-              <h1 class="text-xl font-bold text-white tracking-tight">
-                {{ currentSymbol ? getDisplayTitle() : t('common.loading') }}
-              </h1>
-              <FavoriteButton
-                v-if="currentSymbol"
-                :symbol="currentSymbol"
-                :market-type="currentMarketType"
-                @favorite-changed="handleFavoriteChanged"
-                class="scale-110"
-              />
-            </div>
+      <!-- 主要内容区域 -->
+      <main class="flex-1 pt-16 pb-16 overflow-y-auto" v-if="currentMarketType !== 'china'">
+        <div class="max-w-[375px] mx-auto px-4 space-y-4">
 
-            <!-- 操作按钮组 -->
-            <div class="flex items-center space-x-2">
-              <!-- 搜索按钮 -->
-              <button
-                @click="togglePanel('search')"
-                class="p-2.5 rounded-xl border transition-all duration-200 hover:scale-105"
-                :class="{
-                  'bg-blue-500/20 border-blue-400/50 text-blue-300': activePanel === 'search',
-                  'bg-blue-500/10 hover:bg-blue-500/20 border-blue-500/30 text-blue-400': activePanel !== 'search'
-                }"
-                :title="t('common.search')"
-              >
-                <i class="ri-search-line text-lg"></i>
-              </button>
+          <!-- 资产信息卡片 -->
+          <div class="relative overflow-hidden rounded-2xl bg-gradient-to-br from-blue-600/10 via-purple-600/10 to-indigo-600/10 p-5 backdrop-blur-sm border border-white/10">
+            <div class="absolute inset-0 bg-gradient-to-br from-blue-500/5 via-purple-500/5 to-indigo-500/5"></div>
+            <div class="relative">
+              <!-- 资产标题行 -->
+              <div class="flex items-center justify-between mb-4">
+                <div class="flex items-center space-x-3">
+                  <h1 class="text-xl font-bold text-white tracking-tight">
+                    {{ currentSymbol ? getDisplayTitle() : t('common.loading') }}
+                  </h1>
+                  <FavoriteButton
+                    v-if="currentSymbol"
+                    :symbol="currentSymbol"
+                    :market-type="currentMarketType"
+                    @favorite-changed="handleFavoriteChanged"
+                    class="scale-110"
+                  />
+                </div>
 
-              <!-- 收藏按钮 -->
-              <button
-                @click="togglePanel('favorites')"
-                class="p-2.5 rounded-xl border transition-all duration-200 hover:scale-105"
-                :class="{
-                  'bg-yellow-500/20 border-yellow-400/50 text-yellow-300': activePanel === 'favorites',
-                  'bg-yellow-500/10 hover:bg-yellow-500/20 border-yellow-500/30 text-yellow-400': activePanel !== 'favorites'
-                }"
-                :title="t('common.my_favorites')"
-              >
-                <i class="ri-bookmark-line text-lg"></i>
-              </button>
+                <!-- 快速操作按钮 -->
+                <div class="flex items-center space-x-2">
+                  <!-- 收藏按钮 -->
+                  <button
+                    @click="togglePanel('favorites')"
+                    class="p-2 rounded-lg border transition-all duration-200 hover:scale-105"
+                    :class="{
+                      'bg-yellow-500/20 border-yellow-400/50 text-yellow-300': activePanel === 'favorites',
+                      'bg-yellow-500/10 hover:bg-yellow-500/20 border-yellow-500/30 text-yellow-400': activePanel !== 'favorites'
+                    }"
+                    :title="t('common.my_favorites')"
+                  >
+                    <i class="ri-bookmark-line text-sm"></i>
+                  </button>
 
-              <!-- 热门资产按钮 -->
-              <button
-                v-if="currentMarketType !== 'china'"
-                @click="togglePanel('popular')"
-                class="p-2.5 rounded-xl border transition-all duration-200 hover:scale-105"
-                :class="{
-                  'bg-green-500/20 border-green-400/50 text-green-300': activePanel === 'popular',
-                  'bg-green-500/10 hover:bg-green-500/20 border-green-500/30 text-green-400': activePanel !== 'popular'
-                }"
-                :title="currentMarketType === 'crypto' ? t('common.popular_tokens') : t('common.popular_stocks')"
-              >
-                <i class="ri-fire-line text-lg"></i>
-              </button>
+                  <!-- 热门资产按钮 -->
+                  <button
+                    v-if="currentMarketType !== 'china'"
+                    @click="togglePanel('popular')"
+                    class="p-2 rounded-lg border transition-all duration-200 hover:scale-105"
+                    :class="{
+                      'bg-green-500/20 border-green-400/50 text-green-300': activePanel === 'popular',
+                      'bg-green-500/10 hover:bg-green-500/20 border-green-500/30 text-green-400': activePanel !== 'popular'
+                    }"
+                    :title="currentMarketType === 'crypto' ? t('common.popular_tokens') : t('common.popular_stocks')"
+                  >
+                    <i class="ri-fire-line text-sm"></i>
+                  </button>
+                </div>
+              </div>
+
+              <!-- 价格信息 -->
+              <div class="flex items-baseline space-x-3 mb-3">
+                <span class="text-2xl font-bold text-white">
+                  {{ formatPrice(analysisData?.current_price) }}
+                </span>
+                <span class="text-sm text-gray-400 uppercase">{{ currentMarketType === 'crypto' ? 'USD' : 'USD' }}</span>
+              </div>
+
+              <!-- 更新时间和刷新按钮 -->
+              <div class="flex items-center justify-between">
+                <div class="flex items-center text-xs text-gray-400">
+                  <i class="ri-time-line mr-1"></i>
+                  <span>{{ formatTime(analysisData?.last_update_time) }}</span>
+                </div>
+                <el-tooltip
+                  :content="!canRefreshReport ? t('analysis.refresh_report_too_soon') : t('analysis.refresh_report')"
+                  placement="top"
+                >
+                  <button
+                    @click="canRefreshReport && handleRefreshReport()"
+                    :disabled="!canRefreshReport || isRefreshing"
+                    class="p-1.5 rounded-lg transition-all duration-200 hover:scale-105"
+                    :class="canRefreshReport
+                      ? 'bg-blue-500/15 text-blue-400 hover:bg-blue-500/25 border border-blue-500/30'
+                      : 'bg-slate-700/30 text-slate-500 cursor-not-allowed border border-slate-700/30'"
+                  >
+                    <i class="ri-refresh-line text-sm" :class="{ 'animate-spin': isRefreshing }"></i>
+                  </button>
+                </el-tooltip>
+              </div>
             </div>
           </div>
-        </div>
-
-
-      </header>
 
       <!-- A股开发中页面 -->
-      <div class="flex-1 flex items-center justify-center px-4" v-if="currentMarketType === 'china'">
+      <div class="flex-1 flex items-center justify-center px-4 pt-16" v-if="currentMarketType === 'china'">
         <div class="text-center space-y-6">
           <div class="w-20 h-20 mx-auto bg-orange-500/20 rounded-full flex items-center justify-center">
             <i class="ri-tools-line text-3xl text-orange-400"></i>
@@ -92,8 +115,157 @@
         </div>
       </div>
 
-      <!-- 主要内容区域 - 可滚动 -->
-      <main class="flex-1 overflow-y-auto" v-if="currentMarketType !== 'china'">
+          <!-- 覆盖面板区域 - 绝对定位，在所有状态下都可用 -->
+          <div v-if="activePanel" class="absolute inset-0 z-50 p-4">
+          <div class="h-full flex items-start justify-center">
+            <!-- 搜索面板 -->
+            <div v-if="activePanel === 'search'"
+                 class="w-full max-w-md bg-slate-800 rounded-2xl border border-blue-500/30 p-6 backdrop-blur-sm"
+                 @click.stop>
+              <h3 class="text-base font-semibold text-blue-400 mb-4 flex items-center">
+                <i class="ri-search-line mr-2"></i>
+                {{ t('common.search') }}
+              </h3>
+              <div class="space-y-4">
+                <input
+                  v-model="searchQuery"
+                  @input="handleSearch"
+                  @click.stop
+                  type="text"
+                  :placeholder="currentMarketType === 'crypto' ? t('common.search_crypto_placeholder') : t('common.search_stock_placeholder')"
+                  class="w-full px-4 py-3 bg-slate-700 border border-slate-600 rounded-xl text-white placeholder-slate-400 focus:outline-none focus:border-blue-500 transition-colors"
+                />
+                <div v-if="searchLoading" class="flex items-center justify-center py-4 text-slate-400">
+                  <i class="ri-loader-4-line animate-spin text-lg mr-2"></i>
+                  <span class="text-sm">{{ t('search.searching') }}</span>
+                </div>
+                <div v-else-if="searchQuery && searchResults.length === 0" class="text-center py-4 text-slate-400">
+                  <i class="ri-search-line text-2xl mb-2 opacity-50"></i>
+                  <div class="text-sm">{{ t('search.no_results') }}</div>
+                </div>
+                <div v-else-if="searchResults.length > 0" class="max-h-32 overflow-y-auto space-y-2">
+                  <button
+                    v-for="result in searchResults"
+                    :key="result.symbol"
+                    @click="handleAssetSwitch(result.symbol)"
+                    class="w-full text-left p-3 bg-slate-700/50 hover:bg-slate-600/50 rounded-lg border border-slate-600/50 hover:border-slate-500 transition-all"
+                  >
+                    <div class="flex items-center space-x-3">
+                      <div class="w-6 h-6 rounded-lg flex items-center justify-center"
+                           :class="{
+                             'bg-blue-500/20 text-blue-400': result.market_type === 'crypto',
+                             'bg-green-500/20 text-green-400': result.market_type === 'stock'
+                           }">
+                        <i :class="{
+                             'ri-currency-line': result.market_type === 'crypto',
+                             'ri-line-chart-line': result.market_type === 'stock'
+                           }" class="text-xs"></i>
+                      </div>
+                      <div class="flex-1">
+                        <div class="font-semibold text-white text-sm">{{ result.symbol }}</div>
+                        <div class="text-xs text-slate-400">{{ result.name }}</div>
+                      </div>
+                    </div>
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <!-- 收藏面板 -->
+            <div v-if="activePanel === 'favorites'"
+                 class="w-full max-w-md bg-slate-800 rounded-2xl border border-yellow-500/30 p-6 backdrop-blur-sm"
+                 @click.stop>
+              <div class="flex items-center justify-between mb-4">
+                <h3 class="text-base font-semibold text-yellow-400 flex items-center">
+                  <i class="ri-bookmark-fill mr-2"></i>
+                  {{ t('favorites.title') }}
+                </h3>
+                <div v-if="favoriteAssets.length > 0" class="text-xs text-slate-400">
+                  {{ favoriteAssets.length }} {{ t('common.items') }}
+                </div>
+              </div>
+
+              <div v-if="favoritesLoading" class="flex flex-col items-center justify-center py-12 text-slate-400">
+                <i class="ri-loader-4-line animate-spin text-2xl mb-3"></i>
+                <div class="text-sm">{{ t('common.loading') }}</div>
+              </div>
+
+              <div v-else-if="favoriteAssets.length === 0" class="flex flex-col items-center justify-center py-12 text-slate-400">
+                <i class="ri-bookmark-line text-3xl mb-3 opacity-50"></i>
+                <div class="text-sm">{{ t('favorites.empty') }}</div>
+                <div class="text-xs mt-1 opacity-70">{{ t('favorites.empty_hint') }}</div>
+              </div>
+
+              <div v-else class="grid grid-cols-2 gap-3 max-h-40 overflow-y-auto">
+                <div
+                  v-for="asset in favoriteAssets"
+                  :key="`${asset.symbol}-${asset.market_type}`"
+                  class="group relative flex items-center p-3 bg-slate-700/30 hover:bg-slate-600/40 rounded-lg border border-slate-600/30 hover:border-yellow-500/40 transition-all duration-200 cursor-pointer"
+                  @click="handleAssetSwitch(asset.symbol)"
+                >
+                  <!-- 当前选中指示器 - 右上角 -->
+                  <div v-if="asset.symbol === currentSymbol" class="absolute top-1 right-1 w-2 h-2 bg-yellow-400 rounded-full"></div>
+
+                  <!-- 市场类型图标 -->
+                  <div class="flex-shrink-0 w-5 h-5 rounded flex items-center justify-center mr-3"
+                       :class="{
+                         'bg-blue-500/20 text-blue-400': asset.market_type === 'crypto',
+                         'bg-green-500/20 text-green-400': asset.market_type === 'stock'
+                       }">
+                    <i :class="{
+                         'ri-currency-line': asset.market_type === 'crypto',
+                         'ri-line-chart-line': asset.market_type === 'stock'
+                       }" class="text-sm"></i>
+                  </div>
+
+                  <!-- 资产信息 -->
+                  <div class="flex-1 min-w-0">
+                    <div class="font-medium text-white text-sm">{{ asset.symbol }}</div>
+                  </div>
+
+                  <!-- 删除按钮 -->
+                  <button
+                    @click.stop="removeFavorite(asset.symbol, asset.market_type)"
+                    class="flex-shrink-0 w-5 h-5 rounded-full bg-red-500/20 hover:bg-red-500/40 text-red-400 hover:text-red-300 flex items-center justify-center transition-all duration-200 opacity-0 group-hover:opacity-100"
+                    :title="t('favorites.remove')"
+                  >
+                    <i class="ri-close-line text-sm"></i>
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <!-- 热门资产面板 -->
+            <div v-if="activePanel === 'popular'"
+                 class="w-full max-w-md bg-slate-800 rounded-2xl border border-green-500/30 p-6 backdrop-blur-sm"
+                 @click.stop>
+              <h3 class="text-base font-semibold text-green-400 mb-4 flex items-center">
+                <i class="ri-fire-line mr-2"></i>
+                {{ currentMarketType === 'crypto' ? t('common.popular_tokens') : t('common.popular_stocks') }}
+              </h3>
+              <div class="grid grid-cols-4 gap-3">
+                <button
+                  v-for="asset in currentPopularAssets"
+                  :key="asset.symbol"
+                  @click="handleAssetSwitch(asset.symbol)"
+                  :disabled="analysisLoading || asset.symbol === currentSymbol"
+                  class="group relative p-3 rounded-lg border transition-all duration-300 hover:scale-105"
+                  :class="{
+                    'bg-blue-500/20 border-blue-400/50 text-blue-300 shadow-lg shadow-blue-500/20': asset.symbol === currentSymbol,
+                    'bg-slate-700/40 border-slate-600/50 text-slate-300 hover:bg-slate-600/50 hover:border-slate-500/60': asset.symbol !== currentSymbol && !analysisLoading,
+                    'bg-slate-800/30 border-slate-700/30 text-slate-500 cursor-not-allowed': analysisLoading
+                  }"
+                >
+                  <div class="text-sm font-bold text-center">{{ asset.display }}</div>
+                  <div
+                    v-if="asset.symbol === currentSymbol"
+                    class="absolute -top-1 -right-1 w-2.5 h-2.5 bg-blue-400 rounded-full border border-slate-800"
+                  ></div>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
 
         <!-- 骨架屏 - 没有数据且没有错误时显示 -->
         <div v-if="showSkeleton" class="p-4 space-y-6 pb-24">
@@ -101,213 +273,29 @@
         </div>
 
         <!-- 正常内容 - 有数据时显示 -->
-        <div v-else-if="analysisData" class="p-4 space-y-6 pb-24">
+        <div v-else-if="analysisData" class="p-4 pt-6 space-y-6 pb-24">
 
-          <!-- 价格展示卡片容器 - 相对定位 -->
-          <div class="relative">
-            <!-- 价格展示卡片 -->
-            <div class="p-6 rounded-2xl bg-gradient-to-br from-slate-800/80 to-slate-900/80 border border-slate-700/50 shadow-xl">
-              <div class="text-center space-y-4">
-                <div class="space-y-1">
-                  <h2 class="text-sm font-medium text-slate-400 uppercase tracking-wider">{{ t('analysis.snapshot_price') }}</h2>
-                  <div class="text-3xl font-bold text-white">
-                    {{ formatPrice(analysisData?.snapshot_price || 0) }}
-                    <span class="text-base text-slate-400 ml-2">USD</span>
-                  </div>
-                </div>
-
-                <!-- 操作按钮 -->
-                <div class="flex justify-center gap-3 pt-2">
-                  <button
-                    @click="shareToTwitter"
-                    class="flex items-center gap-2 px-4 py-2.5 bg-blue-500/15 hover:bg-blue-500/25 text-blue-400 rounded-xl transition-all duration-200 hover:scale-105 border border-blue-500/30"
-                  >
-                    <i class="ri-twitter-fill text-lg"></i>
-                    <span class="text-sm font-medium">{{ t('analysis.share_to_twitter') }}</span>
-                  </button>
-                  <button
-                    @click="saveChartImage"
-                    class="flex items-center gap-2 px-4 py-2.5 bg-slate-600/20 hover:bg-slate-600/30 text-slate-300 rounded-xl transition-all duration-200 hover:scale-105 border border-slate-600/40"
-                  >
-                    <i class="ri-image-line text-lg"></i>
-                    <span class="text-sm font-medium">{{ t('analysis.save_image') }}</span>
-                  </button>
-                </div>
-              </div>
-            </div>
-
-            <!-- 覆盖面板区域 - 绝对定位覆盖在价格卡片上 -->
-            <div v-if="activePanel" class="absolute inset-0 z-10">
-              <!-- 搜索面板 -->
-              <div v-if="activePanel === 'search'"
-                   :class="searchResults.length > 0 ? 'min-h-full' : 'h-full'"
-                   class="bg-slate-800 rounded-2xl border border-blue-500/30 p-6 backdrop-blur-sm"
-                   @click.stop>
-                <h3 class="text-base font-semibold text-blue-400 mb-4 flex items-center">
-                  <i class="ri-search-line mr-2"></i>
-                  {{ t('common.search') }}
-                </h3>
-                <div class="space-y-4">
-                  <input
-                    v-model="searchQuery"
-                    @input="handleSearch"
-                    @click.stop
-                    type="text"
-                    :placeholder="currentMarketType === 'crypto' ? t('common.search_crypto_placeholder') : t('common.search_stock_placeholder')"
-                    class="w-full px-4 py-3 bg-slate-700 border border-slate-600 rounded-xl text-white placeholder-slate-400 focus:outline-none focus:border-blue-500 transition-colors"
-                  >
-                  <div v-if="searchLoading" class="flex items-center justify-center py-4 text-slate-400">
-                    <i class="ri-loader-4-line animate-spin text-lg mr-2"></i>
-                    <span class="text-sm">{{ t('search.searching') }}</span>
-                  </div>
-                  <div v-else-if="searchQuery && searchResults.length === 0" class="text-center py-4 text-slate-400">
-                    <i class="ri-search-line text-2xl mb-2 opacity-50"></i>
-                    <div class="text-sm">{{ t('search.no_results') }}</div>
-                  </div>
-                  <div v-else-if="searchResults.length > 0" class="max-h-32 overflow-y-auto space-y-2">
-                    <button
-                      v-for="result in searchResults"
-                      :key="result.symbol"
-                      @click="handleAssetSwitch(result.symbol)"
-                      class="w-full text-left p-3 bg-slate-700/50 hover:bg-slate-600/50 rounded-lg border border-slate-600/50 hover:border-slate-500 transition-all"
-                    >
-                      <div class="flex items-center space-x-3">
-                        <div class="w-6 h-6 rounded-lg flex items-center justify-center"
-                             :class="{
-                               'bg-blue-500/20 text-blue-400': result.market_type === 'crypto',
-                               'bg-green-500/20 text-green-400': result.market_type === 'stock'
-                             }">
-                          <i :class="{
-                               'ri-currency-line': result.market_type === 'crypto',
-                               'ri-line-chart-line': result.market_type === 'stock'
-                             }" class="text-xs"></i>
-                        </div>
-                        <div class="flex-1">
-                          <div class="font-semibold text-white text-sm">{{ result.symbol }}</div>
-                          <div class="text-xs text-slate-400">{{ result.name }}</div>
-                        </div>
-                      </div>
-                    </button>
-                  </div>
-                </div>
-              </div>
-
-              <!-- 收藏面板 -->
-              <div v-if="activePanel === 'favorites'"
-                   :class="favoriteAssets.length > 0 ? 'min-h-full' : 'h-full'"
-                   class="bg-slate-800 rounded-2xl border border-yellow-500/30 p-6 backdrop-blur-sm">
-                <div class="flex items-center justify-between mb-4">
-                  <h3 class="text-base font-semibold text-yellow-400 flex items-center">
-                    <i class="ri-bookmark-fill mr-2"></i>
-                    {{ t('favorites.title') }}
-                  </h3>
-                  <div v-if="favoriteAssets.length > 0" class="text-xs text-slate-400">
-                    {{ favoriteAssets.length }} {{ t('common.items') }}
-                  </div>
-                </div>
-
-                <div v-if="favoritesLoading" class="flex flex-col items-center justify-center py-12 text-slate-400">
-                  <i class="ri-loader-4-line animate-spin text-2xl mb-3"></i>
-                  <div class="text-sm">{{ t('common.loading') }}</div>
-                </div>
-
-                <div v-else-if="favoriteAssets.length === 0" class="flex flex-col items-center justify-center py-12 text-slate-400">
-                  <i class="ri-bookmark-line text-3xl mb-3 opacity-50"></i>
-                  <div class="text-sm">{{ t('favorites.empty') }}</div>
-                  <div class="text-xs mt-1 opacity-70">{{ t('favorites.empty_hint') }}</div>
-                </div>
-
-                <div v-else class="grid grid-cols-2 gap-3 max-h-40 overflow-y-auto">
-                  <div
-                    v-for="asset in favoriteAssets"
-                    :key="`${asset.symbol}-${asset.market_type}`"
-                    class="group relative flex items-center p-3 bg-slate-700/30 hover:bg-slate-600/40 rounded-lg border border-slate-600/30 hover:border-yellow-500/40 transition-all duration-200 cursor-pointer"
-                    @click="handleAssetSwitch(asset.symbol)"
-                  >
-                    <!-- 当前选中指示器 - 右上角 -->
-                    <div v-if="asset.symbol === currentSymbol" class="absolute top-1 right-1 w-2 h-2 bg-yellow-400 rounded-full"></div>
-
-                    <!-- 市场类型图标 -->
-                    <div class="flex-shrink-0 w-5 h-5 rounded flex items-center justify-center mr-3"
-                         :class="{
-                           'bg-blue-500/20 text-blue-400': asset.market_type === 'crypto',
-                           'bg-green-500/20 text-green-400': asset.market_type === 'stock'
-                         }">
-                      <i :class="{
-                           'ri-currency-line': asset.market_type === 'crypto',
-                           'ri-line-chart-line': asset.market_type === 'stock'
-                         }" class="text-sm"></i>
-                    </div>
-
-                    <!-- 资产信息 -->
-                    <div class="flex-1 min-w-0">
-                      <div class="font-medium text-white text-sm">{{ asset.symbol }}</div>
-                    </div>
-
-                    <!-- 删除按钮 -->
-                    <button
-                      @click.stop="removeFavorite(asset.symbol, asset.market_type)"
-                      class="flex-shrink-0 w-5 h-5 rounded-full bg-red-500/20 hover:bg-red-500/40 text-red-400 hover:text-red-300 flex items-center justify-center transition-all duration-200 opacity-0 group-hover:opacity-100"
-                      :title="t('favorites.remove')"
-                    >
-                      <i class="ri-close-line text-sm"></i>
-                    </button>
-                  </div>
-                </div>
-              </div>
-
-              <!-- 热门资产面板 -->
-              <div v-if="activePanel === 'popular'" class="h-full bg-slate-800 rounded-2xl border border-green-500/30 p-6 backdrop-blur-sm" style="width: 342px;">
-                <h3 class="text-base font-semibold text-green-400 mb-4 flex items-center">
-                  <i class="ri-fire-line mr-2"></i>
-                  {{ currentMarketType === 'crypto' ? t('common.popular_tokens') : t('common.popular_stocks') }}
-                </h3>
-                <div class="grid grid-cols-4 gap-3">
-                  <button
-                    v-for="asset in currentPopularAssets"
-                    :key="asset.symbol"
-                    @click="handleAssetSwitch(asset.symbol)"
-                    :disabled="analysisLoading || asset.symbol === currentSymbol"
-                    class="group relative p-3 rounded-lg border transition-all duration-300 hover:scale-105"
-                    :class="{
-                      'bg-blue-500/20 border-blue-400/50 text-blue-300 shadow-lg shadow-blue-500/20': asset.symbol === currentSymbol,
-                      'bg-slate-700/40 border-slate-600/50 text-slate-300 hover:bg-slate-600/50 hover:border-slate-500/60': asset.symbol !== currentSymbol && !analysisLoading,
-                      'bg-slate-800/30 border-slate-700/30 text-slate-500 cursor-not-allowed': analysisLoading
-                    }"
-                  >
-                    <div class="text-sm font-bold text-center">{{ asset.display }}</div>
-                    <div
-                      v-if="asset.symbol === currentSymbol"
-                      class="absolute -top-1 -right-1 w-2.5 h-2.5 bg-blue-400 rounded-full border border-slate-800"
-                    ></div>
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <!-- 更新时间和刷新按钮 -->
-          <div class="flex items-center justify-between p-4 rounded-xl bg-slate-800/40 border border-slate-700/50">
-            <div class="flex items-center space-x-2 text-sm text-slate-400">
-              <i class="ri-time-line text-base"></i>
-              <span>{{ t('analysis.last_update') }}: {{ formatTime(analysisData?.last_update_time) }}</span>
-            </div>
-            <el-tooltip
-              :content="!canRefreshReport ? t('analysis.refresh_report_too_soon') : t('analysis.refresh_report')"
-              placement="top"
-            >
+          <!-- 操作按钮卡片 -->
+          <div class="p-4 rounded-2xl bg-slate-800/40 border border-slate-700/50">
+            <div class="flex justify-center gap-3">
               <button
-                @click="canRefreshReport && handleRefreshReport()"
-                :disabled="!canRefreshReport || isRefreshing"
-                class="p-2.5 rounded-xl transition-all duration-200 hover:scale-105"
-                :class="canRefreshReport
-                  ? 'bg-blue-500/15 text-blue-400 hover:bg-blue-500/25 border border-blue-500/30'
-                  : 'bg-slate-700/30 text-slate-500 cursor-not-allowed border border-slate-700/30'"
+                @click="shareToTwitter"
+                class="flex items-center gap-2 px-4 py-2.5 bg-blue-500/15 hover:bg-blue-500/25 text-blue-400 rounded-xl transition-all duration-200 hover:scale-105 border border-blue-500/30"
               >
-                <i class="ri-refresh-line text-lg" :class="{ 'animate-spin': isRefreshing }"></i>
+                <i class="ri-twitter-fill text-lg"></i>
+                <span class="text-sm font-medium">{{ t('analysis.share_to_twitter') }}</span>
               </button>
-            </el-tooltip>
+              <button
+                @click="saveChartImage"
+                class="flex items-center gap-2 px-4 py-2.5 bg-slate-600/20 hover:bg-slate-600/30 text-slate-300 rounded-xl transition-all duration-200 hover:scale-105 border border-slate-600/40"
+              >
+                <i class="ri-image-line text-lg"></i>
+                <span class="text-sm font-medium">{{ t('analysis.save_image') }}</span>
+              </button>
+            </div>
           </div>
+
+
 
           <!-- 趋势分析卡片 -->
           <div v-if="analysisData?.trend_analysis?.probabilities">
@@ -367,7 +355,7 @@
             <!-- 单参数指标网格 -->
             <div class="grid grid-cols-2 gap-3 mb-4">
               <template v-for="(indicator, key) in analysisData?.indicators_analysis" :key="key">
-                <div v-if="!['MACD','BollingerBands','DMI'].includes(key)" class="p-4 rounded-xl bg-slate-800/40 border border-slate-700/50">
+                <div v-if="!['MACD','BollingerBands','DMI'].includes(key) && shouldShowIndicator(key)" class="p-4 rounded-xl bg-slate-800/40 border border-slate-700/50">
                   <div class="flex items-center justify-between mb-2">
                     <div class="flex items-center space-x-2 flex-1 min-w-0">
                       <span class="text-sm font-medium text-slate-300 truncate">{{ getIndicatorDisplayName(key) }}</span>
@@ -409,7 +397,7 @@
                     </div>
                   </div>
 
-                  <div class="grid grid-cols-3 gap-3">
+                  <div :class="key === 'DMI' && currentMarketType === 'stock' ? 'grid grid-cols-2 gap-3' : 'grid grid-cols-3 gap-3'">
                     <!-- MACD -->
                     <template v-if="key === 'MACD'">
                       <div class="text-center p-3 rounded-lg bg-blue-500/10 border border-blue-500/30">
@@ -450,7 +438,8 @@
                         <div class="text-xs text-red-300 font-medium mb-1">-DI</div>
                         <div class="text-sm font-bold text-white">{{ typeof (analysisData.indicators_analysis as any)[key].value === 'object' && (analysisData.indicators_analysis as any)[key].value && 'minus_di' in (analysisData.indicators_analysis as any)[key].value && typeof (analysisData.indicators_analysis as any)[key].value.minus_di === 'number' ? (analysisData.indicators_analysis as any)[key].value.minus_di.toFixed(2) : '--' }}</div>
                       </div>
-                      <div class="text-center p-3 rounded-lg bg-blue-500/10 border border-blue-500/30">
+                      <!-- 只在加密货币市场显示ADX -->
+                      <div v-if="currentMarketType === 'crypto'" class="text-center p-3 rounded-lg bg-blue-500/10 border border-blue-500/30">
                         <div class="text-xs text-blue-300 font-medium mb-1">ADX</div>
                         <div class="text-sm font-bold text-white">{{ typeof (analysisData.indicators_analysis as any)[key].value === 'object' && (analysisData.indicators_analysis as any)[key].value && 'adx' in (analysisData.indicators_analysis as any)[key].value && typeof (analysisData.indicators_analysis as any)[key].value.adx === 'number' ? (analysisData.indicators_analysis as any)[key].value.adx.toFixed(2) : '--' }}</div>
                       </div>
@@ -572,51 +561,83 @@
 
         </div>
 
+        </div>
+      </main>
+
         <!-- 代币未找到状态 -->
-        <div v-else-if="isTokenNotFound && !loading && !analysisLoading" class="flex items-center justify-center min-h-[400px] p-4">
+        <div v-else-if="isTokenNotFound && !loading && !analysisLoading">
           <TokenNotFoundView
             :symbol="currentSymbol"
+            :marketType="currentMarketType"
             @refresh-success="handleRefreshSuccess"
             @refresh-error="handleRefreshError"
           />
         </div>
 
         <!-- 错误状态 -->
-        <div v-else-if="error && !loading && !analysisLoading" class="flex items-center justify-center min-h-[400px] p-4">
-          <div class="text-center px-6 py-8">
-            <div class="w-16 h-16 mx-auto bg-red-500/20 rounded-full flex items-center justify-center mb-4">
-              <i class="ri-error-warning-line text-2xl text-red-400"></i>
+        <div v-else-if="error && !loading && !analysisLoading" class="w-full max-w-[375px] mx-auto space-y-4">
+          <!-- 错误状态卡片 -->
+          <div class="relative overflow-hidden rounded-2xl bg-gradient-to-br from-red-600/10 via-pink-600/10 to-rose-600/10 p-6 backdrop-blur-sm border border-red-500/20">
+            <div class="absolute inset-0 bg-gradient-to-br from-red-500/5 via-pink-500/5 to-rose-500/5"></div>
+            <div class="relative text-center space-y-4">
+              <!-- 图标 -->
+              <div class="w-16 h-16 mx-auto bg-red-500/20 rounded-full flex items-center justify-center">
+                <i class="ri-error-warning-line text-3xl text-red-400"></i>
+              </div>
+
+              <!-- 标题 -->
+              <h3 class="text-xl font-bold text-white">出现错误</h3>
+
+              <!-- 错误信息 -->
+              <div class="space-y-2">
+                <p class="text-slate-300 text-sm">{{ error }}</p>
+                <p class="text-slate-400 text-xs">{{ t('errors.try_reload_or_later') }}</p>
+              </div>
             </div>
-            <h3 class="text-base font-bold text-white mb-2">出现错误</h3>
-            <p class="text-slate-300 mb-2">{{ error }}</p>
-            <p class="text-slate-400 text-sm mb-6">{{ t('errors.try_reload_or_later') }}</p>
+          </div>
+
+          <!-- 重试按钮卡片 -->
+          <div class="p-4 rounded-2xl bg-slate-800/40 border border-slate-700/50">
             <button
               @click="() => loadAnalysisData()"
-              class="px-6 py-3 bg-blue-500 hover:bg-blue-600 text-white rounded-xl font-medium transition-colors"
+              class="w-full px-6 py-3 bg-blue-500/15 hover:bg-blue-500/25 text-blue-400 rounded-xl font-medium transition-all duration-200 hover:scale-[1.02] border border-blue-500/30 flex items-center justify-center space-x-2"
             >
-              {{ t('common.retry') }}
+              <i class="ri-refresh-line text-lg"></i>
+              <span>{{ t('common.retry') }}</span>
             </button>
           </div>
         </div>
 
         <!-- 空状态 -->
-        <div v-else-if="!analysisData && !loading && !analysisLoading && !isTokenNotFound && !error" class="flex items-center justify-center min-h-[400px] p-4">
-          <div class="text-center px-6 py-8">
-            <div class="w-16 h-16 mx-auto bg-slate-500/20 rounded-full flex items-center justify-center mb-4">
-              <i class="ri-database-line text-2xl text-slate-400"></i>
+        <div v-else-if="!analysisData && !loading && !analysisLoading && !isTokenNotFound && !error" class="w-full max-w-[375px] mx-auto space-y-4">
+          <!-- 空状态卡片 -->
+          <div class="relative overflow-hidden rounded-2xl bg-gradient-to-br from-slate-600/10 via-gray-600/10 to-zinc-600/10 p-6 backdrop-blur-sm border border-slate-500/20">
+            <div class="absolute inset-0 bg-gradient-to-br from-slate-500/5 via-gray-500/5 to-zinc-500/5"></div>
+            <div class="relative text-center space-y-4">
+              <!-- 图标 -->
+              <div class="w-16 h-16 mx-auto bg-slate-500/20 rounded-full flex items-center justify-center">
+                <i class="ri-database-line text-3xl text-slate-400"></i>
+              </div>
+
+              <!-- 标题 -->
+              <h3 class="text-xl font-bold text-white">暂无数据</h3>
+
+              <!-- 描述 -->
+              <p class="text-slate-300 text-sm">{{ t('common.no_data') }}</p>
             </div>
-            <h3 class="text-base font-bold text-white mb-2">暂无数据</h3>
-            <p class="text-slate-300 mb-6">{{ t('common.no_data') }}</p>
+          </div>
+
+          <!-- 加载数据按钮卡片 -->
+          <div class="p-4 rounded-2xl bg-slate-800/40 border border-slate-700/50">
             <button
               @click="() => loadAnalysisData()"
-              class="px-6 py-3 bg-blue-500 hover:bg-blue-600 text-white rounded-xl font-medium transition-colors"
+              class="w-full px-6 py-3 bg-blue-500/15 hover:bg-blue-500/25 text-blue-400 rounded-xl font-medium transition-all duration-200 hover:scale-[1.02] border border-blue-500/30 flex items-center justify-center space-x-2"
             >
-              {{ t('common.load_data') }}
+              <i class="ri-download-line text-lg"></i>
+              <span>{{ t('common.load_data') }}</span>
             </button>
           </div>
         </div>
-
-      </main>
 
       <!-- 底部导航栏 -->
       <nav class="sticky bottom-0 bg-slate-900/95 backdrop-blur-md border-t border-slate-700/50">
@@ -636,26 +657,12 @@
         </div>
       </nav>
 
-      <!-- 刷新加载覆盖层 - 使用viewport单位确保在popup中居中 -->
-      <div v-if="isRefreshing" class="fixed top-0 left-0 z-50 flex items-center justify-center bg-black bg-opacity-60 backdrop-blur-sm"
-           style="width: 100vw; height: 100vh; max-width: 400px; max-height: 600px;">
-        <div class="bg-[#232a36] rounded-xl shadow-lg px-6 py-8 flex flex-col items-center w-80 border-2 border-blue-500">
-          <div class="flex items-center justify-center mb-4">
-            <svg class="animate-spin h-10 w-10 text-blue-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
-            </svg>
-          </div>
-          <div class="w-full text-center">
-            <div class="text-white text-base font-semibold mb-1">
-              {{ t('loading.generating_report') }}
-            </div>
-            <div class="text-gray-400 text-sm">
-              {{ t('loading.please_wait') }}
-            </div>
-          </div>
-        </div>
-      </div>
+      <!-- 刷新加载模态框 -->
+      <LoadingModal
+        v-if="isRefreshing"
+        :visible="isRefreshing"
+        type="refresh"
+      />
     </div>
   </div>
 </template>
@@ -682,8 +689,9 @@ import type {
 import { formatTechnicalAnalysisData } from '@/utils/data-formatter'
 import TokenNotFoundView from '@/components/TokenNotFoundView.vue'
 import ChartSkeleton from '@/components/ChartSkeleton.vue'
-import MarketTabSelector from '@/components/MarketTabSelector.vue'
+import MarketHeader from '@/components/MarketHeader.vue'
 import FavoriteButton from '@/components/FavoriteButton.vue'
+import LoadingModal from '@/components/LoadingModal.vue'
 // @ts-ignore
 import { googleTranslate } from '@/utils/translate'
 
@@ -704,11 +712,30 @@ const analysisData = ref<FormattedTechnicalAnalysisData | null>(null)
 const loading = ref(false) // 整体加载状态
 const analysisLoading = ref(false) // 分析数据加载状态
 const error = ref<string | null>(null)
-const currentSymbol = ref<string>('BTCUSDT') // 默认值
-const isTokenNotFound = ref(false) // 用于标记代币是否未找到（404错误）
 
-// 市场类型和面板相关状态
-const currentMarketType = ref<'crypto' | 'stock' | 'china'>('crypto')
+// 市场类型和面板相关状态 - 从localStorage恢复状态
+const storedMarketType = localStorage.getItem('currentMarketType') as 'crypto' | 'stock' | 'china'
+console.log('[INIT] localStorage中的currentMarketType:', storedMarketType)
+const currentMarketType = ref<'crypto' | 'stock' | 'china'>(
+  storedMarketType || 'crypto'
+)
+console.log('[INIT] 初始化后的currentMarketType.value:', currentMarketType.value)
+
+// 从localStorage恢复当前资产，根据市场类型设置默认值
+const getDefaultSymbol = (marketType: 'crypto' | 'stock' | 'china') => {
+  return marketType === 'crypto' ? 'BTCUSDT' : 'AAPL'
+}
+
+// 为每个市场分别保存当前选中的资产
+const getCurrentSymbolForMarket = (marketType: 'crypto' | 'stock' | 'china') => {
+  const storageKey = `currentSymbol_${marketType}`
+  return localStorage.getItem(storageKey) || getDefaultSymbol(marketType)
+}
+
+const initialSymbol = getCurrentSymbolForMarket(currentMarketType.value)
+console.log('[INIT] 为市场类型', currentMarketType.value, '获取的初始symbol:', initialSymbol)
+const currentSymbol = ref<string>(initialSymbol)
+const isTokenNotFound = ref(false) // 用于标记代币是否未找到（404错误）
 const activePanel = ref<'search' | 'favorites' | 'popular' | null>(null)
 const searchQuery = ref('')
 const searchResults = ref<any[]>([])
@@ -785,10 +812,17 @@ const handleMarketTypeChange = (marketType: 'crypto' | 'stock' | 'china') => {
   }
 
   currentMarketType.value = marketType
+  // 保存市场类型到localStorage
+  localStorage.setItem('currentMarketType', marketType)
 
-  // 根据市场类型设置默认资产
-  const defaultSymbol = marketType === 'crypto' ? 'BTCUSDT' : 'AAPL'
-  switchToAsset(defaultSymbol, marketType)
+  // 如果收藏面板正在显示，重新加载收藏数据以显示新市场的收藏
+  if (activePanel.value === 'favorites') {
+    loadFavorites()
+  }
+
+  // 恢复该市场之前选中的资产，如果没有则使用默认资产
+  const savedSymbol = getCurrentSymbolForMarket(marketType)
+  switchToAsset(savedSymbol, marketType)
 }
 
 // 资产选择处理函数
@@ -814,6 +848,12 @@ const switchToAsset = async (symbol: string, marketType: 'crypto' | 'stock' | 'c
   // 更新市场类型和资产符号
   currentMarketType.value = marketType
   currentSymbol.value = symbol
+
+  // 保存状态到localStorage
+  localStorage.setItem('currentMarketType', marketType)
+  // 为每个市场分别保存当前选中的资产
+  const storageKey = `currentSymbol_${marketType}`
+  localStorage.setItem(storageKey, symbol)
 
   // 加载新资产的数据
   await loadAnalysisData(true, false)
@@ -844,7 +884,7 @@ const handleFavoriteRemoved = (favorite: any) => {
 // 获取当前交易对
 const getCurrentSymbol = async (): Promise<string> => {
   try {
-    console.log('开始获取当前交易对...');
+    // 在Chrome扩展环境中，优先检测当前页面的交易对，然后才使用localStorage
 
     // 优先通过 content script 获取 symbol
     if (typeof chrome !== 'undefined' && chrome.tabs && chrome.tabs.query && chrome.tabs.sendMessage) {
@@ -901,11 +941,13 @@ const getCurrentSymbol = async (): Promise<string> => {
           });
         });
 
-        console.log('Background script响应:', response);
-
         if (response && response.symbol && typeof response.symbol === 'string') {
-          console.log('从background script获取到交易对:', response.symbol);
-          return response.symbol;
+          // 检查返回的symbol是否是默认值，如果是默认值则不使用
+          const isDefaultSymbol = response.symbol === 'BTCUSDT' || response.symbol === 'AAPL';
+
+          if (!isDefaultSymbol) {
+            return response.symbol;
+          }
         }
       } catch (e) {
         console.log('Background script获取失败:', e);
@@ -914,18 +956,22 @@ const getCurrentSymbol = async (): Promise<string> => {
 
     // fallback: 直接用 window.location (虽然在popup中通常不会有用)
     const parsedSymbol = parseSymbolFromUrl(window.location.href);
-    console.log('解析popup URL结果:', parsedSymbol);
     if (parsedSymbol && typeof parsedSymbol === 'string') {
       return parsedSymbol;
     }
 
-    // 最后 fallback
-    console.log('所有方法都失败，使用默认值 BTCUSDT');
-    return 'BTCUSDT';
+    // 最后 fallback - 没有检测到页面交易对，使用localStorage中保存的交易对
+    // 直接从localStorage读取市场类型，确保获取正确的保存状态
+    const savedMarketType = localStorage.getItem('currentMarketType') as 'crypto' | 'stock' | 'china' || 'crypto';
+    const savedSymbol = getCurrentSymbolForMarket(savedMarketType);
+    return savedSymbol;
   } catch (error) {
     console.error('获取交易对时发生错误:', error);
-    // 确保即使在错误情况下也返回有效的字符串
-    return 'BTCUSDT';
+    // 确保即使在错误情况下也使用localStorage中保存的交易对
+    const savedMarketType = localStorage.getItem('currentMarketType') as 'crypto' | 'stock' | 'china' || 'crypto';
+    const savedSymbol = getCurrentSymbolForMarket(savedMarketType);
+    console.log('错误情况下使用localStorage中的市场类型和交易对:', { marketType: savedMarketType, symbol: savedSymbol });
+    return savedSymbol;
   }
 }
 
@@ -1072,7 +1118,25 @@ const togglePanel = (panelType: 'search' | 'favorites' | 'popular') => {
 // 资产切换处理函数
 const handleAssetSwitch = async (symbol: string) => {
   activePanel.value = null // 关闭面板
-  await switchToAsset(symbol, currentMarketType.value)
+
+  // 根据symbol自动检测市场类型
+  let targetMarketType = currentMarketType.value
+
+  // 检查是否是加密货币格式
+  if (symbol.includes('USDT') || symbol.includes('BTC') || symbol.includes('ETH')) {
+    targetMarketType = 'crypto'
+  }
+  // 检查是否在热门股票列表中
+  else if (popularStocks.value.some(stock => stock.symbol === symbol)) {
+    targetMarketType = 'stock'
+  }
+  // 检查是否在热门加密货币列表中
+  else if (popularTokens.value.some(token => token.symbol === symbol)) {
+    targetMarketType = 'crypto'
+  }
+
+  console.log(`[handleAssetSwitch] 切换到 ${symbol} (${targetMarketType})`)
+  await switchToAsset(symbol, targetMarketType)
 }
 
 // 搜索处理函数
@@ -1124,24 +1188,30 @@ const handleSearch = () => {
 const loadFavorites = async () => {
   favoritesLoading.value = true
   try {
+    let allFavorites = []
+
     // 检查是否在Chrome扩展环境中
     if (isExtensionEnvironment()) {
       try {
         const response = await favorites.getFavorites()
         if (response.status === 'success' && response.data) {
-          favoriteAssets.value = response.data
-        } else {
-          favoriteAssets.value = []
+          allFavorites = response.data
         }
       } catch (error) {
         console.error('API加载收藏失败，使用本地存储:', error)
         // 回退到本地存储
-        loadFavoritesFromLocalStorage()
+        allFavorites = loadFavoritesFromLocalStorage()
       }
     } else {
       // 非扩展环境，使用本地存储
-      loadFavoritesFromLocalStorage()
+      allFavorites = loadFavoritesFromLocalStorage()
     }
+
+    // 根据当前市场类型过滤收藏数据
+    favoriteAssets.value = allFavorites.filter((asset: any) =>
+      asset.market_type === currentMarketType.value
+    )
+
   } catch (error) {
     console.error('加载收藏数据失败:', error)
     favoriteAssets.value = []
@@ -1154,7 +1224,7 @@ const loadFavorites = async () => {
 const loadFavoritesFromLocalStorage = () => {
   try {
     const localFavorites = JSON.parse(localStorage.getItem('favorites') || '[]')
-    favoriteAssets.value = localFavorites.map((favoriteKey: string) => {
+    return localFavorites.map((favoriteKey: string) => {
       const [symbol, market_type] = favoriteKey.split('-')
       return {
         symbol,
@@ -1164,7 +1234,7 @@ const loadFavoritesFromLocalStorage = () => {
     })
   } catch (error) {
     console.error('从本地存储加载收藏失败:', error)
-    favoriteAssets.value = []
+    return []
   }
 }
 
@@ -1191,7 +1261,9 @@ const isExtensionEnvironment = (): boolean => {
     // chrome.runtime.id might not be accessible in some contexts
   }
 
-  return isExtensionPage || hasExtensionId
+  // 更宽松的检测：只要Chrome API可用就认为是扩展环境
+  const hasChromeAPI = typeof chrome !== 'undefined' && chrome.runtime && typeof chrome.runtime.sendMessage === 'function';
+  return isExtensionPage || hasExtensionId || hasChromeAPI;
 }
 
 // 移除收藏
@@ -1275,7 +1347,8 @@ const doActualLoadAnalysisData = async (showLoading = true, noCache = false) => 
   console.log(`loadAnalysisData: 开始加载 ${currentSymbol.value} 的本地报告数据`)
 
   // 创建新的请求Promise - 直接调用 getTechnicalAnalysis 读取本地数据
-  loadingPromise = getTechnicalAnalysis(currentSymbol.value, noCache)
+  const marketType = currentMarketType.value === 'china' ? 'stock' : currentMarketType.value as 'crypto' | 'stock'
+  loadingPromise = getTechnicalAnalysis(currentSymbol.value, noCache, marketType)
     .then(data => {
       if (data && (data as any).status !== 'not_found') {
         const formattedData = formatTechnicalAnalysisData(data)
@@ -1440,22 +1513,39 @@ onMounted(async () => {
   // 主动触发content script重新检测当前页面
   await triggerContentScriptDetection();
 
-  // 每次挂载都主动拉取最新 symbol
+  // 优先使用localStorage中保存的状态，只有在特定情况下才从外部获取symbol
   try {
-    const symbol = await getCurrentSymbol();
-    console.log('获取到的交易对:', symbol);
+    console.log('[MOUNTED] 当前市场类型:', currentMarketType.value);
+    console.log('[MOUNTED] 当前资产:', currentSymbol.value);
 
-    // 验证获取到的 symbol 是否为有效字符串
-    if (symbol && typeof symbol === 'string') {
-      console.log('设置交易对为:', symbol);
-      currentSymbol.value = symbol;
+    // 检查是否有外部传入的symbol（比如从URL或content script）
+    const externalSymbol = await getCurrentSymbol();
+    console.log('[MOUNTED] 外部获取到的交易对:', externalSymbol);
+
+    // 只有在获取到有效的外部symbol且与当前不同时，才更新
+    if (externalSymbol && typeof externalSymbol === 'string' && externalSymbol !== currentSymbol.value) {
+      console.log('[MOUNTED] 检测到新的交易对，更新为:', externalSymbol);
+      // 优先使用当前市场类型，除非symbol明显属于其他市场
+      let targetMarketType = currentMarketType.value;
+      console.log('[MOUNTED] 当前市场类型:', targetMarketType);
+
+      // 只有在symbol明显是加密货币格式时才切换到crypto市场
+      if (externalSymbol.includes('USDT') || externalSymbol.includes('BTC') || externalSymbol.includes('ETH') || externalSymbol.endsWith('USD')) {
+        targetMarketType = 'crypto';
+        console.log('[MOUNTED] 检测到加密货币格式，切换到crypto市场');
+      }
+      // 如果当前在crypto市场但symbol不像加密货币，则切换到stock市场
+      else if (currentMarketType.value === 'crypto' && !externalSymbol.includes('USDT') && !externalSymbol.includes('BTC') && !externalSymbol.includes('ETH')) {
+        targetMarketType = 'stock';
+        console.log('[MOUNTED] 当前在crypto市场但symbol不像加密货币，切换到stock市场');
+      }
+
+      console.log('[MOUNTED] 最终目标市场类型:', targetMarketType);
+      await switchToAsset(externalSymbol, targetMarketType);
     } else {
-      console.log('未获取到有效交易对，使用默认值 BTCUSDT');
-      currentSymbol.value = 'BTCUSDT';
+      // 使用已经从localStorage恢复的状态，直接加载数据
+      await loadAnalysisData(true, false);
     }
-
-    // 只调用一次 loadAnalysisData，避免重复调用
-    await loadAnalysisData(true, false); // 不使用防抖，直接加载
 
   } catch (e: any) {
     console.error('初始化失败:', e);
@@ -2016,6 +2106,18 @@ const getIndicatorExplanation = (key: string) => {
   return result
 }
 
+// 判断是否应该显示某个指标（根据市场类型）
+const shouldShowIndicator = (key: string) => {
+  // 对于股票市场，隐藏不适用的指标
+  if (currentMarketType.value === 'stock') {
+    const stockHiddenIndicators = ['PSY', 'VWAP', 'FundingRate', 'ExchangeNetflow', 'NUPL']
+    return !stockHiddenIndicators.includes(key)
+  }
+
+  // 对于加密货币市场，显示所有指标
+  return true
+}
+
 // 监听 SYMBOL_UPDATED 消息，确保 popup 能及时同步 symbol
 if (isExtensionEnvironment() && typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.onMessage) {
   chrome.runtime.onMessage.addListener((message, _sender, _sendResponse) => {
@@ -2057,7 +2159,9 @@ const handleRefreshReport = async () => {
       try {
         // 1. 调用 getLatestTechnicalAnalysis 生成新报告
         console.log('HomeView: Calling getLatestTechnicalAnalysis to generate new report')
-        await getLatestTechnicalAnalysis(currentSymbol.value)
+        const marketType = currentMarketType.value === 'china' ? 'stock' : currentMarketType.value as 'crypto' | 'stock'
+
+        await getLatestTechnicalAnalysis(currentSymbol.value, marketType)
 
         // 2. 等待后端完成报告生成 - 增加重试机制
         console.log('HomeView: Waiting for report generation...')
@@ -2072,7 +2176,8 @@ const handleRefreshReport = async () => {
 
             // 尝试读取最新报告
             console.log(`HomeView: Attempt ${retryCount + 1} to read latest report...`)
-        const result = await getTechnicalAnalysis(currentSymbol.value, true)
+        const marketType = currentMarketType.value === 'china' ? 'stock' : currentMarketType.value as 'crypto' | 'stock'
+        const result = await getTechnicalAnalysis(currentSymbol.value, true, marketType)
 
             // 如果返回了有效数据
         if (result && (result as any).status !== 'not_found') {
@@ -2085,6 +2190,14 @@ const handleRefreshReport = async () => {
           if (formattedData && typeof formattedData === 'object') {
             analysisData.value = formattedData
             console.log('HomeView: Updated UI with new report data')
+            console.log('[REFRESH] New report data structure:', {
+              hasTrendAnalysis: !!formattedData.trend_analysis,
+              hasSummary: !!formattedData.trend_analysis?.summary,
+              hasTradingAdvice: !!formattedData.trading_advice,
+              hasReason: !!formattedData.trading_advice?.reason,
+              summary: formattedData.trend_analysis?.summary,
+              reason: formattedData.trading_advice?.reason
+            });
             isTokenNotFound.value = false
             error.value = null
             resolve(true)
@@ -2151,6 +2264,7 @@ const langMap: Record<string, string> = {
 watch(
   [() => analysisData.value?.trend_analysis?.summary, () => currentLanguage.value],
   async ([summary, lang]) => {
+    console.log('[TRANSLATION] Summary watch triggered:', { summary, lang });
     if (!summary) {
       translatedSummary.value = ''
       return
@@ -2161,8 +2275,11 @@ watch(
     }
     loadingTranslation.value = true
     try {
+      console.log('[TRANSLATION] Translating summary to:', langMap[lang] || 'zh-CN');
       translatedSummary.value = await googleTranslate(summary, langMap[lang] || 'zh-CN')
+      console.log('[TRANSLATION] Summary translation completed:', translatedSummary.value);
     } catch (e) {
+      console.error('[TRANSLATION] Summary translation failed:', e);
       translatedSummary.value = summary
     }
     loadingTranslation.value = false
@@ -2174,6 +2291,7 @@ watch(
 watch(
   [() => analysisData.value?.trading_advice?.reason, () => currentLanguage.value],
   async ([reason, lang]) => {
+    console.log('[TRANSLATION] Reason watch triggered:', { reason, lang });
     if (!reason) {
       translatedReason.value = ''
       return
@@ -2184,8 +2302,11 @@ watch(
     }
     loadingReasonTranslation.value = true
     try {
+      console.log('[TRANSLATION] Translating reason to:', langMap[lang] || 'zh-CN');
       translatedReason.value = await googleTranslate(reason, langMap[lang] || 'zh-CN')
+      console.log('[TRANSLATION] Reason translation completed:', translatedReason.value);
     } catch (e) {
+      console.error('[TRANSLATION] Reason translation failed:', e);
       translatedReason.value = reason
     }
     loadingReasonTranslation.value = false

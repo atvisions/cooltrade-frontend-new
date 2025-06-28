@@ -15,6 +15,18 @@
           {{ generateStages[0].sub() }}
         </div>
       </div>
+      <div v-else-if="type === 'refresh'" class="w-full text-center">
+        <div class="text-white text-lg font-semibold mb-1">
+          {{ currentStageText || 'Loading...' }}
+        </div>
+        <div class="text-gray-400 text-sm">
+          {{ currentSubText || 'Please wait' }}
+        </div>
+        <!-- 调试信息 -->
+        <div class="text-xs text-gray-500 mt-2">
+          Debug: type={{ type }}, text={{ currentStageText }}, sub={{ currentSubText }}
+        </div>
+      </div>
       <slot v-else />
     </div>
   </div>
@@ -149,8 +161,9 @@ const generateStages = [
 
 // 开始加载动画
 const startLoadingAnimation = () => {
+  console.log('[LoadingModal] Starting animation, type:', props.type)
   let stages = refreshStages
-  
+
   if (props.type === 'generate') {
     stages = generateStages
   } else if (props.type === 'custom' && props.customStages) {
@@ -160,18 +173,22 @@ const startLoadingAnimation = () => {
     }))
   }
 
+  console.log('[LoadingModal] Using stages:', stages.length, 'stages')
   let idx = 0
   currentStageText.value = stages[0].title()
   currentSubText.value = stages[0].sub()
-  
+  console.log('[LoadingModal] Initial text:', currentStageText.value, currentSubText.value)
+
   if (loadingStageTimer) clearInterval(loadingStageTimer)
 
   // 只有刷新类型才进行阶段切换，生成类型保持静态显示
   if (stages.length > 1 && props.type === 'refresh') {
+    console.log('[LoadingModal] Setting up stage timer for refresh type')
     loadingStageTimer = setInterval(() => {
       idx = (idx + 1) % stages.length
       currentStageText.value = stages[idx].title()
       currentSubText.value = stages[idx].sub()
+      console.log('[LoadingModal] Stage changed to:', idx, currentStageText.value)
     }, 5000)
   }
 }

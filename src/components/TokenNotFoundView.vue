@@ -1,44 +1,60 @@
 <template>
-  <div class="flex flex-col items-center justify-center h-full text-center px-4">
-    <div class="mb-6">
-      <i class="ri-database-2-line text-5xl text-yellow-500"></i>
-    </div>
-    <h2 class="text-xl font-semibold text-white mb-2">
-      {{ getTranslation('tokenNotFound.title',
-         currentLang === 'zh-CN' ? `${formattedSymbol} 数据未找到` :
-         currentLang === 'en-US' ? `${formattedSymbol} Data Not Found` :
-         currentLang === 'ja-JP' ? `${formattedSymbol} データが見つかりません` :
-         currentLang === 'ko-KR' ? `${formattedSymbol} 데이터를 찾을 수 없습니다` :
-         `${formattedSymbol} Data Not Found`,
-         { symbol: formattedSymbol })
-      }}
-    </h2>
-    <p class="text-gray-300 mb-6">
-      {{ getTranslation('tokenNotFound.description',
-         currentLang === 'zh-CN' ? '该代币尚未在我们的数据库中，点击下方按钮获取最新数据' :
-         currentLang === 'en-US' ? 'This token is not yet in our database. Click the button below to get the latest data.' :
-         currentLang === 'ja-JP' ? 'このトークンはまだデータベースにありません。下のボタンをクリックして最新データを取得してください。' :
-         currentLang === 'ko-KR' ? '이 토큰은 아직 데이터베이스에 없습니다. 아래 버튼을 클릭하여 최신 데이터를 가져오세요.' :
-         'This token is not yet in our database. Click the button below to get the latest data.')
-      }}
-    </p>
+  <!-- 使用与其他卡片一致的布局和样式 -->
+  <div class="w-full max-w-[375px] mx-auto space-y-4">
+    <!-- 404状态卡片 -->
+    <div class="relative overflow-hidden rounded-2xl bg-gradient-to-br from-yellow-600/10 via-orange-600/10 to-red-600/10 p-6 backdrop-blur-sm border border-yellow-500/20">
+      <div class="absolute inset-0 bg-gradient-to-br from-yellow-500/5 via-orange-500/5 to-red-500/5"></div>
+      <div class="relative text-center space-y-4">
+        <!-- 图标 -->
+        <div class="w-16 h-16 mx-auto bg-yellow-500/20 rounded-full flex items-center justify-center">
+          <i class="ri-database-2-line text-3xl text-yellow-400"></i>
+        </div>
 
-    <button
-      class="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium mb-4 w-full max-w-xs transition-colors duration-200 flex items-center justify-center"
-      @click="handleRefresh"
-      :disabled="showRefreshModal"
-    >
-      <span class="flex items-center justify-center">
-        <i class="ri-refresh-line mr-2" :class="{ 'animate-spin': showRefreshModal }"></i>
-        {{ getTranslation('tokenNotFound.refreshButton',
-           currentLang === 'zh-CN' ? '获取最新市场数据' :
-           currentLang === 'en-US' ? 'Get Latest Market Data' :
-           currentLang === 'ja-JP' ? '最新の市場データを取得' :
-           currentLang === 'ko-KR' ? '최신 시장 데이터 가져오기' :
-           'Get Latest Market Data')
-        }}
-      </span>
-    </button>
+        <!-- 标题 -->
+        <h2 class="text-xl font-bold text-white">
+          {{ getTranslation('tokenNotFound.title',
+             currentLang === 'zh-CN' ? `${formattedSymbol} 数据未找到` :
+             currentLang === 'en-US' ? `${formattedSymbol} Data Not Found` :
+             currentLang === 'ja-JP' ? `${formattedSymbol} データが見つかりません` :
+             currentLang === 'ko-KR' ? `${formattedSymbol} 데이터를 찾을 수 없습니다` :
+             `${formattedSymbol} Data Not Found`,
+             { symbol: formattedSymbol })
+          }}
+        </h2>
+
+        <!-- 描述 -->
+        <p class="text-slate-300 text-sm leading-relaxed">
+          {{ getTranslation('tokenNotFound.description',
+             currentLang === 'zh-CN' ? '该代币尚未在我们的数据库中，点击下方按钮获取最新数据' :
+             currentLang === 'en-US' ? 'This token is not yet in our database. Click the button below to get the latest data.' :
+             currentLang === 'ja-JP' ? 'このトークンはまだデータベースにありません。下のボタンをクリックして最新データを取得してください。' :
+             currentLang === 'ko-KR' ? '이 토큰은 아직 데이터베이스에 없습니다. 아래 버튼을 클릭하여 최신 데이터를 가져오세요.' :
+             'This token is not yet in our database. Click the button below to get the latest data.')
+          }}
+        </p>
+      </div>
+    </div>
+
+    <!-- 操作按钮卡片 -->
+    <div class="p-4 rounded-2xl bg-slate-800/40 border border-slate-700/50">
+      <button
+        class="w-full px-6 py-3 bg-blue-500/15 hover:bg-blue-500/25 text-blue-400 rounded-xl font-medium transition-all duration-200 hover:scale-[1.02] border border-blue-500/30 flex items-center justify-center space-x-2"
+        @click="handleRefresh"
+        :disabled="showRefreshModal"
+        :class="{ 'opacity-50 cursor-not-allowed': showRefreshModal }"
+      >
+        <i class="ri-refresh-line text-lg" :class="{ 'animate-spin': showRefreshModal }"></i>
+        <span>
+          {{ getTranslation('tokenNotFound.refreshButton',
+             currentLang === 'zh-CN' ? '获取最新市场数据' :
+             currentLang === 'en-US' ? 'Get Latest Market Data' :
+             currentLang === 'ja-JP' ? '最新の市場データを取得' :
+             currentLang === 'ko-KR' ? '최신 시장 데이터 가져오기' :
+             'Get Latest Market Data')
+          }}
+        </span>
+      </button>
+    </div>
 
     <!-- 刷新中模态框 -->
     <LoadingModal
@@ -99,6 +115,7 @@ onMounted(() => {
 
 const props = defineProps<{
   symbol: string
+  marketType?: 'crypto' | 'stock' | 'china'
   isRefreshing?: boolean
 }>()
 
@@ -117,9 +134,15 @@ let refreshPromise: Promise<any> | null = null;
 // 计算属性：格式化显示的交易对符号
 const formattedSymbol = computed(() => {
   if (!props.symbol || typeof props.symbol !== 'string') {
-    return 'Unknown/USDT'
+    return props.marketType === 'stock' ? 'Unknown' : 'Unknown/USDT'
   }
 
+  // 对于股票市场，不添加USDT后缀
+  if (props.marketType === 'stock') {
+    return props.symbol
+  }
+
+  // 对于加密货币市场，添加USDT后缀（如果还没有的话）
   if (props.symbol.toUpperCase().endsWith('USDT')) {
     return props.symbol
   }
@@ -137,7 +160,9 @@ const handleRefresh = async () => {
 
     // 调用 getLatestTechnicalAnalysis 生成新报告
     console.log('TokenNotFoundView: Calling getLatestTechnicalAnalysis to generate new report')
-    const result = await getLatestTechnicalAnalysis(props.symbol)
+    const marketType = (props.marketType === 'china' ? 'stock' : props.marketType) || 'crypto'
+    console.log(`[DEBUG] TokenNotFoundView - symbol: ${props.symbol}, marketType: ${marketType}`)
+    const result = await getLatestTechnicalAnalysis(props.symbol, marketType)
 
     // 如果返回了有效数据
     if (result && (result as any).status !== 'not_found') {

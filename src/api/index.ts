@@ -546,10 +546,11 @@ const getCurrentLanguage = (): string => {
 // Get technical analysis data - read locally existing report data
 export const getTechnicalAnalysis = async (
   symbol: string,
-  noCache: boolean = false
+  noCache: boolean = false,
+  marketType: 'crypto' | 'stock' = 'crypto'
 ): Promise<FormattedTechnicalAnalysisData> => {
   // 新增日志
-  console.log('[getTechnicalAnalysis] called with:', { symbol, noCache, stack: new Error().stack });
+  console.log('[getTechnicalAnalysis] called with:', { symbol, noCache, marketType, stack: new Error().stack });
   // 更严格的 symbol 校验
   if (!symbol || typeof symbol !== 'string' || !symbol.trim()) {
     console.error('getTechnicalAnalysis: Invalid symbol provided:', { symbol, type: typeof symbol });
@@ -559,13 +560,24 @@ export const getTechnicalAnalysis = async (
     // Ensure symbol is uppercase
     const normalizedSymbol = symbol.toUpperCase();
 
-    // Add USDT suffix if not present
-    const fullSymbol = normalizedSymbol.endsWith('USDT')
-      ? normalizedSymbol
-      : `${normalizedSymbol}USDT`;
+    // Format symbol based on market type
+    let fullSymbol: string;
+    let apiPath: string;
+
+    if (marketType === 'crypto') {
+      // Add USDT suffix for crypto if not present
+      fullSymbol = normalizedSymbol.endsWith('USDT')
+        ? normalizedSymbol
+        : `${normalizedSymbol}USDT`;
+      apiPath = `/crypto/technical-indicators/${fullSymbol}/`;
+    } else {
+      // For stocks, use symbol as-is
+      fullSymbol = normalizedSymbol;
+      apiPath = `/stock/technical-indicators/${fullSymbol}/`;
+    }
 
     // Build request path - use technical-indicators endpoint to read local data
-    const path = `/crypto/technical-indicators/${fullSymbol}/`
+    const path = apiPath
 
     // Prepare query params
     const params: Record<string, any> = {}
@@ -644,7 +656,8 @@ let pendingRequests: Record<string, boolean> = {};
 
 // Get latest technical analysis report - refresh or get new token analysis report
 export const getLatestTechnicalAnalysis = async (
-  symbol: string
+  symbol: string,
+  marketType: 'crypto' | 'stock' = 'crypto'
 ): Promise<FormattedTechnicalAnalysisData> => {
   let requestPath = '';
   if (!symbol || typeof symbol !== 'string' || !symbol.trim()) {
@@ -655,13 +668,22 @@ export const getLatestTechnicalAnalysis = async (
     // Ensure symbol is uppercase
     const normalizedSymbol = symbol.toUpperCase();
 
-    // Add USDT suffix if not present
-    const fullSymbol = normalizedSymbol.endsWith('USDT')
-      ? normalizedSymbol
-      : `${normalizedSymbol}USDT`;
+    // Format symbol and path based on market type
+    let fullSymbol: string;
+
+    if (marketType === 'crypto') {
+      // Add USDT suffix for crypto if not present
+      fullSymbol = normalizedSymbol.endsWith('USDT')
+        ? normalizedSymbol
+        : `${normalizedSymbol}USDT`;
+      requestPath = `/crypto/get_report/${fullSymbol}/`;
+    } else {
+      // For stocks, use symbol as-is
+      fullSymbol = normalizedSymbol;
+      requestPath = `/stock/get_report/${fullSymbol}/`;
+    }
 
     // Build request path - use get_report endpoint to get/refresh report
-    requestPath = `/crypto/get_report/${fullSymbol}/`
 
     // Prepare query params
     const params: Record<string, any> = {}

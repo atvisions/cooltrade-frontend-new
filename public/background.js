@@ -141,10 +141,19 @@ async function handleTradingPage(data, tabId) {
     // Update current trading symbol
     if (symbol) {
       let formattedSymbol = symbol;
-      if (symbol && !symbol.includes('USDT') && !symbol.includes('BTC') && symbol !== 'BTC') {
+
+      // 检查是否是股票符号（常见的美股符号模式）
+      const isStockSymbol = /^[A-Z]{1,5}$/.test(symbol) &&
+        ['AAPL', 'MSFT', 'GOOGL', 'AMZN', 'TSLA', 'META', 'NVDA', 'NFLX', 'BABA', 'AMD', 'INTC', 'CRM', 'ORCL', 'ADBE', 'PYPL', 'UBER', 'LYFT', 'SNAP', 'TWTR', 'FB', 'GOOG'].includes(symbol);
+
+      // 只对加密货币符号添加USDT后缀，不对股票符号处理
+      if (!isStockSymbol && symbol && !symbol.includes('USDT') && !symbol.includes('BTC') && symbol !== 'BTC') {
         formattedSymbol = symbol + 'USDT';
-        console.log('Background script formatting trading symbol:', symbol, '->', formattedSymbol);
+        console.log('Background script formatting crypto symbol:', symbol, '->', formattedSymbol);
+      } else if (isStockSymbol) {
+        console.log('Background script detected stock symbol, keeping as-is:', symbol);
       }
+
       currentTradingSymbol = formattedSymbol;
       console.log('Background script updating currentTradingSymbol:', currentTradingSymbol);
 
@@ -248,32 +257,32 @@ chrome.runtime.onInstalled.addListener((details) => {
   }
 })
 
-// Handle API proxy request
+// Handle API proxy request with retry mechanism
 async function handleApiProxyRequest(data, sendResponse) {
-  try {
-    const baseApiUrl = envConfig.baseApiUrl || '/api';
-    const { url, method, headers, body } = data;
-    // console.log('Background script received API proxy request:', {
-    //   url: url,
-    //   method: method,
-    //   headers: headers ? { ...headers, Authorization: headers.Authorization ? 'Set' : 'Not set' } : 'Not set',
-    //   body: body ? 'Set' : 'Not set'
-    // });
+  const maxRetries = 3;
+  let lastError = null;
 
-    // Check if it's a force refresh request
-    const isForceRefresh = url.includes('force_refresh=true');
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      const baseApiUrl = envConfig.baseApiUrl || '/api';
+      const { url, method, headers, body } = data;
 
-    // Build complete URL
-    let fullUrl = url;
+      if (attempt > 1) {
+        console.log(`Background script API request retry attempt ${attempt}/${maxRetries} for URL: ${url}`);
+      }
 
-    // console.log('Background script using base API URL:', baseApiUrl);
+      // Check if it's a force refresh request
+      const isForceRefresh = url.includes('force_refresh=true');
 
-    // If it's a relative path, add base URL
-    if (url.startsWith('/')) {
-      fullUrl = baseApiUrl + url;
-    } else if (!url.startsWith('http')) {
-      fullUrl = baseApiUrl + '/' + url;
-    }
+      // Build complete URL
+      let fullUrl = url;
+
+      // If it's a relative path, add base URL
+      if (url.startsWith('/')) {
+        fullUrl = baseApiUrl + url;
+      } else if (!url.startsWith('http')) {
+        fullUrl = baseApiUrl + '/' + url;
+      }
 
     // Build request options
     const options = {
@@ -324,48 +333,70 @@ async function handleApiProxyRequest(data, sendResponse) {
       setTimeout(() => reject(new Error(`Request timeout (${timeout/1000} seconds)`)), timeout);
     });
 
-    // Create fetch Promise
+    // Create fetch Promise with detailed error handling
     // Use built complete URL
     const fetchPromise = fetch(fullUrl, options).catch(error => {
-      // console.error('Fetch error:', error);
+      console.error('Background script fetch error details:', {
+        url: fullUrl,
+        error: error.message,
+        errorType: error.name,
+        stack: error.stack
+      });
       throw new Error(`Fetch failed: ${error.message}`);
     });
 
-    // Use Promise.race, whoever completes first wins
-    const response = await Promise.race([fetchPromise, timeoutPromise]);
+      // Use Promise.race, whoever completes first wins
+      const response = await Promise.race([fetchPromise, timeoutPromise]);
 
-    // Get response headers
-    const responseHeaders = {};
-    response.headers.forEach((value, key) => {
-      responseHeaders[key] = value;
-    });
+      // Get response headers
+      const responseHeaders = {};
+      response.headers.forEach((value, key) => {
+        responseHeaders[key] = value;
+      });
 
-    // Get response body, log original response text before sending back
-    const responseText = await response.text();
-    let responseData;
-    try {
-      responseData = JSON.parse(responseText);
-    } catch (e) {
-      // console.warn('Background script response is not JSON format:', responseText);
-      responseData = responseText;
+      // Get response body, log original response text before sending back
+      const responseText = await response.text();
+      let responseData;
+      try {
+        responseData = JSON.parse(responseText);
+      } catch (e) {
+        // console.warn('Background script response is not JSON format:', responseText);
+        responseData = responseText;
+      }
+
+      // Success - send response and return
+      sendResponse({
+        status: response.status,
+        statusText: response.statusText,
+        headers: responseHeaders,
+        data: responseData,
+        success: response.ok
+      });
+      return; // Exit the retry loop on success
+
+    } catch (error) {
+      lastError = error;
+      console.error(`Background script API request attempt ${attempt}/${maxRetries} failed:`, error.message);
+
+      // If this is the last attempt, don't wait
+      if (attempt === maxRetries) {
+        break;
+      }
+
+      // Wait before retrying (exponential backoff)
+      const delay = Math.min(1000 * Math.pow(2, attempt - 1), 5000);
+      console.log(`Waiting ${delay}ms before retry...`);
+      await new Promise(resolve => setTimeout(resolve, delay));
     }
-
-    // Send response back
-    sendResponse({
-      status: response.status,
-      statusText: response.statusText,
-      headers: responseHeaders,
-      data: responseData,
-      success: response.ok
-    });
-  } catch (error) {
-    console.error('Background script API proxy request failed:', error);
-    sendResponse({
-      success: false,
-      error: error.message || 'Request failed',
-      errorDetail: error.toString()
-    });
   }
+
+  // All retries failed
+  console.error('Background script API proxy request failed after all retries:', lastError);
+  sendResponse({
+    success: false,
+    error: lastError?.message || 'Request failed after retries',
+    errorDetail: lastError?.toString() || 'Unknown error'
+  });
 }
 
 // Listen for tab updates
