@@ -103,24 +103,7 @@
     </main>
 
     <!-- 底部导航栏 -->
-    <nav class="sticky bottom-0 w-full z-20 bg-[#0F172A]/95 backdrop-blur-md border-t border-gray-800">
-      <div class="max-w-[375px] mx-auto">
-        <div class="grid grid-cols-3 h-16">
-          <router-link to="/" class="flex flex-col items-center justify-center text-gray-500">
-            <i class="ri-line-chart-line ri-lg w-6 h-6 flex items-center justify-center"></i>
-            <span class="text-xs mt-0.5">{{ t('nav.market') }}</span>
-          </router-link>
-          <router-link to="/points" class="flex flex-col items-center justify-center text-primary border-t-2 border-primary">
-            <i class="ri-coin-line ri-lg w-6 h-6 flex items-center justify-center"></i>
-            <span class="text-xs mt-0.5">{{ t('nav.points') }}</span>
-          </router-link>
-          <router-link to="/profile" class="flex flex-col items-center justify-center text-gray-500">
-            <i class="ri-settings-3-line ri-lg w-6 h-6 flex items-center justify-center"></i>
-            <span class="text-xs mt-0.5">{{ t('nav.settings') }}</span>
-          </router-link>
-        </div>
-      </div>
-    </nav>
+    <BottomTabBar />
 
     <!-- 复制成功提示 - 现代化样式 -->
     <div v-if="showCopySuccess" class="fixed bottom-24 left-0 right-0 flex justify-center z-30 px-4">
@@ -138,6 +121,7 @@ import { useEnhancedI18n } from '@/utils/i18n-helper'
 import { points } from '@/api'
 import type { InvitationInfo } from '@/api'
 import { getMainWebsiteDomain } from '@/config/constants'
+import BottomTabBar from '@/components/BottomTabBar.vue'
 
 const { t } = useEnhancedI18n()
 

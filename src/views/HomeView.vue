@@ -1,7 +1,7 @@
 <template>
-  <div class="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
+  <div class="relative h-[600px] flex flex-col bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
     <!-- 主容器 -->
-    <div class="relative max-w-md mx-auto bg-slate-900/95 backdrop-blur-sm min-h-screen shadow-2xl flex flex-col">
+    <div class="relative max-w-[375px] w-full mx-auto bg-slate-900/95 backdrop-blur-sm h-full shadow-2xl flex flex-col">
 
       <!-- 新的顶部导航 -->
       <MarketHeader
@@ -11,13 +11,31 @@
         :is-search-active="activePanel === 'search'"
       />
 
-      <!-- 主要内容区域 -->
-      <main class="flex-1 pt-16 pb-16 overflow-y-auto" v-if="currentMarketType !== 'china'">
-        <div class="max-w-[375px] mx-auto px-4 space-y-4">
+      <!-- 主要内容区域 - 固定高度，内容滚动 -->
+      <main class="flex-1 pt-16 pb-16 overflow-y-auto max-w-[375px] w-full mx-auto" v-if="currentMarketType !== 'china'">
+        <div class="px-4 space-y-4 w-full">
 
-          <!-- 骨架屏 - 在加载过程中显示，替换所有内容 -->
-          <div v-if="loading || analysisLoading">
+          <!-- 骨架屏 - 在加载过程中显示，但不包括TokenNotFound状态 -->
+          <div v-if="(loading || analysisLoading) && !isTokenNotFound">
+            <!-- 调试信息 -->
+            <div class="mb-4 p-2 bg-blue-500/20 rounded text-xs text-blue-300">
+              DEBUG SKELETON: loading={{ loading }}, analysisLoading={{ analysisLoading }}, isTokenNotFound={{ isTokenNotFound }}
+            </div>
             <ChartSkeleton loadingText="Loading price data..." />
+          </div>
+
+          <!-- Token未找到状态 - 提高优先级 -->
+          <div v-else-if="isTokenNotFound">
+            <!-- 调试信息 -->
+            <div class="mb-4 p-2 bg-red-500/20 rounded text-xs text-red-300">
+              DEBUG TOKEN NOT FOUND: isTokenNotFound={{ isTokenNotFound }}, loading={{ loading }}, analysisLoading={{ analysisLoading }}
+            </div>
+            <TokenNotFoundView
+              :symbol="currentSymbol"
+              :marketType="currentMarketType"
+              @refresh-success="handleRefreshSuccess"
+              @refresh-error="handleRefreshError"
+            />
           </div>
 
           <!-- 正常内容 - 有数据时显示 -->
@@ -43,7 +61,7 @@
                     </div>
 
                     <!-- 标题 -->
-                    <h1 class="text-xl font-bold bg-gradient-to-r from-white to-slate-200 bg-clip-text text-transparent">
+                    <h1 class="text-lg font-bold bg-gradient-to-r from-white to-slate-200 bg-clip-text text-transparent">
                       {{ currentSymbol ? getDisplayTitle() : t('common.loading') }}
                     </h1>
 
@@ -96,7 +114,7 @@
 
                   <!-- 价格显示 -->
                   <div class="flex items-baseline space-x-3">
-                    <span class="text-3xl font-bold bg-gradient-to-r from-white via-slate-100 to-slate-200 bg-clip-text text-transparent tracking-tight">
+                    <span class="text-2xl font-bold bg-gradient-to-r from-white via-slate-100 to-slate-200 bg-clip-text text-transparent tracking-tight">
                       {{ formatPrice(analysisData?.current_price) }}
                     </span>
                     <span class="text-sm text-slate-400 uppercase font-medium tracking-wider">{{ currentMarketType === 'crypto' ? 'USD' : 'USD' }}</span>
@@ -151,32 +169,28 @@
               </div>
             </div>
 
-            <!-- 代币未找到状态 -->
-            <div v-if="isTokenNotFound && !loading && !analysisLoading">
-              <TokenNotFoundView
-                :symbol="currentSymbol"
-                :marketType="currentMarketType"
-                @refresh-success="handleRefreshSuccess"
-                @refresh-error="handleRefreshError"
-              />
-            </div>
+
 
       <!-- A股开发中页面 -->
-      <div class="flex-1 flex items-center justify-center px-4 pt-16" v-if="(currentMarketType as string) === 'china'">
-        <div class="text-center space-y-6">
-          <div class="w-20 h-20 mx-auto bg-orange-500/20 rounded-full flex items-center justify-center">
-            <i class="ri-tools-line text-3xl text-orange-400"></i>
-          </div>
-          <div class="space-y-3">
-            <h3 class="text-lg font-bold text-white">A股市场</h3>
-            <p class="text-slate-400 text-sm leading-relaxed">该功能正在开发中，敬请期待</p>
-          </div>
-          <div class="inline-flex items-center px-4 py-2 rounded-full bg-orange-500/20 border border-orange-500/40">
-            <i class="ri-time-line mr-2 text-orange-400"></i>
-            <span class="text-orange-400 text-sm font-medium">{{ t('common.coming_soon') }}</span>
+      <main class="flex-1 pt-16 pb-16 overflow-y-auto max-w-[375px] w-full mx-auto" v-if="(currentMarketType as string) === 'china'">
+        <div class="px-4 w-full">
+          <div class="flex items-center justify-center h-full">
+            <div class="text-center space-y-6">
+              <div class="w-20 h-20 mx-auto bg-orange-500/20 rounded-full flex items-center justify-center">
+                <i class="ri-tools-line text-3xl text-orange-400"></i>
+              </div>
+              <div class="space-y-3">
+                <h3 class="text-lg font-bold text-white">A股市场</h3>
+                <p class="text-slate-400 text-sm leading-relaxed">该功能正在开发中，敬请期待</p>
+              </div>
+              <div class="inline-flex items-center px-4 py-2 rounded-full bg-orange-500/20 border border-orange-500/40">
+                <i class="ri-time-line mr-2 text-orange-400"></i>
+                <span class="text-orange-400 text-sm font-medium">{{ t('common.coming_soon') }}</span>
+              </div>
+            </div>
           </div>
         </div>
-      </div>
+      </main>
 
             <!-- 覆盖面板区域 - 与价格卡片对齐 -->
             <div v-if="activePanel" class="absolute top-0 left-0 right-0 z-50 px-4 pt-12">
@@ -716,85 +730,115 @@
       </main>
 
         <!-- 错误状态 -->
-        <div v-else-if="error && !loading && !analysisLoading" class="w-full max-w-[375px] mx-auto space-y-4">
-          <!-- 错误状态卡片 -->
-          <div class="relative overflow-hidden rounded-2xl bg-gradient-to-br from-red-600/10 via-pink-600/10 to-rose-600/10 p-6 backdrop-blur-sm border border-red-500/20">
-            <div class="absolute inset-0 bg-gradient-to-br from-red-500/5 via-pink-500/5 to-rose-500/5"></div>
-            <div class="relative text-center space-y-4">
-              <!-- 图标 -->
-              <div class="w-16 h-16 mx-auto bg-red-500/20 rounded-full flex items-center justify-center">
-                <i class="ri-error-warning-line text-3xl text-red-400"></i>
-              </div>
+        <template v-else-if="error && !loading && !analysisLoading">
+          <main class="flex-1 pt-16 pb-16 overflow-y-auto max-w-[375px] w-full mx-auto">
+            <!-- 错误状态卡片 -->
+            <div class="relative overflow-hidden rounded-2xl bg-gradient-to-br from-red-600/10 via-pink-600/10 to-rose-600/10 p-6 backdrop-blur-sm border border-red-500/20">
+              <div class="absolute inset-0 bg-gradient-to-br from-red-500/5 via-pink-500/5 to-rose-500/5"></div>
+              <div class="relative text-center space-y-4">
+                <!-- 图标 -->
+                <div class="w-16 h-16 mx-auto bg-red-500/20 rounded-full flex items-center justify-center">
+                  <i class="ri-error-warning-line text-3xl text-red-400"></i>
+                </div>
 
-              <!-- 标题 -->
-              <h3 class="text-xl font-bold text-white">出现错误</h3>
+                <!-- 标题 -->
+                <h3 class="text-xl font-bold text-white">出现错误</h3>
 
-              <!-- 错误信息 -->
-              <div class="space-y-2">
-                <p class="text-slate-300 text-sm">{{ error }}</p>
-                <p class="text-slate-400 text-xs">{{ t('errors.try_reload_or_later') }}</p>
+                <!-- 错误信息 -->
+                <div class="space-y-2">
+                  <p class="text-slate-300 text-sm">{{ error }}</p>
+                  <p class="text-slate-400 text-xs">{{ t('errors.try_reload_or_later') }}</p>
+                </div>
               </div>
             </div>
-          </div>
 
-          <!-- 重试按钮卡片 -->
-          <div class="p-4 rounded-2xl bg-slate-800/40 border border-slate-700/50">
-            <button
-              @click="() => loadAnalysisData()"
-              class="w-full px-6 py-3 bg-blue-500/15 hover:bg-blue-500/25 text-blue-400 rounded-xl font-medium transition-all duration-200 hover:scale-[1.02] border border-blue-500/30 flex items-center justify-center space-x-2"
-            >
-              <i class="ri-refresh-line text-lg"></i>
-              <span>{{ t('common.retry') }}</span>
-            </button>
-          </div>
-        </div>
+            <!-- 重试按钮卡片 -->
+            <div class="p-4 rounded-2xl bg-slate-800/40 border border-slate-700/50">
+              <button
+                @click="() => loadAnalysisData()"
+                class="w-full px-6 py-3 bg-blue-500/15 hover:bg-blue-500/25 text-blue-400 rounded-xl font-medium transition-all duration-200 hover:scale-[1.02] border border-blue-500/30 flex items-center justify-center space-x-2"
+              >
+                <i class="ri-refresh-line text-lg"></i>
+                <span>{{ t('common.retry') }}</span>
+              </button>
+            </div>
+          </main>
+        </template>
+
+        <!-- Token未找到状态 -->
+        <template v-else-if="isTokenNotFound && !loading && !analysisLoading">
+          <main class="flex-1 pt-16 pb-16 overflow-y-auto max-w-[375px] w-full mx-auto">
+            <div class="px-4 w-full">
+              <!-- 调试信息 -->
+              <div class="mb-4 p-2 bg-red-500/20 rounded text-xs text-red-300">
+                DEBUG: isTokenNotFound={{ isTokenNotFound }}, loading={{ loading }}, analysisLoading={{ analysisLoading }}, symbol={{ currentSymbol }}
+              </div>
+              <TokenNotFoundView
+                :symbol="currentSymbol"
+                :marketType="currentMarketType"
+                @refresh-success="handleRefreshSuccess"
+                @refresh-error="handleRefreshError"
+              />
+            </div>
+          </main>
+        </template>
 
         <!-- 空状态 -->
-        <div v-else-if="!analysisData && !loading && !analysisLoading && !isTokenNotFound && !error" class="w-full max-w-[375px] mx-auto space-y-4">
-          <!-- 空状态卡片 -->
-          <div class="relative overflow-hidden rounded-2xl bg-gradient-to-br from-slate-600/10 via-gray-600/10 to-zinc-600/10 p-6 backdrop-blur-sm border border-slate-500/20">
-            <div class="absolute inset-0 bg-gradient-to-br from-slate-500/5 via-gray-500/5 to-zinc-500/5"></div>
-            <div class="relative text-center space-y-4">
-              <!-- 图标 -->
-              <div class="w-16 h-16 mx-auto bg-slate-500/20 rounded-full flex items-center justify-center">
-                <i class="ri-database-line text-3xl text-slate-400"></i>
+        <template v-else-if="!analysisData && !loading && !analysisLoading && !error">
+          <main class="flex-1 pt-16 pb-16 overflow-y-auto max-w-[375px] w-full mx-auto">
+            <!-- 空状态卡片 -->
+            <div class="relative overflow-hidden rounded-2xl bg-gradient-to-br from-slate-600/10 via-gray-600/10 to-zinc-600/10 p-6 backdrop-blur-sm border border-slate-500/20">
+              <div class="absolute inset-0 bg-gradient-to-br from-slate-500/5 via-gray-500/5 to-zinc-500/5"></div>
+              <div class="relative text-center space-y-4">
+                <!-- 图标 -->
+                <div class="w-16 h-16 mx-auto bg-slate-500/20 rounded-full flex items-center justify-center">
+                  <i class="ri-database-line text-3xl text-slate-400"></i>
+                </div>
+
+                <!-- 标题 -->
+                <h3 class="text-xl font-bold text-white">暂无数据</h3>
+
+                <!-- 描述 -->
+                <p class="text-slate-300 text-sm">{{ t('common.no_data') }}</p>
               </div>
-
-              <!-- 标题 -->
-              <h3 class="text-xl font-bold text-white">暂无数据</h3>
-
-              <!-- 描述 -->
-              <p class="text-slate-300 text-sm">{{ t('common.no_data') }}</p>
             </div>
-          </div>
 
-          <!-- 加载数据按钮卡片 -->
-          <div class="p-4 rounded-2xl bg-slate-800/40 border border-slate-700/50">
-            <button
-              @click="() => loadAnalysisData()"
-              class="w-full px-6 py-3 bg-blue-500/15 hover:bg-blue-500/25 text-blue-400 rounded-xl font-medium transition-all duration-200 hover:scale-[1.02] border border-blue-500/30 flex items-center justify-center space-x-2"
-            >
-              <i class="ri-download-line text-lg"></i>
-              <span>{{ t('common.load_data') }}</span>
-            </button>
-          </div>
-        </div>
+            <!-- 加载数据按钮卡片 -->
+            <div class="p-4 rounded-2xl bg-slate-800/40 border border-slate-700/50">
+              <button
+                @click="() => loadAnalysisData()"
+                class="w-full px-6 py-3 bg-blue-500/15 hover:bg-blue-500/25 text-blue-400 rounded-xl font-medium transition-all duration-200 hover:scale-[1.02] border border-blue-500/30 flex items-center justify-center space-x-2"
+              >
+                <i class="ri-download-line text-lg"></i>
+                <span>{{ t('common.load_data') }}</span>
+              </button>
+            </div>
+          </main>
+        </template>
+
+        <template v-else>
+          <main class="flex-1 pt-16 pb-16 overflow-y-auto max-w-[375px] w-full mx-auto">
+            <!-- 正常内容 ... -->
+          </main>
+        </template>
 
       <!-- 底部导航栏 -->
-      <nav class="sticky bottom-0 bg-slate-900/95 backdrop-blur-md border-t border-slate-700/50">
-        <div class="grid grid-cols-3 h-16">
-          <router-link to="/" class="flex flex-col items-center justify-center text-blue-400 border-t-2 border-blue-400">
-            <i class="ri-line-chart-line text-xl"></i>
-            <span class="text-xs mt-1 font-medium">{{ t('nav.market') }}</span>
-          </router-link>
-          <router-link to="/points" class="flex flex-col items-center justify-center text-slate-500 hover:text-slate-300 transition-colors">
-            <i class="ri-coin-line text-xl"></i>
-            <span class="text-xs mt-1">{{ t('nav.points') }}</span>
-          </router-link>
-          <router-link to="/profile" class="flex flex-col items-center justify-center text-slate-500 hover:text-slate-300 transition-colors">
-            <i class="ri-settings-3-line text-xl"></i>
-            <span class="text-xs mt-1">{{ t('nav.settings') }}</span>
-          </router-link>
+      <nav class="fixed bottom-0 w-full z-20 bg-slate-900/95 backdrop-blur-md border-t border-slate-700/50 max-w-[375px] mx-auto">
+        <div class="w-full">
+          <div class="grid grid-cols-3 h-16">
+            <router-link to="/" class="flex flex-col items-center justify-center text-blue-400 border-t-2 border-blue-400">
+              <i class="ri-line-chart-line text-lg"></i>
+              <span class="text-xs mt-0.5">{{ t('nav.market') }}</span>
+            </router-link>
+            <router-link to="/points" class="flex flex-col items-center justify-center text-slate-500 hover:text-slate-300 transition-colors">
+              <i class="ri-coin-line text-lg"></i>
+              <span class="text-xs mt-0.5">{{ t('nav.points') }}</span>
+            </router-link>
+            <router-link to="/profile" class="flex flex-col items-center justify-center text-slate-500 hover:text-slate-300 transition-colors">
+              <i class="ri-settings-3-line text-lg"></i>
+              <span class="text-xs mt-0.5">{{ t('nav.settings') }}</span>
+            </router-link>
+          </div>
         </div>
       </nav>
 
@@ -835,6 +879,7 @@ import FavoriteButton from '@/components/FavoriteButton.vue'
 import LoadingModal from '@/components/LoadingModal.vue'
 // @ts-ignore
 import { googleTranslate } from '@/utils/translate'
+import BottomTabBar from '@/components/BottomTabBar.vue'
 
 // Asset interface for search
 interface Asset {
@@ -1499,10 +1544,17 @@ const doActualLoadAnalysisData = async (showLoading = true, noCache = false) => 
         error.value = null // 清除之前的错误
         console.log(`loadAnalysisData: 成功加载 ${currentSymbol.value} 的报告数据`)
       } else {
-        isTokenNotFound.value = true
         analysisData.value = null
         error.value = null // 清除错误，因为这是正常的未找到状态
         console.log(`loadAnalysisData: ${currentSymbol.value} 的报告数据未找到`)
+        // 先设置loading状态为false，再设置isTokenNotFound，确保条件能正确匹配
+        loading.value = false
+        analysisLoading.value = false
+        // 使用nextTick确保loading状态更新后再设置isTokenNotFound
+        nextTick(() => {
+          isTokenNotFound.value = true
+          console.log('设置 isTokenNotFound = true, loading =', loading.value, 'analysisLoading =', analysisLoading.value)
+        })
       }
       return data;
     })
@@ -1511,11 +1563,17 @@ const doActualLoadAnalysisData = async (showLoading = true, noCache = false) => 
       error.value = err instanceof Error ? err.message : '加载数据失败'
       analysisData.value = null
       isTokenNotFound.value = false
+      // 错误情况下也要设置loading状态
+      loading.value = false
+      analysisLoading.value = false
       return null;
     })
     .finally(() => {
-      loading.value = false
-      analysisLoading.value = false
+      // 只在成功情况下设置loading为false，失败情况已经在then/catch中处理
+      if (!isTokenNotFound.value) {
+        loading.value = false
+        analysisLoading.value = false
+      }
       loadingPromise = null;
     });
 

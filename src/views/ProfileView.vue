@@ -124,24 +124,7 @@
     </main>
 
     <!-- 底部导航栏 -->
-    <nav class="fixed bottom-0 w-full bg-[#0F172A]/95 backdrop-blur-md border-t border-gray-800">
-      <div class="max-w-[375px] mx-auto">
-        <div class="grid grid-cols-3 h-16">
-          <router-link to="/" class="flex flex-col items-center justify-center text-gray-500">
-            <i class="ri-line-chart-line ri-lg w-6 h-6 flex items-center justify-center"></i>
-            <span class="text-xs mt-0.5" v-text="t('nav.market')"></span>
-          </router-link>
-          <router-link to="/points" class="flex flex-col items-center justify-center text-gray-500">
-            <i class="ri-coin-line ri-lg w-6 h-6 flex items-center justify-center"></i>
-            <span class="text-xs mt-0.5" v-text="t('nav.points')"></span>
-          </router-link>
-          <router-link to="/profile" class="flex flex-col items-center justify-center text-primary border-t-2 border-primary">
-            <i class="ri-settings-3-line ri-lg w-6 h-6 flex items-center justify-center"></i>
-            <span class="text-xs mt-0.5" v-text="t('nav.settings')"></span>
-          </router-link>
-        </div>
-      </div>
-    </nav>
+    <BottomTabBar />
   </div>
 </template>
 
@@ -152,6 +135,7 @@ import api from '@/api'
 import axios from 'axios'
 import { setLanguage } from '@/i18n'
 import { useEnhancedI18n } from '@/utils/i18n-helper'
+import BottomTabBar from '@/components/BottomTabBar.vue'
 
 const router = useRouter()
 const { t, locale } = useEnhancedI18n()

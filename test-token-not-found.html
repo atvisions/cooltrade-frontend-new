@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TokenNotFoundView 显示测试</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #1a1a1a;
+            color: white;
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 20px;
+            border: 1px solid #333;
+            border-radius: 10px;
+            background: #2a2a2a;
+        }
+        .state-display {
+            background: #333;
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+            font-family: monospace;
+        }
+        .button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            margin: 5px;
+            border-radius: 3px;
+            cursor: pointer;
+        }
+        .button:hover {
+            background: #0056b3;
+        }
+        .debug-info {
+            background: #444;
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+            font-size: 12px;
+            font-family: monospace;
+        }
+        .condition-check {
+            margin: 5px 0;
+            padding: 5px;
+            border-radius: 3px;
+        }
+        .condition-true {
+            background: #28a745;
+            color: white;
+        }
+        .condition-false {
+            background: #dc3545;
+            color: white;
+        }
+    </style>
+</head>
+<body>
+    <h1>TokenNotFoundView 显示逻辑测试</h1>
+    
+    <div class="test-section">
+        <h3>当前状态</h3>
+        <div id="current-state" class="state-display"></div>
+        
+        <h3>显示条件检查</h3>
+        <div id="condition-checks"></div>
+        
+        <h3>控制按钮</h3>
+        <button class="button" onclick="setState('loading', true)">设置 loading = true</button>
+        <button class="button" onclick="setState('loading', false)">设置 loading = false</button>
+        <button class="button" onclick="setState('analysisLoading', true)">设置 analysisLoading = true</button>
+        <button class="button" onclick="setState('analysisLoading', false)">设置 analysisLoading = false</button>
+        <button class="button" onclick="setState('isTokenNotFound', true)">设置 isTokenNotFound = true</button>
+        <button class="button" onclick="setState('isTokenNotFound', false)">设置 isTokenNotFound = false</button>
+        <button class="button" onclick="setState('analysisData', null)">设置 analysisData = null</button>
+        <button class="button" onclick="setState('analysisData', {})">设置 analysisData = {}</button>
+        <button class="button" onclick="setState('error', null)">设置 error = null</button>
+        <button class="button" onclick="setState('error', 'test error')">设置 error = 'test error'</button>
+    </div>
+
+    <div class="test-section">
+        <h3>模拟场景</h3>
+        <button class="button" onclick="simulateScenario('initial')">初始状态</button>
+        <button class="button" onclick="simulateScenario('loading')">加载中</button>
+        <button class="button" onclick="simulateScenario('hasData')">有数据</button>
+        <button class="button" onclick="simulateScenario('notFound')">数据未找到</button>
+        <button class="button" onclick="simulateScenario('error')">加载错误</button>
+        <button class="button" onclick="simulateScenario('empty')">空状态</button>
+    </div>
+
+    <div class="test-section">
+        <h3>HomeView 显示逻辑分析</h3>
+        <div class="debug-info">
+            <strong>显示条件优先级：</strong><br>
+            1. 骨架屏: v-if="loading || analysisLoading"<br>
+            2. 正常内容: v-else-if="analysisData"<br>
+            3. TokenNotFoundView: v-else-if="isTokenNotFound && !loading && !analysisLoading"<br>
+            4. 错误状态: v-else-if="error && !loading && !analysisLoading"<br>
+            5. 空状态: v-else-if="!analysisData && !loading && !analysisLoading && !error"
+        </div>
+        <div id="display-logic"></div>
+    </div>
+
+    <script>
+        // 模拟状态
+        let state = {
+            loading: false,
+            analysisLoading: false,
+            isTokenNotFound: false,
+            analysisData: null,
+            error: null
+        };
+
+        function setState(key, value) {
+            state[key] = value;
+            updateDisplay();
+        }
+
+        function simulateScenario(scenario) {
+            switch (scenario) {
+                case 'initial':
+                    state = {
+                        loading: false,
+                        analysisLoading: false,
+                        isTokenNotFound: false,
+                        analysisData: null,
+                        error: null
+                    };
+                    break;
+                case 'loading':
+                    state = {
+                        loading: true,
+                        analysisLoading: true,
+                        isTokenNotFound: false,
+                        analysisData: null,
+                        error: null
+                    };
+                    break;
+                case 'hasData':
+                    state = {
+                        loading: false,
+                        analysisLoading: false,
+                        isTokenNotFound: false,
+                        analysisData: { price: 100 },
+                        error: null
+                    };
+                    break;
+                case 'notFound':
+                    state = {
+                        loading: false,
+                        analysisLoading: false,
+                        isTokenNotFound: true,
+                        analysisData: null,
+                        error: null
+                    };
+                    break;
+                case 'error':
+                    state = {
+                        loading: false,
+                        analysisLoading: false,
+                        isTokenNotFound: false,
+                        analysisData: null,
+                        error: '加载失败'
+                    };
+                    break;
+                case 'empty':
+                    state = {
+                        loading: false,
+                        analysisLoading: false,
+                        isTokenNotFound: false,
+                        analysisData: null,
+                        error: null
+                    };
+                    break;
+            }
+            updateDisplay();
+        }
+
+        function updateDisplay() {
+            // 更新当前状态显示
+            document.getElementById('current-state').innerHTML = `
+                loading: ${state.loading}<br>
+                analysisLoading: ${state.analysisLoading}<br>
+                isTokenNotFound: ${state.isTokenNotFound}<br>
+                analysisData: ${state.analysisData ? 'has data' : 'null'}<br>
+                error: ${state.error || 'null'}
+            `;
+
+            // 检查各个显示条件
+            const conditions = [
+                {
+                    name: '骨架屏',
+                    condition: state.loading || state.analysisLoading,
+                    template: 'v-if="loading || analysisLoading"'
+                },
+                {
+                    name: '正常内容',
+                    condition: state.analysisData && !(state.loading || state.analysisLoading),
+                    template: 'v-else-if="analysisData"'
+                },
+                {
+                    name: 'TokenNotFoundView',
+                    condition: state.isTokenNotFound && !state.loading && !state.analysisLoading,
+                    template: 'v-else-if="isTokenNotFound && !loading && !analysisLoading"'
+                },
+                {
+                    name: '错误状态',
+                    condition: state.error && !state.loading && !state.analysisLoading,
+                    template: 'v-else-if="error && !loading && !analysisLoading"'
+                },
+                {
+                    name: '空状态',
+                    condition: !state.analysisData && !state.loading && !state.analysisLoading && !state.isTokenNotFound && !state.error,
+                    template: 'v-else-if="!analysisData && !loading && !analysisLoading && !error"'
+                }
+            ];
+
+            let conditionHtml = '';
+            let activeCondition = null;
+
+            conditions.forEach(cond => {
+                const isActive = cond.condition;
+                if (isActive && !activeCondition) {
+                    activeCondition = cond.name;
+                }
+                conditionHtml += `
+                    <div class="condition-check ${isActive ? 'condition-true' : 'condition-false'}">
+                        ${cond.name}: ${isActive ? 'TRUE' : 'FALSE'}<br>
+                        <small>${cond.template}</small>
+                    </div>
+                `;
+            });
+
+            document.getElementById('condition-checks').innerHTML = conditionHtml;
+
+            // 显示当前应该显示的组件
+            document.getElementById('display-logic').innerHTML = `
+                <div style="background: #555; padding: 10px; border-radius: 5px; margin-top: 10px;">
+                    <strong>当前应该显示：${activeCondition || '无匹配条件'}</strong>
+                </div>
+            `;
+        }
+
+        // 初始化显示
+        updateDisplay();
+    </script>
+</body>
+</html>

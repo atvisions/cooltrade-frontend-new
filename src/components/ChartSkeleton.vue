@@ -1,7 +1,6 @@
 <template>
   <!-- 主要内容区域骨架 - 只包含内容部分，不包含导航和主容器 -->
-  <div class="space-y-4">
-    
+  <div class="space-y-4 w-full">
     <!-- 资产信息卡片骨架 - 完全匹配实际布局 -->
     <div class="group relative overflow-hidden rounded-3xl bg-gradient-to-br from-slate-800/95 via-slate-900/95 to-slate-800/95 backdrop-blur-xl border border-slate-700/40">
       <div class="relative p-4">
@@ -12,7 +11,7 @@
             <!-- 市场指示器骨架 -->
             <div class="w-3 h-3 bg-slate-700/50 rounded-full animate-pulse"></div>
             <!-- 标题骨架 -->
-            <div class="h-5 w-24 bg-slate-700/50 rounded animate-pulse"></div>
+            <div class="h-4 w-24 bg-slate-700/50 rounded animate-pulse"></div>
             <!-- 收藏按钮骨架 -->
             <div class="w-6 h-6 bg-slate-700/50 rounded-full animate-pulse"></div>
           </div>
@@ -30,9 +29,9 @@
             <div class="w-4 h-4 bg-slate-700/50 rounded animate-pulse"></div>
             <div class="h-3 w-20 bg-slate-700/50 rounded animate-pulse"></div>
           </div>
-          <!-- 价格显示骨架 - 匹配实际的text-3xl高度 -->
+          <!-- 价格显示骨架 - 匹配实际的text-2xl高度 -->
           <div class="flex items-baseline space-x-3">
-            <div class="h-9 w-32 bg-slate-700/50 rounded animate-pulse"></div>
+            <div class="h-8 w-32 bg-slate-700/50 rounded animate-pulse"></div>
             <div class="h-4 w-8 bg-slate-700/50 rounded animate-pulse"></div>
           </div>
         </div>
@@ -156,18 +155,6 @@
             <div class="h-3 w-1/2 bg-slate-700/50 rounded animate-pulse"></div>
           </div>
         </div>
-      </div>
-    </div>
-
-    <!-- 加载提示 -->
-    <div class="fixed bottom-4 left-1/2 transform -translate-x-1/2 z-50">
-      <div class="bg-slate-800/90 backdrop-blur-xl border border-slate-700/50 rounded-2xl px-6 py-4 shadow-2xl">
-        <div class="loading-dots flex space-x-2 justify-center mb-2">
-          <div class="w-2 h-2 bg-blue-400 rounded-full animate-bounce" style="animation-delay: 0ms"></div>
-          <div class="w-2 h-2 bg-blue-400 rounded-full animate-bounce" style="animation-delay: 150ms"></div>
-          <div class="w-2 h-2 bg-blue-400 rounded-full animate-bounce" style="animation-delay: 300ms"></div>
-        </div>
-        <p class="text-slate-300 text-sm text-center">{{ loadingText }}</p>
       </div>
     </div>
   </div>
