@@ -1,4 +1,5 @@
 import { createI18n } from 'vue-i18n'
+import { getApiBaseUrl } from '@/config/constants'
 
 // 直接导入语言文件，确保它们被包含在主 JavaScript 文件中
 import zhCN from './locales/zh-CN'
@@ -102,7 +103,7 @@ const updateUserLanguagePreference = async (lang: string) => {
 
     // 在网页环境中，发送 API 请求
     // 使用相对路径，避免硬编码URL
-    const url = '/api/auth/profile/';
+    const url = getApiBaseUrl() + '/auth/profile/';
 
     // 使用fetch发送请求
     const response = await fetch(url, {

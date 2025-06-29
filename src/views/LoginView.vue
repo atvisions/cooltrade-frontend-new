@@ -61,14 +61,7 @@
             {{ loading ? t('common.loading') : t('auth.login') }}
           </button>
 
-          <!-- 临时开发用token设置按钮 -->
-          <button
-            type="button"
-            @click="setDevToken"
-            class="w-full py-3 bg-gradient-to-r from-green-600 to-green-500 text-white rounded-lg font-medium transition-colors mt-4"
-          >
-            Set Dev Token (临时开发用)
-          </button>
+
         </form>
 
         <div class="mt-6 text-center">
@@ -156,16 +149,4 @@ const handleLogin = async () => {
   }
 }
 
-// 临时开发用：设置token
-const setDevToken = () => {
-  const devToken = '9d9e3faa0ac4bc8800db4deb8910250250c60bae'
-  localStorage.setItem('token', devToken)
-  localStorage.setItem('userInfo', JSON.stringify({
-    email: 'dev@example.com',
-    username: 'dev_user'
-  }))
-
-  // 跳转到首页
-  router.push('/')
-}
 </script>

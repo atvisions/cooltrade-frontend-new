@@ -1,7 +1,7 @@
 // Initialize environment variables
 let envConfig = {
-  baseApiUrl: 'http://127.0.0.1:8000/api', // 本地测试服务器地址
-  env: 'development',
+  baseApiUrl: 'https://www.cooltrade.xyz/api',
+  env: 'production',
   token: null
 };
 
@@ -28,8 +28,8 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       sendResponse({ status: 'error', error: error.message })
     }
   } else if (message.type === 'SET_ENV_CONFIG') {
-    // Set environment configuration
-    envConfig = { ...envConfig, ...message.data };
+    // 禁止覆盖 baseApiUrl，始终保持为生产环境
+    // envConfig = { ...envConfig, ...message.data };
     sendResponse({ status: 'success' });
   } else if (message.type === 'GET_CURRENT_SYMBOL') {
     // Respond to get current trading symbol request
@@ -258,8 +258,8 @@ async function handleApiProxyRequest(data, sendResponse) {
 
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     try {
-      const baseApiUrl = envConfig.baseApiUrl || '/api';
-      const { url, method, headers, body } = data;
+      const baseApiUrl = 'https://www.cooltrade.xyz/api';
+      const { url, method, headers, body, params } = data;
 
       if (attempt > 1) {
         console.log(`Background script API request retry attempt ${attempt}/${maxRetries} for URL: ${url}`);
@@ -268,17 +268,22 @@ async function handleApiProxyRequest(data, sendResponse) {
       // Check if it's a force refresh request
       const isForceRefresh = url.includes('force_refresh=true');
 
-      // Build complete URL
+      // 强制：params 拼接前先补全 baseApiUrl
       let fullUrl = url;
-
-      // If it's a relative path, add base URL
+      // 先补全 baseApiUrl
       if (url.startsWith('/')) {
         fullUrl = baseApiUrl + url;
       } else if (!url.startsWith('http')) {
         fullUrl = baseApiUrl + '/' + url;
       }
-
-      console.log('Background script: 完整URL:', fullUrl);
+      // 再拼 params
+      if (params && (method === 'GET' || !method)) {
+        const queryString = new URLSearchParams(params).toString();
+        if (queryString) {
+          fullUrl += (fullUrl.includes('?') ? '&' : '?') + queryString;
+        }
+      }
+      console.log('Background script fetch最终URL:', fullUrl);
 
     // Build request options
     const options = {
