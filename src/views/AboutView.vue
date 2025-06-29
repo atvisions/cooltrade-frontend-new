@@ -83,10 +83,10 @@
         </div>
       </div>
 
-      <!-- 项目统计 -->
+      <!-- Project Statistics -->
       <div class="card bg-dark-800 border border-dark-700">
         <h2 class="text-2xl font-semibold mb-6 text-center text-gray-200">
-          项目统计
+          Project Statistics
         </h2>
         <div class="grid grid-cols-2 md:grid-cols-4 gap-6 text-center">
           <div v-for="stat in stats" :key="stat.label">

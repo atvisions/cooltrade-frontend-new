@@ -10,7 +10,6 @@ let currentTradingSymbol = 'BTCUSDT'; // Default value
 
 // Listen for messages from content script
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-  console.log('Background script received message:', message.type, message.data);
 
   if (message.type === 'RELOAD_RESOURCES') {
     // Reload extension resources
@@ -68,7 +67,6 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     const { url, name } = message.data
     chrome.cookies.get({ url: url, name: name }, (cookie) => {
       if (chrome.runtime.lastError) {
-        console.warn('Cookie access error:', chrome.runtime.lastError.message)
         sendResponse({ cookie: null, error: chrome.runtime.lastError.message })
       } else {
         sendResponse({ cookie: cookie })
@@ -80,11 +78,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     const { url, name } = message.data
     chrome.cookies.remove({ url: url, name: name }, (details) => {
       if (chrome.runtime.lastError) {
-        console.warn('Cookie removal error:', chrome.runtime.lastError.message)
-      } else if (details) {
-        console.log(`Cookie ${name} from ${url} removed successfully.`, details)
-      } else {
-        console.log(`Could not remove cookie ${name} from ${url}.`)
+        // Cookie removal failed
       }
     })
     return false // No async response needed
@@ -189,19 +183,12 @@ async function handleTradingPage(data, tabId) {
           data: { symbol }
         }, (response) => {
           if (chrome.runtime.lastError) {
-            // console.log('Error sending update message:', chrome.runtime.lastError.message);
             return;
-          }
-
-          if (response) {
-            // console.log('Update message received:', response);
           }
         });
       } catch (error) {
-        // console.error('Failed to send update message:', error);
+        // Failed to send update message
       }
-    } else {
-      console.log('No tabId, skipping content script notification');
     }
 
   } catch (error) {
@@ -335,7 +322,6 @@ async function handleApiProxyRequest(data, sendResponse) {
     // Add request body (if any)
     if (body && (method === 'POST' || method === 'PUT' || method === 'PATCH' || method === 'DELETE')) {
       options.body = JSON.stringify(body);
-      console.log('Background script: 请求体:', JSON.stringify(body, null, 2));
     }
 
     // Set timeout

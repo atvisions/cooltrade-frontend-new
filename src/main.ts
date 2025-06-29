@@ -16,13 +16,10 @@ import 'remixicon/fonts/remixicon.css'
 import i18n from './i18n'
 import { i18nDirectPlugin } from './i18n/direct-loader'
 
-console.log('🚀 CoolTrade Frontend Starting...')
-
 // 强制重置语言为英文
 const currentLang = localStorage.getItem('language')
 if (currentLang === 'zh-CN' || !currentLang) {
   localStorage.setItem('language', 'en-US')
-  console.log('🌐 Language reset to English')
 }
 
 const app = createApp(App)

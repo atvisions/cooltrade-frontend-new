@@ -41,6 +41,11 @@
           <!-- 正常内容 - 有数据时显示 -->
           <div v-else-if="analysisData" class="space-y-6 pb-10">
 
+            <!-- 调试信息 -->
+            <div class="mb-4 p-2 bg-green-500/20 rounded text-xs text-green-300">
+              DEBUG NORMAL CONTENT: analysisData exists, loading={{ loading }}, analysisLoading={{ analysisLoading }}
+            </div>
+
             <!-- 资产信息卡片 - 现代化设计 -->
             <div class="group relative overflow-hidden rounded-3xl bg-gradient-to-br from-slate-800/95 via-slate-900/95 to-slate-800/95 backdrop-blur-xl border border-slate-700/40 hover:border-slate-600/60 transition-all duration-500 hover:shadow-2xl hover:shadow-blue-500/10">
               <!-- 动态背景光效 -->
@@ -168,8 +173,6 @@
                 </div>
               </div>
             </div>
-
-
 
       <!-- A股开发中页面 -->
       <main class="flex-1 pt-16 pb-16 overflow-y-auto max-w-[375px] w-full mx-auto" v-if="(currentMarketType as string) === 'china'">
@@ -726,6 +729,52 @@
 
           </div>
 
+          <!-- 默认状态 - 处理所有其他情况 -->
+          <div v-else class="space-y-6 pb-10">
+            <!-- 调试信息 -->
+            <div class="mb-4 p-2 bg-purple-500/20 rounded text-xs text-purple-300">
+              DEBUG DEFAULT STATE: loading={{ loading }}, analysisLoading={{ analysisLoading }}, isTokenNotFound={{ isTokenNotFound }}, hasAnalysisData={{ !!analysisData }}, currentSymbol={{ currentSymbol }}, error={{ error }}
+            </div>
+
+            <!-- 错误状态 -->
+            <div v-if="error" class="flex items-center justify-center h-64">
+              <div class="text-center space-y-4">
+                <div class="w-16 h-16 mx-auto bg-red-500/20 rounded-full flex items-center justify-center">
+                  <i class="ri-error-warning-line text-2xl text-red-400"></i>
+                </div>
+                <div class="space-y-2">
+                  <h3 class="text-lg font-bold text-white">Error Loading Data</h3>
+                  <p class="text-red-400 text-sm">{{ error }}</p>
+                </div>
+                <button
+                  @click="loadAnalysisData(true, false, true)"
+                  class="px-4 py-2 bg-red-500/20 hover:bg-red-500/30 border border-red-500/40 rounded-lg text-red-400 transition-all duration-200"
+                >
+                  Retry Loading
+                </button>
+              </div>
+            </div>
+
+            <!-- 默认提示内容 -->
+            <div v-else class="flex items-center justify-center h-64">
+              <div class="text-center space-y-4">
+                <div class="w-16 h-16 mx-auto bg-slate-500/20 rounded-full flex items-center justify-center">
+                  <i class="ri-information-line text-2xl text-slate-400"></i>
+                </div>
+                <div class="space-y-2">
+                  <h3 class="text-lg font-bold text-white">No Data Available</h3>
+                  <p class="text-slate-400 text-sm">Please try refreshing or selecting a different asset</p>
+                </div>
+                <button
+                  @click="loadAnalysisData(true, false, true)"
+                  class="px-4 py-2 bg-blue-500/20 hover:bg-blue-500/30 border border-blue-500/40 rounded-lg text-blue-400 transition-all duration-200"
+                >
+                  Retry Loading
+                </button>
+              </div>
+            </div>
+          </div>
+
         </div>
       </main>
 
@@ -920,6 +969,7 @@ const getCurrentSymbolForMarket = (marketType: 'crypto' | 'stock' | 'china') => 
 
 const initialSymbol = getCurrentSymbolForMarket(currentMarketType.value)
 console.log('[INIT] 为市场类型', currentMarketType.value, '获取的初始symbol:', initialSymbol)
+console.log('[INIT] initialSymbol类型:', typeof initialSymbol, '值:', initialSymbol)
 const currentSymbol = ref<string>(initialSymbol)
 const isTokenNotFound = ref(false) // 用于标记代币是否未找到（404错误）
 const activePanel = ref<'search' | 'favorites' | 'popular' | null>(null)
@@ -1508,6 +1558,8 @@ const doActualLoadAnalysisData = async (showLoading = true, noCache = false) => 
   if (!currentSymbol.value || typeof currentSymbol.value !== 'string' || !currentSymbol.value.trim()) {
     console.error('doActualLoadAnalysisData: Invalid currentSymbol.value:', currentSymbol.value)
     error.value = '无法获取当前交易对信息'
+    loading.value = false
+    analysisLoading.value = false
     ElMessage.error('交易对无效，无法加载数据');
     return
   }
@@ -1569,11 +1621,10 @@ const doActualLoadAnalysisData = async (showLoading = true, noCache = false) => 
       return null;
     })
     .finally(() => {
-      // 只在成功情况下设置loading为false，失败情况已经在then/catch中处理
-      if (!isTokenNotFound.value) {
-        loading.value = false
-        analysisLoading.value = false
-      }
+      // 确保loading状态总是被重置，无论什么情况
+      console.log('loadAnalysisData finally: 重置loading状态')
+      loading.value = false
+      analysisLoading.value = false
       loadingPromise = null;
     });
 
@@ -1717,6 +1768,7 @@ onMounted(async () => {
   try {
     console.log('[MOUNTED] 当前市场类型:', currentMarketType.value);
     console.log('[MOUNTED] 当前资产:', currentSymbol.value);
+    console.log('[MOUNTED] currentSymbol类型:', typeof currentSymbol.value, '是否为空:', !currentSymbol.value);
 
     // 检查是否有外部传入的symbol（比如从URL或content script）
     const externalSymbol = await getCurrentSymbol();
@@ -1744,6 +1796,16 @@ onMounted(async () => {
       await switchToAsset(externalSymbol, targetMarketType);
     } else {
       // 使用已经从localStorage恢复的状态，直接加载数据
+      console.log('[MOUNTED] 使用localStorage状态，当前symbol:', currentSymbol.value);
+
+      // 确保有有效的symbol
+      if (!currentSymbol.value || !currentSymbol.value.trim()) {
+        console.log('[MOUNTED] 当前symbol无效，设置默认值');
+        const defaultSymbol = getDefaultSymbol(currentMarketType.value);
+        currentSymbol.value = defaultSymbol;
+        console.log('[MOUNTED] 设置默认symbol为:', defaultSymbol);
+      }
+
       await loadAnalysisData(true, false);
     }
 
