@@ -162,6 +162,11 @@ const attemptClaimFromCookie = async () => {
         }, (response) => {
             // 检查是否有权限错误
             if (chrome.runtime.lastError) {
+                // 在开发环境中，localhost cookie访问可能受限，这是正常的
+                if (chrome.runtime.lastError.message.includes('host permissions')) {
+                    // 静默处理权限错误，不影响其他功能
+                    return;
+                }
                 console.warn('Cookie access not available:', chrome.runtime.lastError.message);
                 return;
             }
@@ -232,6 +237,7 @@ const fetchPointsInfo = async () => {
     // 检查认证令牌
     const token = localStorage.getItem('token');
     if (!token) {
+      console.warn('No authentication token found');
       return;
     }
 
@@ -240,20 +246,23 @@ const fetchPointsInfo = async () => {
       const response = await points.getInvitationInfo();
       if (response.status === 'success' && response.data) {
         pointsInfo.value = response.data;
-        console.log('Points info updated successfully:', pointsInfo.value);
+      } else {
+        console.warn('Failed to get invitation info:', response);
       }
 
       // 获取排名信息
       const rankingResponse = await points.getRanking();
-      console.log('Ranking response in view:', rankingResponse);
       if (rankingResponse.status === 'success' && rankingResponse.ranking !== undefined) {
         pointsRanking.value = rankingResponse.ranking;
-        console.log('Ranking info updated successfully:', pointsRanking.value);
       } else {
-        console.log('Ranking data not found in response:', rankingResponse);
+        console.warn('Failed to get ranking info:', rankingResponse);
       }
     } catch (error) {
-      console.error('Failed to fetch points info:', error);
+      console.error('API request failed:', error);
+      // 如果是认证错误，可能需要重新登录
+      if (error.message && error.message.includes('认证')) {
+        console.warn('Authentication error detected, user may need to re-login');
+      }
     }
   } catch (error) {
     console.error('Failed to fetch points info:', error);

@@ -17,19 +17,11 @@
 
           <!-- 骨架屏 - 在加载过程中显示，但不包括TokenNotFound状态 -->
           <div v-if="(loading || analysisLoading) && !isTokenNotFound">
-            <!-- 调试信息 -->
-            <div class="mb-4 p-2 bg-blue-500/20 rounded text-xs text-blue-300">
-              DEBUG SKELETON: loading={{ loading }}, analysisLoading={{ analysisLoading }}, isTokenNotFound={{ isTokenNotFound }}
-            </div>
             <ChartSkeleton loadingText="Loading price data..." />
           </div>
 
           <!-- Token未找到状态 - 提高优先级 -->
           <div v-else-if="isTokenNotFound">
-            <!-- 调试信息 -->
-            <div class="mb-4 p-2 bg-red-500/20 rounded text-xs text-red-300">
-              DEBUG TOKEN NOT FOUND: isTokenNotFound={{ isTokenNotFound }}, loading={{ loading }}, analysisLoading={{ analysisLoading }}
-            </div>
             <TokenNotFoundView
               :symbol="currentSymbol"
               :marketType="currentMarketType"
@@ -40,11 +32,6 @@
 
           <!-- 正常内容 - 有数据时显示 -->
           <div v-else-if="analysisData" class="space-y-6 pb-10">
-
-            <!-- 调试信息 -->
-            <div class="mb-4 p-2 bg-green-500/20 rounded text-xs text-green-300">
-              DEBUG NORMAL CONTENT: analysisData exists, loading={{ loading }}, analysisLoading={{ analysisLoading }}
-            </div>
 
             <!-- 资产信息卡片 - 现代化设计 -->
             <div class="group relative overflow-hidden rounded-3xl bg-gradient-to-br from-slate-800/95 via-slate-900/95 to-slate-800/95 backdrop-blur-xl border border-slate-700/40 hover:border-slate-600/60 transition-all duration-500 hover:shadow-2xl hover:shadow-blue-500/10">
@@ -731,11 +718,6 @@
 
           <!-- 默认状态 - 处理所有其他情况 -->
           <div v-else class="space-y-6 pb-10">
-            <!-- 调试信息 -->
-            <div class="mb-4 p-2 bg-purple-500/20 rounded text-xs text-purple-300">
-              DEBUG DEFAULT STATE: loading={{ loading }}, analysisLoading={{ analysisLoading }}, isTokenNotFound={{ isTokenNotFound }}, hasAnalysisData={{ !!analysisData }}, currentSymbol={{ currentSymbol }}, error={{ error }}
-            </div>
-
             <!-- 错误状态 -->
             <div v-if="error" class="flex items-center justify-center h-64">
               <div class="text-center space-y-4">
@@ -818,10 +800,6 @@
         <template v-else-if="isTokenNotFound && !loading && !analysisLoading">
           <main class="flex-1 pt-16 pb-16 overflow-y-auto max-w-[375px] w-full mx-auto">
             <div class="px-4 w-full">
-              <!-- 调试信息 -->
-              <div class="mb-4 p-2 bg-red-500/20 rounded text-xs text-red-300">
-                DEBUG: isTokenNotFound={{ isTokenNotFound }}, loading={{ loading }}, analysisLoading={{ analysisLoading }}, symbol={{ currentSymbol }}
-              </div>
               <TokenNotFoundView
                 :symbol="currentSymbol"
                 :marketType="currentMarketType"
@@ -950,11 +928,9 @@ const error = ref<string | null>(null)
 
 // 市场类型和面板相关状态 - 从localStorage恢复状态
 const storedMarketType = localStorage.getItem('currentMarketType') as 'crypto' | 'stock' | 'china'
-console.log('[INIT] localStorage中的currentMarketType:', storedMarketType)
 const currentMarketType = ref<'crypto' | 'stock' | 'china'>(
   storedMarketType || 'crypto'
 )
-console.log('[INIT] 初始化后的currentMarketType.value:', currentMarketType.value)
 
 // 从localStorage恢复当前资产，根据市场类型设置默认值
 const getDefaultSymbol = (marketType: 'crypto' | 'stock' | 'china') => {
@@ -968,8 +944,6 @@ const getCurrentSymbolForMarket = (marketType: 'crypto' | 'stock' | 'china') => 
 }
 
 const initialSymbol = getCurrentSymbolForMarket(currentMarketType.value)
-console.log('[INIT] 为市场类型', currentMarketType.value, '获取的初始symbol:', initialSymbol)
-console.log('[INIT] initialSymbol类型:', typeof initialSymbol, '值:', initialSymbol)
 const currentSymbol = ref<string>(initialSymbol)
 const isTokenNotFound = ref(false) // 用于标记代币是否未找到（404错误）
 const activePanel = ref<'search' | 'favorites' | 'popular' | null>(null)
@@ -1032,12 +1006,9 @@ const getPopularSearches = () => {
 
 // 市场类型切换处理函数
 const handleMarketTypeChange = (marketType: 'crypto' | 'stock' | 'china') => {
-  console.log(`切换市场类型从 ${currentMarketType.value} 到 ${marketType}`)
-
   // 如果是A股市场，显示开发中提示
   if (marketType === 'china') {
     // 这里可以添加提示信息，暂时不切换
-    console.log('A股市场正在开发中')
     return
   }
 
@@ -1211,7 +1182,6 @@ const getCurrentSymbol = async (): Promise<string> => {
 // 监听交易对更新
 const setupSymbolListener = () => {
   if (typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.onMessage) {
-    console.log('设置交易对消息监听器...');
 
     chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       try {
@@ -1237,8 +1207,6 @@ const setupSymbolListener = () => {
       }
       return true;
     });
-  } else {
-    console.log('Chrome 扩展环境不可用，无法设置消息监听器');
   }
 }
 
@@ -1434,12 +1402,7 @@ const loadFavorites = async () => {
       return
     }
 
-    // 在扩展环境下，添加额外的调试信息
-    if (isExtension) {
-      console.log('loadFavorites: 在Chrome扩展环境中加载收藏数据')
-      console.log('loadFavorites: Token前缀检查:', token.startsWith('Token ') ? 'Token前缀正确' : 'Token前缀可能有问题')
-      console.log('loadFavorites: 准备调用API: /crypto/favorites/')
-    }
+
 
     // 直接调用API获取收藏数据
     const response = await favorites.getFavorites()
@@ -1566,7 +1529,6 @@ const doActualLoadAnalysisData = async (showLoading = true, noCache = false) => 
 
   // 如果已经有请求在进行中，取消之前的请求
   if (loadingPromise) {
-    console.log('loadAnalysisData: 取消之前的请求，开始新请求')
     if (abortController) {
       abortController.abort()
     }
@@ -1583,8 +1545,6 @@ const doActualLoadAnalysisData = async (showLoading = true, noCache = false) => 
     analysisLoading.value = true
   }
 
-  console.log(`loadAnalysisData: 开始加载 ${currentSymbol.value} 的本地报告数据`)
-
   // 创建新的请求Promise - 直接调用 getTechnicalAnalysis 读取本地数据
   const marketType = currentMarketType.value === 'china' ? 'stock' : currentMarketType.value as 'crypto' | 'stock'
   loadingPromise = getTechnicalAnalysis(currentSymbol.value, noCache, marketType)
@@ -1594,18 +1554,15 @@ const doActualLoadAnalysisData = async (showLoading = true, noCache = false) => 
         analysisData.value = formattedData
         isTokenNotFound.value = false
         error.value = null // 清除之前的错误
-        console.log(`loadAnalysisData: 成功加载 ${currentSymbol.value} 的报告数据`)
       } else {
         analysisData.value = null
         error.value = null // 清除错误，因为这是正常的未找到状态
-        console.log(`loadAnalysisData: ${currentSymbol.value} 的报告数据未找到`)
         // 先设置loading状态为false，再设置isTokenNotFound，确保条件能正确匹配
         loading.value = false
         analysisLoading.value = false
         // 使用nextTick确保loading状态更新后再设置isTokenNotFound
         nextTick(() => {
           isTokenNotFound.value = true
-          console.log('设置 isTokenNotFound = true, loading =', loading.value, 'analysisLoading =', analysisLoading.value)
         })
       }
       return data;
@@ -1622,7 +1579,6 @@ const doActualLoadAnalysisData = async (showLoading = true, noCache = false) => 
     })
     .finally(() => {
       // 确保loading状态总是被重置，无论什么情况
-      console.log('loadAnalysisData finally: 重置loading状态')
       loading.value = false
       analysisLoading.value = false
       loadingPromise = null;
@@ -1633,7 +1589,6 @@ const doActualLoadAnalysisData = async (showLoading = true, noCache = false) => 
 
 // 简化的数据加载函数 - 读取本地已存在的报告数据
 const loadAnalysisData = async (showLoading = true, debounce = true, noCache = false) => {
-  console.log('[loadAnalysisData] called', { showLoading, debounce, noCache, symbol: currentSymbol.value, stack: new Error().stack });
   try {
     // 防抖处理 - 避免快速连续调用
     if (debounce) {
@@ -1743,11 +1698,8 @@ const checkAuthStatus = () => {
 
 // 组件挂载时加载数据
 onMounted(async () => {
-  console.log('HomeView 组件挂载开始...');
-
   // 检查用户登录状态，如果未登录则直接跳转到登录页
   if (!checkAuthStatus()) {
-    console.log('用户未登录，跳转到登录页面');
     window.location.href = '/login';
     return;
   }
@@ -1766,44 +1718,30 @@ onMounted(async () => {
 
   // 优先使用localStorage中保存的状态，只有在特定情况下才从外部获取symbol
   try {
-    console.log('[MOUNTED] 当前市场类型:', currentMarketType.value);
-    console.log('[MOUNTED] 当前资产:', currentSymbol.value);
-    console.log('[MOUNTED] currentSymbol类型:', typeof currentSymbol.value, '是否为空:', !currentSymbol.value);
 
     // 检查是否有外部传入的symbol（比如从URL或content script）
     const externalSymbol = await getCurrentSymbol();
-    console.log('[MOUNTED] 外部获取到的交易对:', externalSymbol);
 
     // 只有在获取到有效的外部symbol且与当前不同时，才更新
     if (externalSymbol && typeof externalSymbol === 'string' && externalSymbol !== currentSymbol.value) {
-      console.log('[MOUNTED] 检测到新的交易对，更新为:', externalSymbol);
       // 优先使用当前市场类型，除非symbol明显属于其他市场
       let targetMarketType = currentMarketType.value;
-      console.log('[MOUNTED] 当前市场类型:', targetMarketType);
 
       // 只有在symbol明显是加密货币格式时才切换到crypto市场
       if (externalSymbol.includes('USDT') || externalSymbol.includes('BTC') || externalSymbol.includes('ETH') || externalSymbol.endsWith('USD')) {
         targetMarketType = 'crypto';
-        console.log('[MOUNTED] 检测到加密货币格式，切换到crypto市场');
       }
       // 如果当前在crypto市场但symbol不像加密货币，则切换到stock市场
       else if (currentMarketType.value === 'crypto' && !externalSymbol.includes('USDT') && !externalSymbol.includes('BTC') && !externalSymbol.includes('ETH')) {
         targetMarketType = 'stock';
-        console.log('[MOUNTED] 当前在crypto市场但symbol不像加密货币，切换到stock市场');
       }
-
-      console.log('[MOUNTED] 最终目标市场类型:', targetMarketType);
       await switchToAsset(externalSymbol, targetMarketType);
     } else {
       // 使用已经从localStorage恢复的状态，直接加载数据
-      console.log('[MOUNTED] 使用localStorage状态，当前symbol:', currentSymbol.value);
-
       // 确保有有效的symbol
       if (!currentSymbol.value || !currentSymbol.value.trim()) {
-        console.log('[MOUNTED] 当前symbol无效，设置默认值');
         const defaultSymbol = getDefaultSymbol(currentMarketType.value);
         currentSymbol.value = defaultSymbol;
-        console.log('[MOUNTED] 设置默认symbol为:', defaultSymbol);
       }
 
       await loadAnalysisData(true, false);
