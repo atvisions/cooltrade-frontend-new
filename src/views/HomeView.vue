@@ -11,6 +11,263 @@
         :is-search-active="activePanel === 'search'"
       />
 
+      <!-- 覆盖面板区域 - 与价格卡片对齐（全局渲染，和main同级） -->
+      <div v-if="activePanel" class="absolute top-0 left-0 right-0 z-50 px-4 pt-12">
+        <!-- 搜索面板 -->
+        <div v-if="activePanel === 'search'"
+             class="w-full max-w-[375px] mx-auto bg-gradient-to-br from-slate-800/95 via-slate-900/95 to-slate-800/95 rounded-3xl border border-blue-500/40 backdrop-blur-xl shadow-2xl shadow-blue-500/10"
+             @click.stop>
+          <!-- 搜索表单区域 - 现代化设计 -->
+          <div class="p-5">
+            <!-- 搜索输入框 -->
+            <div class="relative mb-4">
+              <div class="absolute left-4 top-1/2 transform -translate-y-1/2">
+                <i class="ri-search-line text-blue-400/60"></i>
+              </div>
+              <input
+                v-model="searchQuery"
+                @input="handleSearch"
+                @click.stop
+                type="text"
+                :placeholder="currentMarketType === 'crypto' ? t('common.search_crypto_placeholder') : t('common.search_stock_placeholder')"
+                class="w-full pl-10 pr-4 py-4 bg-slate-700/30 border border-slate-600/30 rounded-2xl text-white placeholder-slate-400 focus:outline-none focus:border-blue-500/60 focus:bg-slate-700/50 transition-all duration-300 text-sm backdrop-blur-sm"
+              />
+            </div>
+
+            <!-- 搜索结果 -->
+            <div v-if="searchLoading" class="flex items-center justify-center py-2 text-slate-400">
+              <i class="ri-loader-4-line animate-spin text-sm mr-2"></i>
+              <span class="text-xs">{{ t('search.searching') }}</span>
+            </div>
+            <div v-else-if="searchQuery && searchResults.length === 0" class="text-center py-2 text-slate-400">
+              <div class="text-xs">{{ t('search.no_results') }}</div>
+            </div>
+            <div v-else-if="searchResults.length > 0" class="max-h-60 overflow-y-auto space-y-1">
+              <button
+                v-for="result in searchResults"
+                :key="result.symbol"
+                @click="handleAssetSwitch(result.symbol)"
+                class="w-full text-left p-2 bg-slate-700/30 hover:bg-slate-600/40 rounded-lg border border-slate-600/30 hover:border-slate-500 transition-all"
+              >
+                <div class="flex items-center space-x-2">
+                  <div class="w-4 h-4 rounded flex items-center justify-center"
+                       :class="{
+                         'bg-blue-500/20 text-blue-400': result.market_type === 'crypto',
+                         'bg-green-500/20 text-green-400': result.market_type === 'stock'
+                       }">
+                    <i :class="{
+                         'ri-currency-line': result.market_type === 'crypto',
+                         'ri-line-chart-line': result.market_type === 'stock'
+                       }" class="text-xs"></i>
+                  </div>
+                  <div class="flex-1">
+                    <div class="font-medium text-white text-xs">
+                      {{ result.symbol }}<span v-if="result.name && result.name !== result.symbol"> — {{ result.name }}</span>
+                    </div>
+                  </div>
+                </div>
+              </button>
+            </div>
+          </div>
+
+          <!-- 热门搜索区域 -->
+          <div v-if="!searchQuery" class="border-t border-slate-700/30 p-5">
+            <div class="flex items-center justify-between mb-4">
+              <div class="flex items-center space-x-2">
+                <span class="text-sm font-medium text-slate-300">{{ t('search.popular_searches') }}</span>
+              </div>
+              <i class="ri-fire-line text-sm text-orange-400"></i>
+            </div>
+            <div class="grid grid-cols-2 gap-3">
+              <button
+                v-for="asset in getPopularSearches()"
+                :key="asset.symbol"
+                @click="handleAssetSwitch(asset.symbol)"
+                class="group relative w-full p-3 rounded-2xl bg-gradient-to-br from-slate-700/30 to-slate-800/30 hover:from-slate-600/40 hover:to-slate-700/40 border border-slate-600/30 hover:border-slate-500/60 transition-all duration-300 text-center hover:scale-105 hover:shadow-lg flex items-center justify-center"
+              >
+                <div class="text-xs font-semibold text-white group-hover:text-blue-300 transition-colors duration-200 truncate w-full text-center">{{ asset.display }}</div>
+                <div class="absolute inset-0 rounded-2xl bg-gradient-to-br from-blue-500/5 to-purple-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- 收藏面板 -->
+        <div v-if="activePanel === 'favorites'"
+             class="w-full max-w-[375px] mx-auto bg-gradient-to-br from-slate-800/95 via-slate-900/95 to-slate-800/95 rounded-3xl border border-yellow-500/40 backdrop-blur-xl shadow-2xl shadow-yellow-500/10 min-h-[120px]"
+             @click.stop>
+          <!-- 基础信息区域 - 现代化设计 -->
+          <div class="p-5">
+            <div class="flex items-center justify-between mb-4">
+              <div class="flex items-center space-x-3">
+                <i class="ri-bookmark-fill text-lg text-yellow-400"></i>
+                <h3 class="text-lg font-bold bg-gradient-to-r from-yellow-400 to-orange-400 bg-clip-text text-transparent">{{ t('favorites.title') }}</h3>
+              </div>
+              <div v-if="favoriteAssets.length > 0" class="px-3 py-1 bg-yellow-500/10 border border-yellow-500/30 rounded-full">
+                <span class="text-xs text-yellow-300 font-medium">{{ favoriteAssets.length }} {{ t('common.items') }}</span>
+              </div>
+            </div>
+
+            <!-- 加载状态 -->
+            <div v-if="favoritesLoading" class="flex items-center justify-center py-4 text-slate-400">
+              <i class="ri-loader-4-line animate-spin text-sm mr-2"></i>
+              <span class="text-xs">{{ t('common.loading') }}</span>
+            </div>
+
+            <!-- 空状态 -->
+            <div v-else-if="favoriteAssets.length === 0" class="text-center py-4 text-slate-400">
+              <i class="ri-bookmark-line text-lg mb-2 opacity-50"></i>
+              <div class="text-xs">{{ t('favorites.empty') }}</div>
+            </div>
+
+            <!-- 有收藏数据时显示前几个 -->
+            <div v-else-if="favoriteAssets.length <= 4" class="grid grid-cols-2 gap-2">
+              <div
+                v-for="asset in favoriteAssets"
+                :key="`${asset.symbol}-${asset.market_type}`"
+                class="group relative flex items-center p-2 bg-slate-700/30 hover:bg-slate-600/40 rounded-lg border border-slate-600/30 hover:border-yellow-500/40 transition-all duration-200 cursor-pointer"
+                @click="handleAssetSwitch(asset.symbol)"
+              >
+                <!-- 当前选中指示器 -->
+                <div v-if="asset.symbol === currentSymbol" class="absolute top-1 right-1 w-1.5 h-1.5 bg-yellow-400 rounded-full"></div>
+
+                <!-- 市场类型图标 -->
+                <div class="flex-shrink-0 w-4 h-4 rounded flex items-center justify-center mr-2"
+                     :class="{
+                       'bg-blue-500/20 text-blue-400': asset.market_type === 'crypto',
+                       'bg-green-500/20 text-green-400': asset.market_type === 'stock'
+                     }">
+                  <i :class="{
+                       'ri-currency-line': asset.market_type === 'crypto',
+                       'ri-line-chart-line': asset.market_type === 'stock'
+                     }" class="text-xs"></i>
+                </div>
+
+                <!-- 资产信息 -->
+                <div class="flex-1 min-w-0">
+                  <div class="font-medium text-white text-xs">{{ formatDisplaySymbol(asset.symbol, asset.market_type) }}</div>
+                </div>
+
+                <!-- 删除按钮 - 始终可见 -->
+                <button
+                  @click.stop="removeFavorite(asset.symbol, asset.market_type)"
+                  class="flex-shrink-0 w-5 h-5 rounded-full bg-red-500/20 hover:bg-red-500/40 text-red-400 hover:text-red-300 flex items-center justify-center transition-all duration-200"
+                  :title="t('favorites.remove')"
+                >
+                  <i class="ri-close-line text-xs"></i>
+                </button>
+              </div>
+            </div>
+
+            <!-- 收藏数量较多时显示部分 -->
+            <div v-else class="space-y-2">
+              <div class="grid grid-cols-2 gap-2">
+                <div
+                  v-for="asset in favoriteAssets.slice(0, 4)"
+                  :key="`${asset.symbol}-${asset.market_type}`"
+                  class="group relative flex items-center p-2 bg-slate-700/30 hover:bg-slate-600/40 rounded-lg border border-slate-600/30 hover:border-yellow-500/40 transition-all duration-200 cursor-pointer"
+                  @click="handleAssetSwitch(asset.symbol)"
+                >
+                  <div v-if="asset.symbol === currentSymbol" class="absolute top-1 right-1 w-1.5 h-1.5 bg-yellow-400 rounded-full"></div>
+                  <div class="flex-shrink-0 w-4 h-4 rounded flex items-center justify-center mr-2"
+                       :class="{
+                         'bg-blue-500/20 text-blue-400': asset.market_type === 'crypto',
+                         'bg-green-500/20 text-green-400': asset.market_type === 'stock'
+                       }">
+                    <i :class="{
+                         'ri-currency-line': asset.market_type === 'crypto',
+                         'ri-line-chart-line': asset.market_type === 'stock'
+                       }" class="text-xs"></i>
+                  </div>
+                  <div class="flex-1 min-w-0">
+                    <div class="font-medium text-white text-xs">{{ formatDisplaySymbol(asset.symbol, asset.market_type) }}</div>
+                  </div>
+                  <button
+                    @click.stop="removeFavorite(asset.symbol, asset.market_type)"
+                    class="flex-shrink-0 w-5 h-5 rounded-full bg-red-500/20 hover:bg-red-500/40 text-red-400 hover:text-red-300 flex items-center justify-center transition-all duration-200"
+                    :title="t('favorites.remove')"
+                  >
+                    <i class="ri-close-line text-xs"></i>
+                  </button>
+                </div>
+              </div>
+              <div v-if="favoriteAssets.length > 4" class="text-center">
+                <span class="text-xs text-slate-400">+{{ favoriteAssets.length - 4 }} {{ t('common.more') }}</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- 扩展区域 - 当收藏数量多时显示 -->
+          <div v-if="favoriteAssets.length > 4" class="border-t border-slate-700/50 p-4">
+            <div class="grid grid-cols-3 gap-2 max-h-32 overflow-y-auto">
+              <div
+                v-for="asset in favoriteAssets.slice(4)"
+                :key="`${asset.symbol}-${asset.market_type}-extended`"
+                class="group relative flex items-center p-2 bg-slate-700/30 hover:bg-slate-600/40 rounded-lg border border-slate-600/30 hover:border-yellow-500/40 transition-all duration-200 cursor-pointer"
+                @click="handleAssetSwitch(asset.symbol)"
+              >
+                <div v-if="asset.symbol === currentSymbol" class="absolute top-1 right-1 w-1.5 h-1.5 bg-yellow-400 rounded-full"></div>
+                <div class="flex-shrink-0 w-4 h-4 rounded flex items-center justify-center mr-2"
+                     :class="{
+                       'bg-blue-500/20 text-blue-400': asset.market_type === 'crypto',
+                       'bg-green-500/20 text-green-400': asset.market_type === 'stock'
+                     }">
+                  <i :class="{
+                       'ri-currency-line': asset.market_type === 'crypto',
+                       'ri-line-chart-line': asset.market_type === 'stock'
+                     }" class="text-xs"></i>
+                </div>
+                <div class="flex-1 min-w-0">
+                  <div class="font-medium text-white text-xs">{{ formatDisplaySymbol(asset.symbol, asset.market_type) }}</div>
+                </div>
+                <button
+                  @click.stop="removeFavorite(asset.symbol, asset.market_type)"
+                  class="flex-shrink-0 w-5 h-5 rounded-full bg-red-500/20 hover:bg-red-500/40 text-red-400 hover:text-red-300 flex items-center justify-center transition-all duration-200"
+                  :title="t('favorites.remove')"
+                >
+                  <i class="ri-close-line text-xs"></i>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 热门资产面板 -->
+        <div v-if="activePanel === 'popular'"
+             class="w-full max-w-[375px] mx-auto bg-gradient-to-br from-slate-800/95 via-slate-900/95 to-slate-800/95 rounded-3xl border border-green-500/40 backdrop-blur-xl shadow-2xl shadow-green-500/10 p-5"
+             @click.stop>
+          <h3 class="text-base font-semibold text-green-400 mb-4 flex items-center">
+            <i class="ri-fire-line mr-2"></i>
+            {{ currentMarketType === 'crypto' ? t('common.popular_tokens') : t('common.popular_stocks') }}
+          </h3>
+          <div class="grid grid-cols-4 gap-3">
+            <button
+              v-for="asset in currentPopularAssets"
+              :key="asset.symbol"
+              @click="handleAssetSwitch(asset.symbol)"
+              :disabled="analysisLoading || asset.symbol === currentSymbol"
+              class="group relative p-3 rounded-lg border transition-all duration-300 hover:scale-105"
+              :class="{
+                'bg-blue-500/20 border-blue-400/50 text-blue-300 shadow-lg shadow-blue-500/20': asset.symbol === currentSymbol,
+                'bg-slate-700/40 border-slate-600/50 text-slate-300 hover:bg-slate-600/50 hover:border-slate-500/60': asset.symbol !== currentSymbol && !analysisLoading,
+                'bg-slate-800/30 border-slate-700/30 text-slate-500 cursor-not-allowed': analysisLoading
+              }"
+            >
+              <div class="text-sm font-bold text-center">{{ asset.display }}</div>
+              <div
+                v-if="asset.symbol === currentSymbol"
+                class="absolute -top-1 -right-1 w-2.5 h-2.5 bg-blue-400 rounded-full border border-slate-800"
+              ></div>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 点击遮罩关闭面板 -->
+      <div v-if="activePanel"
+           @click="activePanel = null"
+           class="fixed inset-0 z-40 bg-black/20"></div>
+
       <!-- 主要内容区域 - 固定高度，内容滚动 -->
       <main class="flex-1 pt-16 pb-16 overflow-y-auto max-w-[375px] w-full mx-auto" v-if="currentMarketType !== 'china'">
         <div class="px-4 space-y-4 w-full">
@@ -27,6 +284,7 @@
               :marketType="currentMarketType"
               @refresh-success="handleRefreshSuccess"
               @refresh-error="handleRefreshError"
+              @cancel="handleTokenNotFoundCancel"
             />
           </div>
 
@@ -107,7 +365,14 @@
                   <!-- 价格显示 -->
                   <div class="flex items-baseline space-x-3">
                     <span class="text-2xl font-bold bg-gradient-to-r from-white via-slate-100 to-slate-200 bg-clip-text text-transparent tracking-tight">
-                      {{ formatPrice(analysisData?.current_price) }}
+                      <template v-if="formatPriceParts(analysisData?.current_price).value">
+                        <span v-if="formatPriceParts(analysisData?.current_price).prefix" class="text-gray-400">{{ formatPriceParts(analysisData?.current_price).prefix }}</span>
+                        <span v-if="formatPriceParts(analysisData?.current_price).repeat" class="text-gray-400">{{ formatPriceParts(analysisData?.current_price).repeat }}</span>
+                        <span class="text-emerald-400">{{ formatPriceParts(analysisData?.current_price).value }}</span>
+                      </template>
+                      <template v-else>
+                        {{ formatPriceParts(analysisData?.current_price).prefix }}
+                      </template>
                     </span>
                     <span class="text-sm text-slate-400 uppercase font-medium tracking-wider">{{ currentMarketType === 'crypto' ? 'USD' : 'USD' }}</span>
                   </div>
@@ -181,261 +446,6 @@
           </div>
         </div>
       </main>
-
-            <!-- 覆盖面板区域 - 与价格卡片对齐 -->
-            <div v-if="activePanel" class="absolute top-0 left-0 right-0 z-50 px-4 pt-12">
-              <!-- 搜索面板 -->
-              <div v-if="activePanel === 'search'"
-                   class="w-full max-w-[375px] mx-auto bg-gradient-to-br from-slate-800/95 via-slate-900/95 to-slate-800/95 rounded-3xl border border-blue-500/40 backdrop-blur-xl shadow-2xl shadow-blue-500/10"
-                   @click.stop>
-                <!-- 搜索表单区域 - 现代化设计 -->
-                <div class="p-5">
-                  <!-- 搜索输入框 -->
-                  <div class="relative mb-4">
-                    <div class="absolute left-4 top-1/2 transform -translate-y-1/2">
-                      <i class="ri-search-line text-blue-400/60"></i>
-                    </div>
-                    <input
-                      v-model="searchQuery"
-                      @input="handleSearch"
-                      @click.stop
-                      type="text"
-                      :placeholder="currentMarketType === 'crypto' ? t('common.search_crypto_placeholder') : t('common.search_stock_placeholder')"
-                      class="w-full pl-10 pr-4 py-3 bg-slate-700/30 border border-slate-600/30 rounded-2xl text-white placeholder-slate-400 focus:outline-none focus:border-blue-500/60 focus:bg-slate-700/50 transition-all duration-300 text-sm backdrop-blur-sm"
-                    />
-                  </div>
-
-                  <!-- 搜索结果 -->
-                  <div v-if="searchLoading" class="flex items-center justify-center py-2 text-slate-400">
-                    <i class="ri-loader-4-line animate-spin text-sm mr-2"></i>
-                    <span class="text-xs">{{ t('search.searching') }}</span>
-                  </div>
-                  <div v-else-if="searchQuery && searchResults.length === 0" class="text-center py-2 text-slate-400">
-                    <div class="text-xs">{{ t('search.no_results') }}</div>
-                  </div>
-                  <div v-else-if="searchResults.length > 0" class="max-h-20 overflow-y-auto space-y-1">
-                    <button
-                      v-for="result in searchResults"
-                      :key="result.symbol"
-                      @click="handleAssetSwitch(result.symbol)"
-                      class="w-full text-left p-2 bg-slate-700/30 hover:bg-slate-600/40 rounded-lg border border-slate-600/30 hover:border-slate-500 transition-all"
-                    >
-                      <div class="flex items-center space-x-2">
-                        <div class="w-4 h-4 rounded flex items-center justify-center"
-                             :class="{
-                               'bg-blue-500/20 text-blue-400': result.market_type === 'crypto',
-                               'bg-green-500/20 text-green-400': result.market_type === 'stock'
-                             }">
-                          <i :class="{
-                               'ri-currency-line': result.market_type === 'crypto',
-                               'ri-line-chart-line': result.market_type === 'stock'
-                             }" class="text-xs"></i>
-                        </div>
-                        <div class="flex-1">
-                          <div class="font-medium text-white text-xs">{{ result.symbol }}</div>
-                        </div>
-                      </div>
-                    </button>
-                  </div>
-                </div>
-
-                <!-- 热门搜索区域 -->
-                <div v-if="!searchQuery" class="border-t border-slate-700/30 p-5">
-                  <div class="flex items-center justify-between mb-4">
-                    <div class="flex items-center space-x-2">
-                      <span class="text-sm font-medium text-slate-300">{{ t('search.popular_searches') }}</span>
-                    </div>
-                    <i class="ri-fire-line text-sm text-orange-400"></i>
-                  </div>
-                  <div class="grid grid-cols-4 gap-3">
-                    <button
-                      v-for="asset in getPopularSearches()"
-                      :key="asset.symbol"
-                      @click="handleAssetSwitch(asset.symbol)"
-                      class="group relative p-3 rounded-2xl bg-gradient-to-br from-slate-700/30 to-slate-800/30 hover:from-slate-600/40 hover:to-slate-700/40 border border-slate-600/30 hover:border-slate-500/60 transition-all duration-300 text-center hover:scale-105 hover:shadow-lg"
-                    >
-                      <div class="text-xs font-semibold text-white group-hover:text-blue-300 transition-colors duration-200">{{ asset.display }}</div>
-                      <div class="absolute inset-0 rounded-2xl bg-gradient-to-br from-blue-500/5 to-purple-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-                    </button>
-                  </div>
-                </div>
-              </div>
-
-              <!-- 收藏面板 -->
-              <div v-if="activePanel === 'favorites'"
-                   class="w-full max-w-[375px] mx-auto bg-gradient-to-br from-slate-800/95 via-slate-900/95 to-slate-800/95 rounded-3xl border border-yellow-500/40 backdrop-blur-xl shadow-2xl shadow-yellow-500/10 min-h-[120px]"
-                   @click.stop>
-                <!-- 基础信息区域 - 现代化设计 -->
-                <div class="p-5">
-                  <div class="flex items-center justify-between mb-4">
-                    <div class="flex items-center space-x-3">
-                      <i class="ri-bookmark-fill text-lg text-yellow-400"></i>
-                      <h3 class="text-lg font-bold bg-gradient-to-r from-yellow-400 to-orange-400 bg-clip-text text-transparent">{{ t('favorites.title') }}</h3>
-                    </div>
-                    <div v-if="favoriteAssets.length > 0" class="px-3 py-1 bg-yellow-500/10 border border-yellow-500/30 rounded-full">
-                      <span class="text-xs text-yellow-300 font-medium">{{ favoriteAssets.length }} {{ t('common.items') }}</span>
-                    </div>
-                  </div>
-
-                  <!-- 加载状态 -->
-                  <div v-if="favoritesLoading" class="flex items-center justify-center py-4 text-slate-400">
-                    <i class="ri-loader-4-line animate-spin text-sm mr-2"></i>
-                    <span class="text-xs">{{ t('common.loading') }}</span>
-                  </div>
-
-                  <!-- 空状态 -->
-                  <div v-else-if="favoriteAssets.length === 0" class="text-center py-4 text-slate-400">
-                    <i class="ri-bookmark-line text-lg mb-2 opacity-50"></i>
-                    <div class="text-xs">{{ t('favorites.empty') }}</div>
-                  </div>
-
-                  <!-- 有收藏数据时显示前几个 -->
-                  <div v-else-if="favoriteAssets.length <= 4" class="grid grid-cols-2 gap-2">
-                    <div
-                      v-for="asset in favoriteAssets"
-                      :key="`${asset.symbol}-${asset.market_type}`"
-                      class="group relative flex items-center p-2 bg-slate-700/30 hover:bg-slate-600/40 rounded-lg border border-slate-600/30 hover:border-yellow-500/40 transition-all duration-200 cursor-pointer"
-                      @click="handleAssetSwitch(asset.symbol)"
-                    >
-                      <!-- 当前选中指示器 -->
-                      <div v-if="asset.symbol === currentSymbol" class="absolute top-1 right-1 w-1.5 h-1.5 bg-yellow-400 rounded-full"></div>
-
-                      <!-- 市场类型图标 -->
-                      <div class="flex-shrink-0 w-4 h-4 rounded flex items-center justify-center mr-2"
-                           :class="{
-                             'bg-blue-500/20 text-blue-400': asset.market_type === 'crypto',
-                             'bg-green-500/20 text-green-400': asset.market_type === 'stock'
-                           }">
-                        <i :class="{
-                             'ri-currency-line': asset.market_type === 'crypto',
-                             'ri-line-chart-line': asset.market_type === 'stock'
-                           }" class="text-xs"></i>
-                      </div>
-
-                      <!-- 资产信息 -->
-                      <div class="flex-1 min-w-0">
-                        <div class="font-medium text-white text-xs">{{ formatDisplaySymbol(asset.symbol, asset.market_type) }}</div>
-                      </div>
-
-                      <!-- 删除按钮 - 始终可见 -->
-                      <button
-                        @click.stop="removeFavorite(asset.symbol, asset.market_type)"
-                        class="flex-shrink-0 w-5 h-5 rounded-full bg-red-500/20 hover:bg-red-500/40 text-red-400 hover:text-red-300 flex items-center justify-center transition-all duration-200"
-                        :title="t('favorites.remove')"
-                      >
-                        <i class="ri-close-line text-xs"></i>
-                      </button>
-                    </div>
-                  </div>
-
-                  <!-- 收藏数量较多时显示部分 -->
-                  <div v-else class="space-y-2">
-                    <div class="grid grid-cols-2 gap-2">
-                      <div
-                        v-for="asset in favoriteAssets.slice(0, 4)"
-                        :key="`${asset.symbol}-${asset.market_type}`"
-                        class="group relative flex items-center p-2 bg-slate-700/30 hover:bg-slate-600/40 rounded-lg border border-slate-600/30 hover:border-yellow-500/40 transition-all duration-200 cursor-pointer"
-                        @click="handleAssetSwitch(asset.symbol)"
-                      >
-                        <div v-if="asset.symbol === currentSymbol" class="absolute top-1 right-1 w-1.5 h-1.5 bg-yellow-400 rounded-full"></div>
-                        <div class="flex-shrink-0 w-4 h-4 rounded flex items-center justify-center mr-2"
-                             :class="{
-                               'bg-blue-500/20 text-blue-400': asset.market_type === 'crypto',
-                               'bg-green-500/20 text-green-400': asset.market_type === 'stock'
-                             }">
-                          <i :class="{
-                               'ri-currency-line': asset.market_type === 'crypto',
-                               'ri-line-chart-line': asset.market_type === 'stock'
-                             }" class="text-xs"></i>
-                        </div>
-                        <div class="flex-1 min-w-0">
-                          <div class="font-medium text-white text-xs">{{ formatDisplaySymbol(asset.symbol, asset.market_type) }}</div>
-                        </div>
-                        <button
-                          @click.stop="removeFavorite(asset.symbol, asset.market_type)"
-                          class="flex-shrink-0 w-5 h-5 rounded-full bg-red-500/20 hover:bg-red-500/40 text-red-400 hover:text-red-300 flex items-center justify-center transition-all duration-200"
-                          :title="t('favorites.remove')"
-                        >
-                          <i class="ri-close-line text-xs"></i>
-                        </button>
-                      </div>
-                    </div>
-                    <div v-if="favoriteAssets.length > 4" class="text-center">
-                      <span class="text-xs text-slate-400">+{{ favoriteAssets.length - 4 }} {{ t('common.more') }}</span>
-                    </div>
-                  </div>
-                </div>
-
-                <!-- 扩展区域 - 当收藏数量多时显示 -->
-                <div v-if="favoriteAssets.length > 4" class="border-t border-slate-700/50 p-4">
-                  <div class="grid grid-cols-3 gap-2 max-h-32 overflow-y-auto">
-                    <div
-                      v-for="asset in favoriteAssets.slice(4)"
-                      :key="`${asset.symbol}-${asset.market_type}-extended`"
-                      class="group relative flex items-center p-2 bg-slate-700/30 hover:bg-slate-600/40 rounded-lg border border-slate-600/30 hover:border-yellow-500/40 transition-all duration-200 cursor-pointer"
-                      @click="handleAssetSwitch(asset.symbol)"
-                    >
-                      <div v-if="asset.symbol === currentSymbol" class="absolute top-1 right-1 w-1.5 h-1.5 bg-yellow-400 rounded-full"></div>
-                      <div class="flex-shrink-0 w-4 h-4 rounded flex items-center justify-center mr-2"
-                           :class="{
-                             'bg-blue-500/20 text-blue-400': asset.market_type === 'crypto',
-                             'bg-green-500/20 text-green-400': asset.market_type === 'stock'
-                           }">
-                        <i :class="{
-                             'ri-currency-line': asset.market_type === 'crypto',
-                             'ri-line-chart-line': asset.market_type === 'stock'
-                           }" class="text-xs"></i>
-                      </div>
-                      <div class="flex-1 min-w-0">
-                        <div class="font-medium text-white text-xs">{{ formatDisplaySymbol(asset.symbol, asset.market_type) }}</div>
-                      </div>
-                      <button
-                        @click.stop="removeFavorite(asset.symbol, asset.market_type)"
-                        class="flex-shrink-0 w-5 h-5 rounded-full bg-red-500/20 hover:bg-red-500/40 text-red-400 hover:text-red-300 flex items-center justify-center transition-all duration-200"
-                        :title="t('favorites.remove')"
-                      >
-                        <i class="ri-close-line text-xs"></i>
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <!-- 热门资产面板 -->
-              <div v-if="activePanel === 'popular'"
-                   class="w-full max-w-[375px] mx-auto bg-gradient-to-br from-slate-800/95 via-slate-900/95 to-slate-800/95 rounded-3xl border border-green-500/40 backdrop-blur-xl shadow-2xl shadow-green-500/10 p-5"
-                   @click.stop>
-                <h3 class="text-base font-semibold text-green-400 mb-4 flex items-center">
-                  <i class="ri-fire-line mr-2"></i>
-                  {{ currentMarketType === 'crypto' ? t('common.popular_tokens') : t('common.popular_stocks') }}
-                </h3>
-                <div class="grid grid-cols-4 gap-3">
-                  <button
-                    v-for="asset in currentPopularAssets"
-                    :key="asset.symbol"
-                    @click="handleAssetSwitch(asset.symbol)"
-                    :disabled="analysisLoading || asset.symbol === currentSymbol"
-                    class="group relative p-3 rounded-lg border transition-all duration-300 hover:scale-105"
-                    :class="{
-                      'bg-blue-500/20 border-blue-400/50 text-blue-300 shadow-lg shadow-blue-500/20': asset.symbol === currentSymbol,
-                      'bg-slate-700/40 border-slate-600/50 text-slate-300 hover:bg-slate-600/50 hover:border-slate-500/60': asset.symbol !== currentSymbol && !analysisLoading,
-                      'bg-slate-800/30 border-slate-700/30 text-slate-500 cursor-not-allowed': analysisLoading
-                    }"
-                  >
-                    <div class="text-sm font-bold text-center">{{ asset.display }}</div>
-                    <div
-                      v-if="asset.symbol === currentSymbol"
-                      class="absolute -top-1 -right-1 w-2.5 h-2.5 bg-blue-400 rounded-full border border-slate-800"
-                    ></div>
-                  </button>
-                </div>
-              </div>
-            </div>
-
-            <!-- 点击遮罩关闭面板 -->
-            <div v-if="activePanel"
-                 @click="activePanel = null"
-                 class="fixed inset-0 z-40 bg-black/20"></div>
 
             <!-- 趋势分析卡片 -->
             <div v-if="analysisData?.trend_analysis?.probabilities">
@@ -622,15 +632,42 @@
                 <div class="grid grid-cols-3 gap-4">
                   <div class="group/price text-center p-4 rounded-xl bg-blue-500/10 border border-blue-500/30 hover:border-blue-400/50 transition-all duration-200 hover:scale-105">
                     <div class="text-sm text-blue-300 font-semibold mb-2">{{ t('analysis.entry_price') }}</div>
-                    <div class="text-base font-bold text-white">{{ formatPrice(analysisData.trading_advice.entry_price) }}</div>
+                    <div class="text-sm font-bold text-white">
+                      <template v-if="formatPriceParts(analysisData.trading_advice.entry_price).value">
+                        <span v-if="formatPriceParts(analysisData.trading_advice.entry_price).prefix" class="text-gray-400">{{ formatPriceParts(analysisData.trading_advice.entry_price).prefix }}</span>
+                        <span v-if="formatPriceParts(analysisData.trading_advice.entry_price).repeat" class="text-gray-400">{{ formatPriceParts(analysisData.trading_advice.entry_price).repeat }}</span>
+                        <span class="text-blue-400">{{ formatPriceParts(analysisData.trading_advice.entry_price).value }}</span>
+                      </template>
+                      <template v-else>
+                        {{ formatPriceParts(analysisData.trading_advice.entry_price).prefix }}
+                      </template>
+                    </div>
                   </div>
                   <div class="group/price text-center p-4 rounded-xl bg-red-500/10 border border-red-500/30 hover:border-red-400/50 transition-all duration-200 hover:scale-105">
                     <div class="text-sm text-red-300 font-semibold mb-2">{{ t('analysis.stop_loss') }}</div>
-                    <div class="text-base font-bold text-red-400">{{ formatPrice(analysisData.trading_advice.stop_loss) }}</div>
+                    <div class="text-sm font-bold text-red-400">
+                      <template v-if="formatPriceParts(analysisData.trading_advice.stop_loss).value">
+                        <span v-if="formatPriceParts(analysisData.trading_advice.stop_loss).prefix" class="text-gray-400">{{ formatPriceParts(analysisData.trading_advice.stop_loss).prefix }}</span>
+                        <span v-if="formatPriceParts(analysisData.trading_advice.stop_loss).repeat" class="text-gray-400">{{ formatPriceParts(analysisData.trading_advice.stop_loss).repeat }}</span>
+                        <span>{{ formatPriceParts(analysisData.trading_advice.stop_loss).value }}</span>
+                      </template>
+                      <template v-else>
+                        {{ formatPriceParts(analysisData.trading_advice.stop_loss).prefix }}
+                      </template>
+                    </div>
                   </div>
                   <div class="group/price text-center p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/30 hover:border-emerald-400/50 transition-all duration-200 hover:scale-105">
                     <div class="text-sm text-emerald-300 font-semibold mb-2">{{ t('analysis.take_profit') }}</div>
-                    <div class="text-base font-bold text-emerald-400">{{ formatPrice(analysisData.trading_advice.take_profit) }}</div>
+                    <div class="text-sm font-bold text-emerald-400">
+                      <template v-if="formatPriceParts(analysisData.trading_advice.take_profit).value">
+                        <span v-if="formatPriceParts(analysisData.trading_advice.take_profit).prefix" class="text-gray-400">{{ formatPriceParts(analysisData.trading_advice.take_profit).prefix }}</span>
+                        <span v-if="formatPriceParts(analysisData.trading_advice.take_profit).repeat" class="text-gray-400">{{ formatPriceParts(analysisData.trading_advice.take_profit).repeat }}</span>
+                        <span>{{ formatPriceParts(analysisData.trading_advice.take_profit).value }}</span>
+                      </template>
+                      <template v-else>
+                        {{ formatPriceParts(analysisData.trading_advice.take_profit).prefix }}
+                      </template>
+                    </div>
                   </div>
                 </div>
 
@@ -805,6 +842,7 @@
                 :marketType="currentMarketType"
                 @refresh-success="handleRefreshSuccess"
                 @refresh-error="handleRefreshError"
+                @cancel="handleTokenNotFoundCancel"
               />
             </div>
           </main>
@@ -893,7 +931,7 @@ import { useI18n } from 'vue-i18n'
 const { t } = useEnhancedI18n()
 const { t: i18nT } = useI18n()
 
-import { getTechnicalAnalysis, getLatestTechnicalAnalysis, favorites } from '@/api'
+import { getTechnicalAnalysis, getLatestTechnicalAnalysis, favorites, search } from '@/api'
 import { parseSymbolFromUrl } from '@/utils/trading'
 import type {
   FormattedTechnicalAnalysisData
@@ -981,6 +1019,9 @@ const popularStocks = ref([
   { symbol: 'NFLX', display: 'NFLX' }
 ])
 
+// 热门资产数据
+const popularAssets = ref<any[]>([])
+
 // 当前热门资产计算属性
 const currentPopularAssets = computed(() => {
   if (currentMarketType.value === 'crypto') {
@@ -993,14 +1034,56 @@ const currentPopularAssets = computed(() => {
   }
 })
 
-// 获取热门搜索数据
+// 获取热门搜索数据 - 使用真实API
 const getPopularSearches = () => {
-  if (currentMarketType.value === 'crypto') {
-    return popularTokens.value.slice(0, 8) // 取前8个
-  } else if (currentMarketType.value === 'stock') {
-    return popularStocks.value.slice(0, 8) // 取前8个
-  } else {
-    return []
+  return popularAssets.value.slice(0, 8) // 取前8个
+}
+
+// 加载热门资产数据
+const loadPopularAssets = async () => {
+  try {
+    const response = await search.getPopularAssets(currentMarketType.value as 'crypto' | 'stock')
+    
+    if (response.status === 'success' && response.data) {
+      // 过滤并格式化热门资产数据
+      const filteredAssets = response.data
+        .map((asset: any) => ({
+          symbol: asset.symbol,
+          display: asset.name || asset.symbol,
+          market_type: asset.market_type,
+          exchange: asset.exchange,
+          sector: asset.sector
+        }))
+        .filter((asset: any) => {
+          // 对于加密货币，只保留有效的USDT交易对
+          if (asset.market_type === 'crypto') {
+            return isValidCryptoSymbol(asset.symbol)
+          }
+          return true
+        })
+        .slice(0, 8) // 限制热门资产数量
+
+      popularAssets.value = filteredAssets
+    } else {
+      // 如果API失败，使用默认数据
+      if (currentMarketType.value === 'crypto') {
+        popularAssets.value = popularTokens.value
+      } else if (currentMarketType.value === 'stock') {
+        popularAssets.value = popularStocks.value
+      } else {
+        popularAssets.value = []
+      }
+    }
+  } catch (error) {
+    console.error('加载热门资产失败:', error)
+    // 使用默认数据作为后备
+    if (currentMarketType.value === 'crypto') {
+      popularAssets.value = popularTokens.value
+    } else if (currentMarketType.value === 'stock') {
+      popularAssets.value = popularStocks.value
+    } else {
+      popularAssets.value = []
+    }
   }
 }
 
@@ -1018,6 +1101,9 @@ const handleMarketTypeChange = (marketType: 'crypto' | 'stock' | 'china') => {
   currentMarketType.value = marketType
   // 保存市场类型到localStorage
   localStorage.setItem('currentMarketType', marketType)
+
+  // 重新加载热门资产数据
+  loadPopularAssets()
 
   // 如果收藏面板正在显示，重新加载收藏数据以显示新市场的收藏
   if (activePanel.value === 'favorites') {
@@ -1224,7 +1310,6 @@ const formatPrice = (price?: number | string | null) => {
   if (typeof price === 'string') {
     // 尝试直接解析数字（包括科学计数法）
     price = parseFloat(price)
-
     // 如果转换失败，返回原始字符串
     if (isNaN(price)) return price || '--'
   }
@@ -1235,14 +1320,11 @@ const formatPrice = (price?: number | string | null) => {
 
   // 处理非常小的数值（科学计数法）
   if (numPrice < 0.0001) {
-    // 对于非常小的数值，使用科学计数法或更精确的表示
-    if (numPrice < 0.00000001) {
-      // 极小值使用科学计数法
-      return numPrice.toExponential(8)
-    } else {
-      // 小值但不是极小值，显示更多小数位，去掉末尾的0
-      return parseFloat(numPrice.toFixed(8)).toString()
-    }
+    // 对于非常小的数值，显示为小数点形式，最多8位小数，去掉末尾多余的0
+    let fixed = numPrice.toFixed(8)
+    // 去掉末尾多余的0和小数点
+    fixed = fixed.replace(/(?:\.\d*?[1-9])0+$/,'$1').replace(/\.$/, '')
+    return fixed
   } else if (numPrice < 1) {
     // 小于1的价格显示6位小数，去掉末尾的0
     return parseFloat(numPrice.toFixed(6)).toString()
@@ -1321,24 +1403,30 @@ const togglePanel = (panelType: 'search' | 'favorites' | 'popular') => {
 const handleAssetSwitch = async (symbol: string) => {
   activePanel.value = null // 关闭面板
 
+  // 兼容下划线格式，统一转为无下划线格式
+  let normalizedSymbol = symbol.replace('_USDT', 'USDT')
+
+  // 验证交易对格式
+  if (currentMarketType.value === 'crypto') {
+    if (!isValidCryptoSymbol(symbol)) {
+      console.warn('无效的加密货币交易对:', symbol)
+      ElMessage.warning(t('error.invalid_symbol_format'))
+      return
+    }
+  }
+
   // 根据symbol自动检测市场类型
   let targetMarketType = currentMarketType.value
-
-  // 检查是否是加密货币格式
-  if (symbol.includes('USDT') || symbol.includes('BTC') || symbol.includes('ETH')) {
+  if (normalizedSymbol.includes('USDT') || normalizedSymbol.includes('BTC') || normalizedSymbol.includes('ETH')) {
     targetMarketType = 'crypto'
-  }
-  // 检查是否在热门股票列表中
-  else if (popularStocks.value.some(stock => stock.symbol === symbol)) {
+  } else if (popularStocks.value.some(stock => stock.symbol === normalizedSymbol)) {
     targetMarketType = 'stock'
-  }
-  // 检查是否在热门加密货币列表中
-  else if (popularTokens.value.some(token => token.symbol === symbol)) {
+  } else if (popularTokens.value.some(token => token.symbol === normalizedSymbol)) {
     targetMarketType = 'crypto'
   }
 
-  console.log(`[handleAssetSwitch] 切换到 ${symbol} (${targetMarketType})`)
-  await switchToAsset(symbol, targetMarketType)
+  console.log(`[handleAssetSwitch] 切换到 ${normalizedSymbol} (${targetMarketType})`)
+  await switchToAsset(normalizedSymbol, targetMarketType)
 }
 
 // 搜索处理函数
@@ -1353,30 +1441,42 @@ const handleSearch = () => {
 
     searchLoading.value = true
     try {
-      // 这里可以添加实际的搜索API调用
-      // 模拟搜索延迟
-      await new Promise(resolve => setTimeout(resolve, 500))
+      // 调用真实的搜索API
+      const response = await search.searchAssets(
+        searchQuery.value.trim(), 
+        currentMarketType.value as 'crypto' | 'stock', 
+        20 // 增加搜索数量，然后过滤
+      )
 
-      // 模拟搜索结果
-      const mockResults = [
-        { symbol: 'BTCUSDT', name: 'Bitcoin', market_type: 'crypto' },
-        { symbol: 'ETHUSDT', name: 'Ethereum', market_type: 'crypto' },
-        { symbol: 'SOLUSDT', name: 'Solana', market_type: 'crypto' },
-        { symbol: 'BNBUSDT', name: 'BNB', market_type: 'crypto' },
-        { symbol: 'AAPL', name: 'Apple Inc.', market_type: 'stock' },
-        { symbol: 'GOOGL', name: 'Alphabet Inc.', market_type: 'stock' },
-        { symbol: 'MSFT', name: 'Microsoft Corporation', market_type: 'stock' },
-        { symbol: 'TSLA', name: 'Tesla Inc.', market_type: 'stock' }
-      ].filter(item => {
-        const query = searchQuery.value.toLowerCase()
-        return item.symbol.toLowerCase().includes(query) ||
-               item.name.toLowerCase().includes(query)
-      }).filter(item => {
-        // 根据当前市场类型过滤
-        return item.market_type === currentMarketType.value
-      }).slice(0, 5) // 限制结果数量
+      if (response.status === 'success' && response.data) {
+        // 格式化搜索结果并过滤
+        const keyword = searchQuery.value.trim().toLowerCase()
+        const filteredResults = response.data
+          .map((asset: any) => ({
+            symbol: asset.symbol,
+            name: asset.name || asset.symbol,
+            market_type: asset.market_type,
+            exchange: asset.exchange,
+            sector: asset.sector
+          }))
+          .filter((asset: any) => {
+            // 只保留 symbol 或 name 包含关键词的结果
+            const symbolMatch = asset.symbol.toLowerCase().includes(keyword)
+            const nameMatch = asset.name && asset.name.toLowerCase().includes(keyword)
+            if (!(symbolMatch || nameMatch)) return false
+            // 对于加密货币，只保留有效的USDT交易对
+            if (asset.market_type === 'crypto') {
+              return isValidCryptoSymbol(asset.symbol)
+            }
+            return true
+          })
+          .slice(0, 10) // 限制最终结果数量
 
-      searchResults.value = mockResults
+        searchResults.value = filteredResults
+      } else {
+        console.log('搜索API返回无数据或失败:', response)
+        searchResults.value = []
+      }
     } catch (error) {
       console.error('搜索失败:', error)
       searchResults.value = []
@@ -1519,16 +1619,37 @@ let loadingPromise: Promise<any> | null = null;
 let debounceTimer: NodeJS.Timeout | null = null;
 let abortController: AbortController | null = null;
 
+// 交易对验证函数
+const isValidCryptoSymbol = (symbol: string): boolean => {
+  if (!symbol || typeof symbol !== 'string') {
+    return false
+  }
+  // 允许 USDT 结尾或 _USDT 结尾
+  if (symbol.endsWith('USDT')) return true
+  if (symbol.endsWith('_USDT')) return true
+  return false
+}
+
 // 实际请求逻辑提取为独立函数，防止递归导致重复请求
 const doActualLoadAnalysisData = async (showLoading = true, noCache = false) => {
   // 这里复制原本try块里的实际请求逻辑
   // 增强的 symbol 验证
   if (!currentSymbol.value || typeof currentSymbol.value !== 'string' || !currentSymbol.value.trim()) {
     console.error('doActualLoadAnalysisData: Invalid currentSymbol.value:', currentSymbol.value)
-    error.value = '无法获取当前交易对信息'
+    error.value = t('error.invalid_symbol_format')
+    ElMessage.error(t('error.invalid_symbol_format'))
     loading.value = false
     analysisLoading.value = false
-    ElMessage.error('交易对无效，无法加载数据');
+    return
+  }
+
+  // 对于加密货币，验证交易对格式
+  if (currentMarketType.value === 'crypto' && !isValidCryptoSymbol(currentSymbol.value)) {
+    console.error('doActualLoadAnalysisData: Invalid crypto symbol format:', currentSymbol.value)
+    error.value = t('error.invalid_symbol_format')
+    ElMessage.error(t('error.invalid_symbol_format'))
+    loading.value = false
+    analysisLoading.value = false
     return
   }
 
@@ -1724,6 +1845,9 @@ onMounted(async () => {
 
   // 主动触发content script重新检测当前页面
   await triggerContentScriptDetection();
+
+  // 加载热门资产数据
+  await loadPopularAssets();
 
   // 优先使用localStorage中保存的状态，只有在特定情况下才从外部获取symbol
   try {
@@ -2575,6 +2699,51 @@ watch([loading, analysisLoading], ([l, a]) => {
 onUnmounted(() => {
   if (skeletonTimer) clearTimeout(skeletonTimer)
 })
+
+// 在setup中添加handleTokenNotFoundCancel方法
+const handleTokenNotFoundCancel = () => {
+  // 记录当前symbol
+  const prevSymbol = localStorage.getItem('prevSymbol')
+  if (prevSymbol && prevSymbol !== currentSymbol.value) {
+    switchToAsset(prevSymbol, currentMarketType.value)
+  } else {
+    switchToAsset('BTCUSDT', 'crypto')
+  }
+  isTokenNotFound.value = false
+  error.value = null
+}
+// 在每次切换symbol时记录prevSymbol
+watch(currentSymbol, (newSymbol, oldSymbol) => {
+  if (oldSymbol && oldSymbol !== newSymbol) {
+    localStorage.setItem('prevSymbol', oldSymbol)
+  }
+})
+
+// 新增：极小价格分段高亮显示（0.(n)85格式）
+const formatPriceParts = (price?: number | string | null) => {
+  if (price === undefined || price === null) return { prefix: '--', repeat: '', value: '' }
+  if (typeof price === 'string') {
+    price = parseFloat(price)
+    if (isNaN(price)) return { prefix: price || '--', repeat: '', value: '' }
+  }
+  const numPrice = Number(price)
+  if (isNaN(numPrice)) return { prefix: '--', repeat: '', value: '' }
+  if (numPrice < 0.0001 && numPrice > 0) {
+    // 8位小数
+    let fixed = numPrice.toFixed(8)
+    // 统计小数点后连续0的个数
+    const match = fixed.match(/^0\.(0+)([1-9]\d*)$/)
+    if (match) {
+      const zeroCount = match[1].length
+      return { prefix: '0.', repeat: zeroCount > 0 ? `(${zeroCount})` : '', value: match[2] }
+    } else {
+      // 可能全是0
+      return { prefix: fixed, repeat: '', value: '' }
+    }
+  }
+  // 其它情况直接返回整体为value
+  return { prefix: '', repeat: '', value: formatPrice(numPrice) }
+}
 
 </script>
 

@@ -976,6 +976,51 @@ export const search = {
         params.market_type = marketType
       }
 
+      // 在扩展环境中使用代理请求
+      if (isExtension()) {
+        console.log('search.searchAssets: 在扩展环境中使用代理请求')
+        const token = localStorage.getItem('token')
+        console.log('search.searchAssets: token存在:', !!token)
+        
+        const response = await new Promise((resolve, reject) => {
+          const requestData = {
+            type: 'PROXY_API_REQUEST',
+            data: {
+              url: '/crypto/search/',
+              method: 'GET',
+              headers: {
+                'Authorization': token,
+                'Accept': 'application/json'
+              },
+              params
+            }
+          }
+          
+          console.log('search.searchAssets: 发送请求:', requestData)
+          
+          chrome.runtime.sendMessage(requestData, (response) => {
+            console.log('search.searchAssets: 收到响应:', response)
+            
+            if (chrome.runtime.lastError) {
+              console.error('search.searchAssets: Chrome runtime错误:', chrome.runtime.lastError.message)
+              reject(new Error(chrome.runtime.lastError.message));
+              return;
+            }
+            
+            if (response && response.success) {
+              console.log('search.searchAssets: 请求成功')
+              resolve(response.data);
+            } else {
+              console.error('search.searchAssets: 请求失败:', response?.error || '未知错误')
+              reject(new Error(response?.error || '搜索资产失败'));
+            }
+          });
+        });
+        return response as SearchResponse;
+      }
+
+      // 非扩展环境使用普通axios请求
+      console.log('search.searchAssets: 在非扩展环境中使用axios请求')
       const response = await api.get('/crypto/search/', { params })
       return response as unknown as SearchResponse
     } catch (error) {
@@ -987,9 +1032,54 @@ export const search = {
   // Get popular assets
   getPopularAssets: async (marketType: 'crypto' | 'stock' = 'crypto'): Promise<SearchResponse> => {
     try {
-      const response = await api.get('/crypto/popular-assets/', {
-        params: { market_type: marketType }
-      })
+      const params = { market_type: marketType }
+
+      // 在扩展环境中使用代理请求
+      if (isExtension()) {
+        console.log('search.getPopularAssets: 在扩展环境中使用代理请求')
+        const token = localStorage.getItem('token')
+        console.log('search.getPopularAssets: token存在:', !!token)
+        
+        const response = await new Promise((resolve, reject) => {
+          const requestData = {
+            type: 'PROXY_API_REQUEST',
+            data: {
+              url: '/crypto/popular-assets/',
+              method: 'GET',
+              headers: {
+                'Authorization': token,
+                'Accept': 'application/json'
+              },
+              params
+            }
+          }
+          
+          console.log('search.getPopularAssets: 发送请求:', requestData)
+          
+          chrome.runtime.sendMessage(requestData, (response) => {
+            console.log('search.getPopularAssets: 收到响应:', response)
+            
+            if (chrome.runtime.lastError) {
+              console.error('search.getPopularAssets: Chrome runtime错误:', chrome.runtime.lastError.message)
+              reject(new Error(chrome.runtime.lastError.message));
+              return;
+            }
+            
+            if (response && response.success) {
+              console.log('search.getPopularAssets: 请求成功')
+              resolve(response.data);
+            } else {
+              console.error('search.getPopularAssets: 请求失败:', response?.error || '未知错误')
+              reject(new Error(response?.error || '获取热门资产失败'));
+            }
+          });
+        });
+        return response as SearchResponse;
+      }
+
+      // 非扩展环境使用普通axios请求
+      console.log('search.getPopularAssets: 在非扩展环境中使用axios请求')
+      const response = await api.get('/crypto/popular-assets/', { params })
       return response as unknown as SearchResponse
     } catch (error) {
       console.error('Get popular assets error:', error)

@@ -214,7 +214,8 @@ export default {
     server_timeout: 'Server timeout, please try again later',
     not_logged_in: 'Not logged in',
     no_response_from_server: 'No response from server',
-    refresh_failed: 'Refresh failed, please try again'
+    refresh_failed: 'Refresh failed, please try again',
+    invalid_symbol_format: 'Invalid symbol format, please select a valid USDT trading pair'
   },
   nav: {
     market: 'Market',

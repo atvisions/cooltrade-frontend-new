@@ -205,7 +205,8 @@ export default {
     password_change_failed_log: '修改密码失败:',
     password_too_short: '密码长度至少为6位',
     password_must_contain_letters_numbers: '密码必须包含字母和数字',
-    server_timeout: '服务器超时，请稍后重试'
+    server_timeout: '服务器超时，请稍后重试',
+    invalid_symbol_format: '无效的交易对格式，请选择有效的USDT交易对'
   },
   nav: {
     market: '行情',
