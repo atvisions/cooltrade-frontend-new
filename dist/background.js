@@ -393,6 +393,7 @@ async function handleApiProxyRequest(data, sendResponse) {
       };
 
       console.log('Background script: 发送最终响应:', finalResponse);
+      console.log('Background script: 响应状态:', response.status, '成功:', isSuccessfulResponse);
       sendResponse(finalResponse);
       return; // Exit the retry loop on success
 

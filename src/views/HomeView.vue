@@ -16,7 +16,7 @@
         <div class="px-4 space-y-4 w-full">
 
           <!-- 骨架屏 - 在加载过程中显示，但不包括TokenNotFound状态 -->
-          <div v-if="(loading || analysisLoading) && !isTokenNotFound">
+          <div v-if="skeletonVisible && !isTokenNotFound">
             <ChartSkeleton loadingText="Loading price data..." />
           </div>
 
@@ -1006,9 +1006,12 @@ const getPopularSearches = () => {
 
 // 市场类型切换处理函数
 const handleMarketTypeChange = (marketType: 'crypto' | 'stock' | 'china') => {
+  console.log(`切换市场类型从 ${currentMarketType.value} 到 ${marketType}`)
+
   // 如果是A股市场，显示开发中提示
   if (marketType === 'china') {
     // 这里可以添加提示信息，暂时不切换
+    console.log('A股市场正在开发中')
     return
   }
 
@@ -1207,6 +1210,8 @@ const setupSymbolListener = () => {
       }
       return true;
     });
+  } else {
+    console.log('Chrome 扩展环境不可用，无法设置消息监听器');
   }
 }
 
@@ -1563,6 +1568,7 @@ const doActualLoadAnalysisData = async (showLoading = true, noCache = false) => 
         // 使用nextTick确保loading状态更新后再设置isTokenNotFound
         nextTick(() => {
           isTokenNotFound.value = true
+          console.log('设置 isTokenNotFound = true, loading =', loading.value, 'analysisLoading =', analysisLoading.value)
         })
       }
       return data;
@@ -1698,8 +1704,11 @@ const checkAuthStatus = () => {
 
 // 组件挂载时加载数据
 onMounted(async () => {
+  console.log('HomeView 组件挂载开始...');
+
   // 检查用户登录状态，如果未登录则直接跳转到登录页
   if (!checkAuthStatus()) {
+    console.log('用户未登录，跳转到登录页面');
     window.location.href = '/login';
     return;
   }
@@ -2539,6 +2548,33 @@ watch(
   },
   { immediate: true }
 )
+
+const MIN_SKELETON_TIME = 400
+const skeletonVisible = ref(false)
+let skeletonTimer: ReturnType<typeof setTimeout> | null = null
+
+watch([loading, analysisLoading], ([l, a]) => {
+  if (l || a) {
+    skeletonVisible.value = true
+    if (skeletonTimer) clearTimeout(skeletonTimer)
+    skeletonTimer = setTimeout(() => {
+      skeletonTimer = null
+      if (!loading.value && !analysisLoading.value) {
+        skeletonVisible.value = false
+      }
+    }, MIN_SKELETON_TIME)
+  } else {
+    if (skeletonTimer) {
+      // 等待最小时间
+    } else {
+      skeletonVisible.value = false
+    }
+  }
+})
+
+onUnmounted(() => {
+  if (skeletonTimer) clearTimeout(skeletonTimer)
+})
 
 </script>
 
