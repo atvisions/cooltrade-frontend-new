@@ -91,39 +91,33 @@ const router = createRouter({
   routes
 })
 
-// 检查登录状态
-function isLoggedIn() {
+// 路由守卫
+router.beforeEach(async (to, from, next) => {
+  // 检查认证状态
   const token = localStorage.getItem('token')
   const userInfo = localStorage.getItem('userInfo')
-  const result = token && userInfo
-  console.log(`🔐 Auth check: token=${!!token}, userInfo=${!!userInfo}, result=${result}`)
-  return result
-}
-
-// 路由守卫
-router.beforeEach((to, from, next) => {
-  // 设置页面标题
-  if (to.meta?.title) {
-    document.title = to.meta.title as string
+  
+  if (token && userInfo) {
+    try {
+      const result = JSON.parse(userInfo)
+      // 认证检查通过，继续导航
+    } catch (error) {
+      // 用户信息解析失败，清除无效数据
+      localStorage.removeItem('token')
+      localStorage.removeItem('userInfo')
+    }
   }
 
-  console.log(`🧭 Navigating from ${from.path} to ${to.path}`)
-
-  const requiresAuth = to.matched.some(record => record.meta.requiresAuth)
-  const isGuestRoute = to.matched.some(record => record.meta.guest)
-
-  if (requiresAuth && !isLoggedIn()) {
-    // 需要登录但未登录，重定向到登录页
-    console.log('🔒 Redirecting to login - authentication required')
-    next({
-      path: '/login',
-      query: { redirect: to.fullPath }
-    })
-  } else if (isGuestRoute && isLoggedIn()) {
-    // 已登录用户访问登录/注册页，重定向到首页
-    console.log('🏠 Redirecting to home - already logged in')
-    next({ path: '/' })
+  // 记录导航
+  // 导航逻辑
+  if (to.meta.requiresAuth && !token) {
+    // 需要认证但未登录，重定向到登录页
+    next('/login')
+  } else if (to.path === '/login' && token) {
+    // 已登录用户访问登录页，重定向到首页
+    next('/')
   } else {
+    // 正常导航
     next()
   }
 })

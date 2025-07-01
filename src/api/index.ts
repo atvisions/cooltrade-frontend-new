@@ -549,104 +549,37 @@ export const getTechnicalAnalysis = async (
   noCache: boolean = false,
   marketType: 'crypto' | 'stock' = 'crypto'
 ): Promise<FormattedTechnicalAnalysisData> => {
-  // 新增日志
-  console.log('[getTechnicalAnalysis] called with:', { symbol, noCache, marketType, stack: new Error().stack });
-  // 更严格的 symbol 校验
-  if (!symbol || typeof symbol !== 'string' || !symbol.trim()) {
-    console.error('getTechnicalAnalysis: Invalid symbol provided:', { symbol, type: typeof symbol });
-    throw new Error('Invalid symbol provided');
-  }
   try {
-    // Ensure symbol is uppercase
-    const normalizedSymbol = symbol.toUpperCase();
-
-    // Format symbol based on market type
-    let fullSymbol: string;
-    let apiPath: string;
-
-    if (marketType === 'crypto') {
-      // Add USDT suffix for crypto if not present
-      fullSymbol = normalizedSymbol.endsWith('USDT')
-        ? normalizedSymbol
-        : `${normalizedSymbol}USDT`;
-      apiPath = `/crypto/technical-indicators/${fullSymbol}/`;
-    } else {
-      // For stocks, use symbol as-is
-      fullSymbol = normalizedSymbol;
-      apiPath = `/stock/technical-indicators/${fullSymbol}/`;
-    }
-
-    // Build request path - use technical-indicators endpoint to read local data
-    const path = apiPath
-
-    // Prepare query params
-    const params: Record<string, any> = {}
-
-    // Add anti-cache param
+    // 构建完整的symbol
+    const fullSymbol = symbol.toUpperCase()
+    
+    // 构建请求URL
+    const endpoint = marketType === 'crypto' ? 'crypto' : 'stock'
+    const url = `/api/${endpoint}/technical-indicators/${fullSymbol}/`
+    
+    // 构建请求参数
+    const params: any = {}
     if (noCache) {
-      params._t = Date.now()
+      params.no_cache = 'true'
+    }
+    
+    // 构建请求头
+    const authHeader = validateToken()
+    const headers = {
+      'Content-Type': 'application/json',
+      'Authorization': authHeader
     }
 
-    console.log(`getTechnicalAnalysis: Reading local report data ${fullSymbol}`)
-
-    // Use proxy in development environment
-    const url = isDevelopment()
-      ? `/api${path}`
-      : `${getBaseUrl()}${path}`;
-
-    // Send request
-    const token = localStorage.getItem('token');
-    const authHeader = token ? (token.startsWith('Token ') ? token : `Token ${token}`) : '';
-
-    // 请求前日志
-    console.log('[getTechnicalAnalysis] sending request', { url, params, headers: { 'Content-Type': 'application/json', 'Authorization': authHeader } });
-    const response = await axios.get(url, {
-      params,
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': authHeader
-      }
-    })
-    // 请求后日志
-    console.log('[getTechnicalAnalysis] response:', response);
-
-    // Check response format
-    const data = response.data
-
-    if (typeof data === 'object') {
-      // Check for special response format
-      if ('status' in data) {
-        if (data.status === 'not_found') {
-          return data as unknown as FormattedTechnicalAnalysisData
-        }
-
-        if (data.status === 'success' && 'data' in data) {
-          // 格式化并返回数据
-          return formatTechnicalAnalysisData(data.data)
-        }
-      }
-    }
-
-    // Assume response is direct technical analysis data, format and return
-    return formatTechnicalAnalysisData(data)
+    // 发送请求
+    const response = await api.get(url, { params, headers })
+    
+    // 格式化数据
+    const formattedData = formatTechnicalAnalysisData(response.data)
+    return formattedData
   } catch (error: any) {
-    // 错误日志
-    console.error('[getTechnicalAnalysis] error:', error, { symbol, noCache, stack: new Error().stack });
-    // Handle 404 error (token not found)
     if (error.response?.status === 404) {
-      // Return a special not_found status instead of throwing error
-      return {
-        status: 'not_found',
-        message: error.response?.data?.message || 'Token data not found',
-        needs_refresh: true
-      } as unknown as FormattedTechnicalAnalysisData
+      throw new Error('not_found')
     }
-
-    // Network error, reformat to more friendly message
-    if (error.code === 'ERR_NETWORK') {
-      throw new Error('Network connection error, please check your network')
-    }
-
     throw error
   }
 }
@@ -659,124 +592,32 @@ export const getLatestTechnicalAnalysis = async (
   symbol: string,
   marketType: 'crypto' | 'stock' = 'crypto'
 ): Promise<FormattedTechnicalAnalysisData> => {
-  let requestPath = '';
-  if (!symbol || typeof symbol !== 'string' || !symbol.trim()) {
-    console.error('getLatestTechnicalAnalysis: Invalid symbol provided:', { symbol, type: typeof symbol });
-    throw new Error('交易对无效，无法刷新报告');
-  }
   try {
-    // Ensure symbol is uppercase
-    const normalizedSymbol = symbol.toUpperCase();
-
-    // Format symbol and path based on market type
-    let fullSymbol: string;
-
-    if (marketType === 'crypto') {
-      // Add USDT suffix for crypto if not present
-      fullSymbol = normalizedSymbol.endsWith('USDT')
-        ? normalizedSymbol
-        : `${normalizedSymbol}USDT`;
-      requestPath = `/crypto/get_report/${fullSymbol}/`;
-    } else {
-      // For stocks, use symbol as-is
-      fullSymbol = normalizedSymbol;
-      requestPath = `/stock/get_report/${fullSymbol}/`;
+    // 构建完整的symbol
+    const fullSymbol = symbol.toUpperCase()
+    
+    // 构建请求URL
+    const endpoint = marketType === 'crypto' ? 'crypto' : 'stock'
+    const url = `/api/${endpoint}/get_report/${fullSymbol}/`
+    
+    // 构建请求头
+    const authHeader = validateToken()
+    const headers = {
+      'Content-Type': 'application/json',
+      'Authorization': authHeader
     }
 
-    // Build request path - use get_report endpoint to get/refresh report
-
-    // Prepare query params
-    const params: Record<string, any> = {}
-
-    // 只加时间戳防缓存，不再传 force_refresh
-    params._t = Date.now()
-
-    console.log(`getLatestTechnicalAnalysis: Get/refresh report ${fullSymbol}`)
-
-    // Create request identifier
-    const requestId = `${requestPath}`;
-
-    // Check if same request is in progress
-    if (pendingRequests[requestId]) {
-      throw new Error('请求正在进行中，请稍后再试');
+    // 发送请求
+    const response = await api.post(url, {}, { headers })
+    
+    // 格式化数据
+    const formattedData = formatTechnicalAnalysisData(response.data)
+    return formattedData
+  } catch (error: any) {
+    if (error.response?.status === 404) {
+      throw new Error('not_found')
     }
-
-    // Mark request as in progress
-    pendingRequests[requestId] = true;
-
-    try {
-      // Use api instance to send request with retry mechanism
-      const response = await retryRequest({
-        url: requestPath,  // 直接使用相对路径，让 api 实例处理基础 URL
-        method: 'GET',
-        params,
-        headers: {
-          'Cache-Control': 'no-cache, no-store, must-revalidate',
-          'Pragma': 'no-cache',
-          'Expires': '0'
-        }
-      });
-
-      // Check response format
-      const data = response.data
-
-      // 兼容 data.reports[0] 结构
-      let realData = data;
-      if (data && Array.isArray(data.reports) && data.reports.length > 0) {
-        realData = data.reports[0];
-      }
-
-      if (typeof data === 'object') {
-        // Check for special response format
-        if ('status' in data) {
-          if (data.status === 'not_found') {
-            return data as unknown as FormattedTechnicalAnalysisData
-          }
-
-          if (data.status === 'success' && 'data' in data) {
-            // 已经处理过 reports[0]，此处直接返回 realData
-            return formatTechnicalAnalysisData(realData)
-          }
-        }
-      }
-
-      // Assume response is direct technical analysis data, format and return
-      const result = formatTechnicalAnalysisData(realData);
-
-      console.log(`getLatestTechnicalAnalysis: Successfully got report data ${fullSymbol}`)
-
-      return result;
-    } catch (error: any) {
-      console.error(`getLatestTechnicalAnalysis: Failed to get report for ${symbol}:`, error)
-
-      // Handle 404 error (token not found)
-      if (error.response?.status === 404) {
-        // Return a special not_found status instead of throwing error
-        return {
-          status: 'not_found',
-          message: error.response?.data?.message || '未找到交易对数据',
-          needs_refresh: true
-        } as unknown as FormattedTechnicalAnalysisData
-      }
-
-      // Network error, reformat to more friendly message
-      if (error.code === 'ERR_NETWORK') {
-        throw new Error('网络连接错误，请检查您的网络连接')
-      }
-
-      // Timeout error
-      if (error.code === 'ECONNABORTED') {
-        throw new Error('请求超时，服务器响应时间过长，请稍后重试')
-      }
-
-      throw error
-    }
-  } finally {
-    // Clear request mark
-    if (requestPath) {
-      const requestId = `${requestPath}`;
-      pendingRequests[requestId] = false;
-    }
+    throw error
   }
 }
 
@@ -969,120 +810,81 @@ export interface FavoriteResponse {
 // Search and favorites API
 export const search = {
   // Search assets
-  searchAssets: async (query: string, marketType?: 'crypto' | 'stock', limit: number = 20): Promise<SearchResponse> => {
+  searchAssets: async (query: string, marketType: 'crypto' | 'stock', limit: number = 10): Promise<SearchResponse> => {
     try {
-      const params: Record<string, any> = { q: query, limit }
-      if (marketType) {
-        params.market_type = marketType
+      const token = localStorage.getItem('token')
+      if (!token) {
+        throw new Error('No authentication token')
       }
 
-      // 在扩展环境中使用代理请求
+      // 检查是否在扩展环境中
       if (isExtension()) {
-        console.log('search.searchAssets: 在扩展环境中使用代理请求')
-        const token = localStorage.getItem('token')
-        console.log('search.searchAssets: token存在:', !!token)
-        
-        const response = await new Promise((resolve, reject) => {
-          const requestData = {
-            type: 'PROXY_API_REQUEST',
-            data: {
-              url: '/crypto/search/',
-              method: 'GET',
-              headers: {
-                'Authorization': token,
-                'Accept': 'application/json'
-              },
-              params
-            }
+        const requestData = {
+          url: '/api/crypto/search/',
+          method: 'GET',
+          params: {
+            query: query,
+            market_type: marketType,
+            limit: limit
+          },
+          headers: {
+            'Authorization': `Token ${token}`,
+            'Content-Type': 'application/json'
           }
-          
-          console.log('search.searchAssets: 发送请求:', requestData)
-          
-          chrome.runtime.sendMessage(requestData, (response) => {
-            console.log('search.searchAssets: 收到响应:', response)
-            
-            if (chrome.runtime.lastError) {
-              console.error('search.searchAssets: Chrome runtime错误:', chrome.runtime.lastError.message)
-              reject(new Error(chrome.runtime.lastError.message));
-              return;
-            }
-            
-            if (response && response.success) {
-              console.log('search.searchAssets: 请求成功')
-              resolve(response.data);
-            } else {
-              console.error('search.searchAssets: 请求失败:', response?.error || '未知错误')
-              reject(new Error(response?.error || '搜索资产失败'));
-            }
-          });
-        });
-        return response as SearchResponse;
-      }
+        }
 
-      // 非扩展环境使用普通axios请求
-      console.log('search.searchAssets: 在非扩展环境中使用axios请求')
-      const response = await api.get('/crypto/search/', { params })
-      return response as unknown as SearchResponse
-    } catch (error) {
-      console.error('Search assets error:', error)
+        const response = await proxyRequest(requestData)
+        return response
+      } else {
+        // 在非扩展环境中使用axios请求
+        const response = await api.get('/api/crypto/search/', {
+          params: {
+            query: query,
+            market_type: marketType,
+            limit: limit
+          }
+        })
+        return response.data
+      }
+    } catch (error: any) {
       throw error
     }
   },
 
   // Get popular assets
-  getPopularAssets: async (marketType: 'crypto' | 'stock' = 'crypto'): Promise<SearchResponse> => {
+  getPopularAssets: async (marketType: 'crypto' | 'stock'): Promise<SearchResponse> => {
     try {
-      const params = { market_type: marketType }
-
-      // 在扩展环境中使用代理请求
-      if (isExtension()) {
-        console.log('search.getPopularAssets: 在扩展环境中使用代理请求')
-        const token = localStorage.getItem('token')
-        console.log('search.getPopularAssets: token存在:', !!token)
-        
-        const response = await new Promise((resolve, reject) => {
-          const requestData = {
-            type: 'PROXY_API_REQUEST',
-            data: {
-              url: '/crypto/popular-assets/',
-              method: 'GET',
-              headers: {
-                'Authorization': token,
-                'Accept': 'application/json'
-              },
-              params
-            }
-          }
-          
-          console.log('search.getPopularAssets: 发送请求:', requestData)
-          
-          chrome.runtime.sendMessage(requestData, (response) => {
-            console.log('search.getPopularAssets: 收到响应:', response)
-            
-            if (chrome.runtime.lastError) {
-              console.error('search.getPopularAssets: Chrome runtime错误:', chrome.runtime.lastError.message)
-              reject(new Error(chrome.runtime.lastError.message));
-              return;
-            }
-            
-            if (response && response.success) {
-              console.log('search.getPopularAssets: 请求成功')
-              resolve(response.data);
-            } else {
-              console.error('search.getPopularAssets: 请求失败:', response?.error || '未知错误')
-              reject(new Error(response?.error || '获取热门资产失败'));
-            }
-          });
-        });
-        return response as SearchResponse;
+      const token = localStorage.getItem('token')
+      if (!token) {
+        throw new Error('No authentication token')
       }
 
-      // 非扩展环境使用普通axios请求
-      console.log('search.getPopularAssets: 在非扩展环境中使用axios请求')
-      const response = await api.get('/crypto/popular-assets/', { params })
-      return response as unknown as SearchResponse
-    } catch (error) {
-      console.error('Get popular assets error:', error)
+      // 检查是否在扩展环境中
+      if (isExtension()) {
+        const requestData = {
+          url: '/api/crypto/popular/',
+          method: 'GET',
+          params: {
+            market_type: marketType
+          },
+          headers: {
+            'Authorization': `Token ${token}`,
+            'Content-Type': 'application/json'
+          }
+        }
+
+        const response = await proxyRequest(requestData)
+        return response
+      } else {
+        // 在非扩展环境中使用axios请求
+        const response = await api.get('/api/crypto/popular/', {
+          params: {
+            market_type: marketType
+          }
+        })
+        return response.data
+      }
+    } catch (error: any) {
       throw error
     }
   }
@@ -1090,56 +892,32 @@ export const search = {
 
 export const favorites = {
   // Get user favorites
-  getFavorites: async (): Promise<SearchResponse> => {
+  getFavorites: async (): Promise<FavoriteResponse> => {
     try {
-      // 在扩展环境中使用代理请求，类似points功能的实现
-      if (isExtension()) {
-        console.log('favorites.getFavorites: 在扩展环境中使用代理请求')
-        const token = localStorage.getItem('token')
-        console.log('favorites.getFavorites: token存在:', !!token)
-        
-        const response = await new Promise((resolve, reject) => {
-          const requestData = {
-            type: 'PROXY_API_REQUEST',
-            data: {
-              url: '/crypto/favorites/',
-              method: 'GET',
-              headers: {
-                'Authorization': token,
-                'Accept': 'application/json'
-              }
-            }
-          }
-          
-          console.log('favorites.getFavorites: 发送请求:', requestData)
-          
-          chrome.runtime.sendMessage(requestData, (response) => {
-            console.log('favorites.getFavorites: 收到响应:', response)
-            
-            if (chrome.runtime.lastError) {
-              console.error('favorites.getFavorites: Chrome runtime错误:', chrome.runtime.lastError.message)
-              reject(new Error(chrome.runtime.lastError.message));
-              return;
-            }
-            
-            if (response && response.success) {
-              console.log('favorites.getFavorites: 请求成功')
-              resolve(response.data);
-            } else {
-              console.error('favorites.getFavorites: 请求失败:', response?.error || '未知错误')
-              reject(new Error(response?.error || '获取收藏列表失败'));
-            }
-          });
-        });
-        return response as SearchResponse;
+      const token = localStorage.getItem('token')
+      if (!token) {
+        throw new Error('No authentication token')
       }
 
-      // 非扩展环境使用普通axios请求
-      console.log('favorites.getFavorites: 在非扩展环境中使用axios请求')
-      const response = await api.get('/crypto/favorites/')
-      return response as unknown as SearchResponse
-    } catch (error) {
-      console.error('Get favorites error:', error)
+      // 检查是否在扩展环境中
+      if (isExtension()) {
+        const requestData = {
+          url: '/api/favorites/',
+          method: 'GET',
+          headers: {
+            'Authorization': `Token ${token}`,
+            'Content-Type': 'application/json'
+          }
+        }
+
+        const response = await proxyRequest(requestData)
+        return response
+      } else {
+        // 在非扩展环境中使用axios请求
+        const response = await api.get('/api/favorites/')
+        return response.data
+      }
+    } catch (error: any) {
       throw error
     }
   },
@@ -1147,85 +925,31 @@ export const favorites = {
   // Add to favorites
   addFavorite: async (asset: Asset): Promise<FavoriteResponse> => {
     try {
-      // 在扩展环境中使用代理请求，类似points功能的实现
-      if (isExtension()) {
-        console.log('favorites.addFavorite: 在扩展环境中使用代理请求')
-        const token = localStorage.getItem('token')
-        console.log('favorites.addFavorite: token存在:', !!token)
-        console.log('favorites.addFavorite: 添加资产:', asset)
-        
-        const response = await new Promise((resolve, reject) => {
-          const requestData = {
-            type: 'PROXY_API_REQUEST',
-            data: {
-              url: '/crypto/favorites/',
-              method: 'POST',
-              headers: {
-                'Authorization': token,
-                'Accept': 'application/json',
-                'Content-Type': 'application/json'
-              },
-              body: {
-                symbol: asset.symbol,
-                market_type: asset.market_type,
-                name: asset.name,
-                exchange: asset.exchange,
-                sector: asset.sector
-              }
-            }
-          }
-          
-          console.log('favorites.addFavorite: 发送请求:', requestData)
-          
-          chrome.runtime.sendMessage(requestData, (response) => {
-            console.log('favorites.addFavorite: 收到响应:', response)
-            
-            if (chrome.runtime.lastError) {
-              console.error('favorites.addFavorite: Chrome runtime错误:', chrome.runtime.lastError.message)
-              reject(new Error(chrome.runtime.lastError.message));
-              return;
-            }
-            
-            if (response && response.success) {
-              console.log('favorites.addFavorite: 请求成功')
-              // 检查响应数据结构，确保返回正确的格式
-              if (response.data && (response.data.status === 'success' || response.data.status === 'info')) {
-                resolve(response.data);
-              } else if (response.data && typeof response.data === 'object') {
-                // 如果后端直接返回了成功状态，构造标准响应格式
-                resolve({
-                  status: response.data.status || 'success',
-                  message: response.data.message || 'Asset added to favorites',
-                  data: response.data.data || response.data
-                });
-              } else {
-                // 兜底情况，构造成功响应
-                resolve({
-                  status: 'success',
-                  message: 'Asset added to favorites'
-                });
-              }
-            } else {
-              console.error('favorites.addFavorite: 请求失败:', response?.error || '未知错误')
-              reject(new Error(response?.error || '添加收藏失败'));
-            }
-          });
-        });
-        return response as FavoriteResponse;
+      const token = localStorage.getItem('token')
+      if (!token) {
+        throw new Error('No authentication token')
       }
 
-      // 非扩展环境使用普通axios请求
-      console.log('favorites.addFavorite: 在非扩展环境中使用axios请求')
-      const response = await api.post('/crypto/favorites/', {
-        symbol: asset.symbol,
-        market_type: asset.market_type,
-        name: asset.name,
-        exchange: asset.exchange,
-        sector: asset.sector
-      })
-      return response as unknown as FavoriteResponse
-    } catch (error) {
-      console.error('Add favorite error:', error)
+      // 检查是否在扩展环境中
+      if (isExtension()) {
+        const requestData = {
+          url: '/api/favorites/',
+          method: 'POST',
+          data: asset,
+          headers: {
+            'Authorization': `Token ${token}`,
+            'Content-Type': 'application/json'
+          }
+        }
+
+        const response = await proxyRequest(requestData)
+        return response
+      } else {
+        // 在非扩展环境中使用axios请求
+        const response = await api.post('/api/favorites/', asset)
+        return response.data
+      }
+    } catch (error: any) {
       throw error
     }
   },
@@ -1233,182 +957,95 @@ export const favorites = {
   // Remove from favorites
   removeFavorite: async (symbol: string, marketType: 'crypto' | 'stock'): Promise<FavoriteResponse> => {
     try {
-      // 在扩展环境中使用代理请求，类似points功能的实现
-      if (isExtension()) {
-        console.log('favorites.removeFavorite: 在扩展环境中使用代理请求')
-        const token = localStorage.getItem('token')
-        console.log('favorites.removeFavorite: token存在:', !!token)
-        console.log('favorites.removeFavorite: 移除资产:', { symbol, marketType })
-        
-        const response = await new Promise((resolve, reject) => {
-          const requestData = {
-            type: 'PROXY_API_REQUEST',
-            data: {
-              url: '/crypto/favorites/',
-              method: 'DELETE',
-              headers: {
-                'Authorization': token,
-                'Accept': 'application/json',
-                'Content-Type': 'application/json'
-              },
-              body: {
-                symbol,
-                market_type: marketType
-              }
-            }
-          }
-          
-          console.log('favorites.removeFavorite: 发送请求:', requestData)
-          
-          chrome.runtime.sendMessage(requestData, (response) => {
-            console.log('favorites.removeFavorite: 收到响应:', response)
-            
-            if (chrome.runtime.lastError) {
-              console.error('favorites.removeFavorite: Chrome runtime错误:', chrome.runtime.lastError.message)
-              reject(new Error(chrome.runtime.lastError.message));
-              return;
-            }
-            
-            if (response && response.success) {
-              console.log('favorites.removeFavorite: 请求成功')
-              // 检查响应数据结构，确保返回正确的格式
-              if (response.data && response.data.status === 'success') {
-                resolve(response.data);
-              } else if (response.data && typeof response.data === 'object') {
-                // 如果后端直接返回了成功状态，构造标准响应格式
-                resolve({
-                  status: 'success',
-                  message: response.data.message || 'Asset removed from favorites'
-                });
-              } else {
-                // 兜底情况，构造成功响应
-                resolve({
-                  status: 'success',
-                  message: 'Asset removed from favorites'
-                });
-              }
-            } else if (response && response.status === 404) {
-              // 404错误表示收藏不存在，这也算是成功的移除操作
-              console.log('favorites.removeFavorite: 收藏不存在，视为成功移除')
-              resolve({
-                status: 'success',
-                message: 'Asset was not in favorites (already removed)'
-              });
-            } else {
-              console.error('favorites.removeFavorite: 请求失败:', response?.error || '未知错误')
-              reject(new Error(response?.error || '移除收藏失败'));
-            }
-          });
-        });
-        return response as FavoriteResponse;
+      const token = localStorage.getItem('token')
+      if (!token) {
+        throw new Error('No authentication token')
       }
 
-      // 非扩展环境使用普通axios请求
-      console.log('favorites.removeFavorite: 在非扩展环境中使用axios请求')
-      const response = await api.delete('/crypto/favorites/', {
-        data: {
-          symbol,
-          market_type: marketType
+      // 检查是否在扩展环境中
+      if (isExtension()) {
+        const requestData = {
+          url: '/api/favorites/',
+          method: 'DELETE',
+          data: {
+            symbol: symbol,
+            market_type: marketType
+          },
+          headers: {
+            'Authorization': `Token ${token}`,
+            'Content-Type': 'application/json'
+          }
         }
-      })
-      return response as unknown as FavoriteResponse
-    } catch (error) {
-      console.error('Remove favorite error:', error)
+
+        const response = await proxyRequest(requestData)
+        return response
+      } else {
+        // 在非扩展环境中使用axios请求
+        const response = await api.delete('/api/favorites/', {
+          data: {
+            symbol: symbol,
+            market_type: marketType
+          }
+        })
+        return response.data
+      }
+    } catch (error: any) {
+      // 如果是404错误，说明收藏不存在，视为成功移除
+      if (error.response?.status === 404) {
+        return {
+          status: 'success',
+          message: 'Favorite not found, considered as removed'
+        }
+      }
       throw error
     }
   },
 
   // Check favorite status
-  checkFavoriteStatus: async (symbol: string, marketType: 'crypto' | 'stock' = 'crypto'): Promise<{
-    status: 'success' | 'error'
-    data: {
-      symbol: string
-      market_type: string
-      is_favorite: boolean
-    }
-  }> => {
+  checkFavoriteStatus: async (symbol: string, marketType: 'crypto' | 'stock'): Promise<{ status: 'success'; data: { symbol: string; market_type: string; is_favorite: boolean } }> => {
     try {
-      // 在扩展环境中使用代理请求，类似points功能的实现
-      if (isExtension()) {
-        console.log('favorites.checkFavoriteStatus: 在扩展环境中使用代理请求')
-        const token = localStorage.getItem('token')
-        console.log('favorites.checkFavoriteStatus: token存在:', !!token)
-        console.log('favorites.checkFavoriteStatus: 检查状态:', { symbol, marketType })
-        
-        const response = await new Promise((resolve, reject) => {
-          const requestData = {
-            type: 'PROXY_API_REQUEST',
-            data: {
-              url: `/crypto/favorites/status/${symbol}/?market_type=${marketType}`,
-              method: 'GET',
-              headers: {
-                'Authorization': token,
-                'Accept': 'application/json'
-              }
-            }
-          }
-          
-          console.log('favorites.checkFavoriteStatus: 发送请求:', requestData)
-          
-          chrome.runtime.sendMessage(requestData, (response) => {
-            console.log('favorites.checkFavoriteStatus: 收到响应:', response)
-            
-            if (chrome.runtime.lastError) {
-              console.error('favorites.checkFavoriteStatus: Chrome runtime错误:', chrome.runtime.lastError.message)
-              reject(new Error(chrome.runtime.lastError.message));
-              return;
-            }
-            
-            if (response && response.success) {
-              console.log('favorites.checkFavoriteStatus: 请求成功')
-              // 检查响应数据结构，确保返回正确的格式
-              if (response.data && response.data.status === 'success') {
-                resolve(response.data);
-              } else if (response.data && typeof response.data === 'object') {
-                // 如果后端直接返回了数据，构造标准响应格式
-                resolve({
-                  status: 'success',
-                  data: response.data.data || response.data
-                });
-              } else {
-                // 兜底情况，构造失败响应
-                resolve({
-                  status: 'error',
-                  data: {
-                    symbol,
-                    market_type: marketType,
-                    is_favorite: false
-                  }
-                });
-              }
-            } else if (response && response.status === 404) {
-              // 404错误表示资产不存在或未收藏
-              console.log('favorites.checkFavoriteStatus: 资产未收藏')
-              resolve({
-                status: 'success',
-                data: {
-                  symbol,
-                  market_type: marketType,
-                  is_favorite: false
-                }
-              });
-            } else {
-              console.error('favorites.checkFavoriteStatus: 请求失败:', response?.error || '未知错误')
-              reject(new Error(response?.error || '检查收藏状态失败'));
-            }
-          });
-        });
-        return response as any;
+      const token = localStorage.getItem('token')
+      if (!token) {
+        throw new Error('No authentication token')
       }
 
-      // 非扩展环境使用普通axios请求
-      console.log('favorites.checkFavoriteStatus: 在非扩展环境中使用axios请求')
-      const response = await api.get(`/crypto/favorites/status/${symbol}/`, {
-        params: { market_type: marketType }
-      })
-      return response as any
-    } catch (error) {
-      console.error('Check favorite status error:', error)
+      // 检查是否在扩展环境中
+      if (isExtension()) {
+        const requestData = {
+          url: '/api/favorites/check/',
+          method: 'POST',
+          data: {
+            symbol: symbol,
+            market_type: marketType
+          },
+          headers: {
+            'Authorization': `Token ${token}`,
+            'Content-Type': 'application/json'
+          }
+        }
+
+        const response = await proxyRequest(requestData)
+        return response
+      } else {
+        // 在非扩展环境中使用axios请求
+        const response = await api.post('/api/favorites/check/', {
+          symbol: symbol,
+          market_type: marketType
+        })
+        return response.data
+      }
+    } catch (error: any) {
+      // 如果是404错误，说明资产未收藏
+      if (error.response?.status === 404) {
+        return {
+          status: 'success',
+          data: {
+            symbol: symbol,
+            market_type: marketType,
+            is_favorite: false
+          }
+        }
+      }
       throw error
     }
   }

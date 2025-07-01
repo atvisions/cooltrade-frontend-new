@@ -161,6 +161,6 @@ const stats = [
 ]
 
 onMounted(() => {
-  console.log('ℹ️ AboutView mounted')
+  // Component mounted
 })
 </script>

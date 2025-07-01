@@ -163,7 +163,7 @@ const attemptClaimFromCookie = async () => {
             // 检查是否有权限错误
             if (chrome.runtime.lastError) {
                 // 在开发环境中，localhost cookie访问可能受限，这是正常的
-                if (chrome.runtime.lastError.message.includes('host permissions')) {
+                if (chrome.runtime.lastError.message && chrome.runtime.lastError.message.includes('host permissions')) {
                     // 静默处理权限错误，不影响其他功能
                     return;
                 }
@@ -260,7 +260,7 @@ const fetchPointsInfo = async () => {
     } catch (error) {
       console.error('API request failed:', error);
       // 如果是认证错误，可能需要重新登录
-      if (error.message && error.message.includes('认证')) {
+      if (typeof error === 'object' && error !== null && 'message' in error && typeof (error as any).message === 'string' && (error as any).message.includes('认证')) {
         console.warn('Authentication error detected, user may need to re-login');
       }
     }

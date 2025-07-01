@@ -33,5 +33,3 @@ app.use(i18nDirectPlugin)
 
 // 挂载应用
 app.mount('#app')
-
-console.log('✅ CoolTrade Frontend Started Successfully!')

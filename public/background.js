@@ -15,9 +15,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     // Reload extension resources
     chrome.runtime.reload()
   } else if (message.type === 'TRADING_PAGE_LOADED') {
-    console.log('Background script handling TRADING_PAGE_LOADED message:', message.data);
     const tabId = sender.tab?.id || null;
-    console.log('Sender tab ID:', tabId);
     handleTradingPage(message.data, tabId)
     sendResponse({ status: 'success' })
   } else if (message.type === 'GET_RESOURCE_URL') {
@@ -33,13 +31,11 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     sendResponse({ status: 'success' });
   } else if (message.type === 'GET_CURRENT_SYMBOL') {
     // Respond to get current trading symbol request
-    console.log('Background script responding to GET_CURRENT_SYMBOL request:', currentTradingSymbol);
     sendResponse({ symbol: currentTradingSymbol });
   } else if (message.type === 'MANUAL_SET_SYMBOL') {
     // Manually set trading symbol (for debugging)
     const { symbol } = message.data;
     if (symbol) {
-      console.log('Background script manually setting trading symbol:', symbol);
       currentTradingSymbol = symbol;
       // Notify frontend to update (only if popup is open)
       try {
@@ -50,11 +46,9 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           // Handle response or ignore if no receiver
           if (chrome.runtime.lastError) {
             // This is normal if popup is not open
-            console.log('No popup to receive SYMBOL_UPDATED message');
           }
         });
       } catch (error) {
-        console.error('Failed to send SYMBOL_UPDATED message:', error);
       }
     }
     sendResponse({ status: 'success', symbol: currentTradingSymbol });
@@ -130,7 +124,6 @@ function checkRateLimit(tabId) {
 async function handleTradingPage(data, tabId) {
   try {
     const { symbol } = data
-    console.log(`Background script handling trading page: ${symbol}`);
 
     // Update current trading symbol
     if (symbol) {
@@ -143,13 +136,10 @@ async function handleTradingPage(data, tabId) {
       // 只对加密货币符号添加USDT后缀，不对股票符号处理
       if (!isStockSymbol && symbol && !symbol.includes('USDT') && !symbol.includes('BTC') && symbol !== 'BTC') {
         formattedSymbol = symbol + 'USDT';
-        console.log('Background script formatting crypto symbol:', symbol, '->', formattedSymbol);
       } else if (isStockSymbol) {
-        console.log('Background script detected stock symbol, keeping as-is:', symbol);
       }
 
       currentTradingSymbol = formattedSymbol;
-      console.log('Background script updating currentTradingSymbol:', currentTradingSymbol);
 
       // Notify all open extension pages to update trading symbol
       try {
@@ -160,16 +150,10 @@ async function handleTradingPage(data, tabId) {
           // Handle response or ignore if no receiver
           if (chrome.runtime.lastError) {
             // This is normal if popup is not open
-            console.log('No popup to receive SYMBOL_UPDATED message');
-          } else {
-            console.log('Background script sending SYMBOL_UPDATED message:', currentTradingSymbol);
           }
         });
       } catch (error) {
-        console.error('Background script failed to send SYMBOL_UPDATED message:', error);
       }
-    } else {
-      console.log('Background script received empty trading symbol info');
     }
 
     // Check request rate limit (only when tabId is available)
@@ -192,7 +176,6 @@ async function handleTradingPage(data, tabId) {
     }
 
   } catch (error) {
-    // console.error('Failed to handle trading page:', error)
     // If it's a rate limit error, notify frontend (only when tabId is available)
     if (error.message.includes('Too many requests') && tabId) {
       chrome.tabs.sendMessage(tabId, {
@@ -235,10 +218,8 @@ function isSupportedExchange(url) {
 // Listen for extension installation or update
 chrome.runtime.onInstalled.addListener((details) => {
   if (details.reason === 'install') {
-    // console.log('Extension installed')
     // No longer setting CSP rules
   } else if (details.reason === 'update') {
-    // console.log('Extension updated')
     // Clear old cache
     chrome.storage.local.clear()
   }
@@ -249,20 +230,12 @@ async function handleApiProxyRequest(data, sendResponse) {
   const maxRetries = 3;
   let lastError = null;
 
-  console.log('Background script: 开始处理API代理请求:', {
-    url: data.url,
-    method: data.method,
-    hasHeaders: !!data.headers,
-    hasBody: !!data.body
-  });
-
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     try {
       const baseApiUrl = 'https://www.cooltrade.xyz/api';
       const { url, method, headers, body, params } = data;
 
       if (attempt > 1) {
-        console.log(`Background script API request retry attempt ${attempt}/${maxRetries} for URL: ${url}`);
       }
 
       // Check if it's a force refresh request
@@ -283,7 +256,6 @@ async function handleApiProxyRequest(data, sendResponse) {
           fullUrl += (fullUrl.includes('?') ? '&' : '?') + queryString;
         }
       }
-      console.log('Background script fetch最终URL:', fullUrl);
 
     // Build request options
     const options = {
@@ -297,19 +269,13 @@ async function handleApiProxyRequest(data, sendResponse) {
 
     // Ensure authentication token is properly passed
     if (headers && headers.Authorization) {
-      console.log('Background script request contains authentication token:', headers.Authorization.substring(0, 20) + '...');
-
       // Ensure token format is correct, add prefix if not starting with "Token " or "Bearer "
       if (headers.Authorization && !headers.Authorization.startsWith('Token ') && !headers.Authorization.startsWith('Bearer ')) {
         options.headers.Authorization = `Token ${headers.Authorization}`;
-        console.log('Background script added Token prefix to authorization header');
       } else {
         options.headers.Authorization = headers.Authorization;
-        console.log('Background script using authorization header as-is');
       }
     } else {
-      console.warn('Background script request does not contain authentication token, this may cause 401 error');
-
       // If request doesn't contain authentication token, try to get from environment config
       if (envConfig.token) {
         // Ensure token format is correct
@@ -318,9 +284,6 @@ async function handleApiProxyRequest(data, sendResponse) {
         } else {
           options.headers.Authorization = envConfig.token;
         }
-        console.log('Background script using token from environment config');
-      } else {
-        console.warn('Background script environment config also has no token, request will not contain authentication info');
       }
     }
 
@@ -332,14 +295,6 @@ async function handleApiProxyRequest(data, sendResponse) {
     // Set timeout
     const timeout = isForceRefresh ? 120000 : 60000; // 普通请求 60 秒，强制刷新 120 秒
 
-    console.log('Background script: 发送请求:', {
-      url: fullUrl,
-      method: options.method,
-      headers: options.headers,
-      hasBody: !!options.body,
-      timeout: timeout
-    });
-
     // Create timeout Promise
     const timeoutPromise = new Promise((_, reject) => {
       setTimeout(() => reject(new Error(`Request timeout (${timeout/1000} seconds)`)), timeout);
@@ -348,24 +303,11 @@ async function handleApiProxyRequest(data, sendResponse) {
     // Create fetch Promise with detailed error handling
     // Use built complete URL
     const fetchPromise = fetch(fullUrl, options).catch(error => {
-      console.error('Background script fetch error details:', {
-        url: fullUrl,
-        error: error.message,
-        errorType: error.name,
-        stack: error.stack
-      });
       throw new Error(`Fetch failed: ${error.message}`);
     });
 
       // Use Promise.race, whoever completes first wins
       const response = await Promise.race([fetchPromise, timeoutPromise]);
-
-      console.log('Background script: 收到响应:', {
-        status: response.status,
-        statusText: response.statusText,
-        ok: response.ok,
-        url: response.url
-      });
 
       // Get response headers
       const responseHeaders = {};
@@ -378,9 +320,7 @@ async function handleApiProxyRequest(data, sendResponse) {
       let responseData;
       try {
         responseData = JSON.parse(responseText);
-        console.log('Background script: 响应数据:', responseData);
       } catch (e) {
-        console.warn('Background script response is not JSON format:', responseText);
         responseData = responseText;
       }
 
@@ -397,14 +337,11 @@ async function handleApiProxyRequest(data, sendResponse) {
         success: isSuccessfulResponse
       };
 
-      console.log('Background script: 发送最终响应:', finalResponse);
-      console.log('Background script: 响应状态:', response.status, '成功:', isSuccessfulResponse);
       sendResponse(finalResponse);
       return; // Exit the retry loop on success
 
     } catch (error) {
       lastError = error;
-      console.error(`Background script API request attempt ${attempt}/${maxRetries} failed:`, error.message);
 
       // If this is the last attempt, don't wait
       if (attempt === maxRetries) {
@@ -413,13 +350,11 @@ async function handleApiProxyRequest(data, sendResponse) {
 
       // Wait before retrying (exponential backoff)
       const delay = Math.min(1000 * Math.pow(2, attempt - 1), 5000);
-      console.log(`Waiting ${delay}ms before retry...`);
       await new Promise(resolve => setTimeout(resolve, delay));
     }
   }
 
   // All retries failed
-  console.error('Background script API proxy request failed after all retries:', lastError);
   sendResponse({
     success: false,
     error: lastError?.message || 'Request failed after retries',

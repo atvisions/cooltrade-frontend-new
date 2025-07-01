@@ -24,6 +24,7 @@
 import { ref, computed } from 'vue'
 import { useEnhancedI18n } from '@/utils/i18n-helper'
 import { favorites, type Asset } from '@/api'
+import { ElMessage } from 'element-plus'
 
 const { t } = useEnhancedI18n()
 
@@ -48,157 +49,118 @@ const favoriteStatus = ref(false)
 // 计算是否为收藏状态
 const isFavorite = computed(() => favoriteStatus.value)
 
-// 切换收藏状态 - 完全通过API
+// 切换收藏状态
 const toggleFavorite = async () => {
   if (loading.value) return
 
   loading.value = true
-
   try {
-    // 检查是否在扩展环境
-    const isExtension = typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.id
-    console.log('FavoriteButton: 扩展环境:', isExtension)
-
-    // 检查token是否存在
     const token = localStorage.getItem('token')
-    console.log('FavoriteButton: 切换收藏时token状态:', token ? '存在' : '不存在')
-
     if (!token) {
-      console.warn('FavoriteButton: 没有token，无法操作收藏')
-      loading.value = false
+      ElMessage.error(t('errors.not_logged_in'))
       return
     }
 
-    // 在扩展环境下，添加额外的调试信息
+    // 检查是否在扩展环境中
+    const isExtension = typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.id
+
     if (isExtension) {
-      console.log('FavoriteButton: 在Chrome扩展环境中操作收藏')
-      console.log('FavoriteButton: Token前缀检查:', token.startsWith('Token ') ? 'Token前缀正确' : 'Token前缀可能有问题')
-    }
-
-    const asset: Asset = {
-      symbol: props.symbol,
-      name: props.name || props.symbol,
-      market_type: props.marketType,
-      exchange: props.exchange,
-      sector: props.sector
-    }
-
-    if (favoriteStatus.value) {
-      // Remove from favorites
-      console.log('FavoriteButton: 移除收藏', props.symbol, props.marketType)
-      const response = await favorites.removeFavorite(props.symbol, props.marketType)
-      console.log('FavoriteButton: 移除收藏API响应:', response)
-
-      if (response.status === 'success') {
-        favoriteStatus.value = false
-        emit('favoriteChanged', false)
-        console.log('FavoriteButton: 成功移除收藏')
+      // 在扩展环境中使用代理请求
+      if (isFavorite.value) {
+        // 移除收藏
+        const response = await favorites.removeFavorite(props.symbol, props.marketType)
+        if (response.status === 'success') {
+          favoriteStatus.value = false
+          ElMessage.success(t('favorites.removed'))
+        } else {
+          ElMessage.error(response.message || t('favorites.remove_failed'))
+        }
       } else {
-        console.error('FavoriteButton: 移除收藏失败，响应状态:', response.status)
-        console.error('FavoriteButton: 完整响应:', JSON.stringify(response, null, 2))
+        // 添加收藏
+        const asset = {
+          symbol: props.symbol,
+          name: props.name || props.symbol,
+          market_type: props.marketType,
+          exchange: props.exchange,
+          sector: props.sector
+        }
+        const response = await favorites.addFavorite(asset)
+        if (response.status === 'success' || response.status === 'info') {
+          favoriteStatus.value = true
+          ElMessage.success(t('favorites.added'))
+        } else {
+          ElMessage.error(response.message || t('favorites.add_failed'))
+        }
       }
     } else {
-      // Add to favorites
-      console.log('FavoriteButton: 添加收藏', asset)
-      const response = await favorites.addFavorite(asset)
-      console.log('FavoriteButton: 添加收藏API响应:', response)
-
-      if (response.status === 'success' || response.status === 'info') {
-        favoriteStatus.value = true
-        emit('favoriteChanged', true)
-        console.log('FavoriteButton: 成功添加收藏')
+      // 在非扩展环境中使用普通请求
+      if (isFavorite.value) {
+        // 移除收藏
+        const response = await favorites.removeFavorite(props.symbol, props.marketType)
+        if (response.status === 'success') {
+          favoriteStatus.value = false
+          ElMessage.success(t('favorites.removed'))
+        } else {
+          ElMessage.error(response.message || t('favorites.remove_failed'))
+        }
       } else {
-        console.error('FavoriteButton: 添加收藏失败，响应状态:', response.status)
-        console.error('FavoriteButton: 完整响应:', JSON.stringify(response, null, 2))
+        // 添加收藏
+        const asset = {
+          symbol: props.symbol,
+          name: props.name || props.symbol,
+          market_type: props.marketType,
+          exchange: props.exchange,
+          sector: props.sector
+        }
+        const response = await favorites.addFavorite(asset)
+        if (response.status === 'success' || response.status === 'info') {
+          favoriteStatus.value = true
+          ElMessage.success(t('favorites.added'))
+        } else {
+          ElMessage.error(response.message || t('favorites.add_failed'))
+        }
       }
     }
+
+    // 触发收藏变化事件
+    emit('favoriteChanged', favoriteStatus.value)
   } catch (error: any) {
-    console.error('FavoriteButton: API调用失败:', error)
-    console.error('FavoriteButton: 错误详情:', {
-      message: error?.message || 'Unknown error',
-      stack: error?.stack || 'No stack trace',
-      name: error?.name || 'Unknown error type'
-    })
-
-    // 在扩展环境下，提供更详细的错误信息
-    const isExtension = typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.id
-    if (isExtension) {
-      console.error('FavoriteButton: Chrome扩展环境下的API调用失败')
-      if (error?.message && error.message.includes('proxy')) {
-        console.error('FavoriteButton: 可能是代理相关问题')
-      }
-      if (error?.message && error.message.includes('401')) {
-        console.error('FavoriteButton: 可能是认证问题，检查token是否正确传递')
-      }
-    }
+    ElMessage.error(error.message || t('favorites.operation_failed'))
+  } finally {
+    loading.value = false
   }
-
-  loading.value = false
 }
 
-
-
-// 检查初始收藏状态 - 完全通过API
+// 检查收藏状态
 const checkFavoriteStatus = async () => {
   try {
-    console.log('FavoriteButton: 检查收藏状态', props.symbol, props.marketType)
-
-    // 检查是否在扩展环境
-    const isExtension = typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.id
-    console.log('FavoriteButton: 扩展环境:', isExtension)
-
-    // 检查token是否存在
     const token = localStorage.getItem('token')
-    console.log('FavoriteButton: 当前token状态:', token ? '存在' : '不存在')
-
     if (!token) {
-      console.warn('FavoriteButton: 没有token，无法检查收藏状态')
       favoriteStatus.value = false
       return
     }
 
-    // 在扩展环境下，添加额外的调试信息
+    // 检查是否在扩展环境中
+    const isExtension = typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.id
+
     if (isExtension) {
-      console.log('FavoriteButton: 在Chrome扩展环境中检查收藏状态')
-      console.log('FavoriteButton: 准备调用API:', `/crypto/favorites/status/${props.symbol}/`)
-      console.log('FavoriteButton: 参数:', { market_type: props.marketType })
-    }
-
-    const response = await favorites.checkFavoriteStatus(props.symbol, props.marketType)
-    console.log('FavoriteButton: 收藏状态API响应完整数据:', JSON.stringify(response, null, 2))
-
-    if (response && response.status === 'success' && response.data) {
-      favoriteStatus.value = response.data.is_favorite
-      console.log('FavoriteButton: 收藏状态:', response.data.is_favorite)
+      // 在扩展环境中使用代理请求
+      const response = await favorites.checkFavoriteStatus(props.symbol, props.marketType)
+      if (response.status === 'success' && response.data) {
+        favoriteStatus.value = response.data.is_favorite
+      } else {
+        favoriteStatus.value = false
+      }
     } else {
-      favoriteStatus.value = false
-      console.log('FavoriteButton: API返回失败或无数据，设置为未收藏')
-      console.log('FavoriteButton: 响应状态:', response?.status || 'undefined')
-      console.log('FavoriteButton: 响应数据:', response?.data || 'undefined')
+      // 在非扩展环境中使用普通请求
+      const response = await favorites.checkFavoriteStatus(props.symbol, props.marketType)
+      if (response.status === 'success' && response.data) {
+        favoriteStatus.value = response.data.is_favorite
+      } else {
+        favoriteStatus.value = false
+      }
     }
   } catch (error: any) {
-    console.error('FavoriteButton: 检查收藏状态失败:', error)
-    console.error('FavoriteButton: 错误详情:', {
-      message: error?.message || 'Unknown error',
-      stack: error?.stack || 'No stack trace',
-      name: error?.name || 'Unknown error type'
-    })
-
-    // 在扩展环境下，提供更详细的错误信息
-    const isExtension = typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.id
-    if (isExtension) {
-      console.error('FavoriteButton: Chrome扩展环境下检查收藏状态失败')
-      if (error?.message && error.message.includes('proxy')) {
-        console.error('FavoriteButton: 可能是代理相关问题')
-      }
-      if (error?.message && error.message.includes('401')) {
-        console.error('FavoriteButton: 可能是认证问题，检查token是否正确传递')
-      }
-      if (error?.message && error.message.includes('timeout')) {
-        console.error('FavoriteButton: 请求超时，可能是网络问题')
-      }
-    }
-
     favoriteStatus.value = false
   }
 }

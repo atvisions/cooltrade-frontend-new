@@ -114,12 +114,9 @@ const handleLogin = async () => {
       localStorage.setItem('userInfo', JSON.stringify(response.data.user))
       router.push('/')
     } else {
-      console.error('❌ No token in login response')
       error.value = t('errors.login_failed_no_token')
     }
   } catch (err: any) {
-    console.error('💥 Login error:', err)
-
     if (err.response?.data?.message) {
       if (typeof err.response.data.message === 'object') {
         const messages = Object.values(err.response.data.message).flat()

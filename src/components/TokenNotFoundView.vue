@@ -109,17 +109,15 @@ watch(() => locale.value, (newLocale) => {
   currentLang.value = newLocale
 })
 
-// 监听 localStorage 中的语言变化
+// 监听语言变更事件，重新翻译报告数据
 const setupLanguageChangeListener = () => {
   window.addEventListener('language-changed', (event) => {
     const newLang = (event as CustomEvent).detail?.language || localStorage.getItem('language') || 'en-US'
-    console.log(`[TokenNotFoundView] 收到语言变更事件: ${newLang}`)
     currentLang.value = newLang
   })
 
   window.addEventListener('force-refresh-i18n', () => {
     const newLang = localStorage.getItem('language') || 'en-US'
-    console.log(`[TokenNotFoundView] 收到强制刷新事件: ${newLang}`)
     currentLang.value = newLang
   })
 }
@@ -174,17 +172,12 @@ const handleRefresh = async () => {
   showRefreshModal.value = true
 
   try {
-    console.log('TokenNotFoundView: Start refreshing report...')
-
     // 调用 getLatestTechnicalAnalysis 生成新报告
-    console.log('TokenNotFoundView: Calling getLatestTechnicalAnalysis to generate new report')
     const marketType = (props.marketType === 'china' ? 'stock' : props.marketType) || 'crypto'
-    console.log(`[DEBUG] TokenNotFoundView - symbol: ${props.symbol}, marketType: ${marketType}`)
     const result = await getLatestTechnicalAnalysis(props.symbol, marketType)
 
     // 如果返回了有效数据
     if (result && (result as any).status !== 'not_found') {
-      console.log('TokenNotFoundView: Successfully got new report data!')
       emit('refresh-success')
       // 延迟关闭弹窗，给父组件时间加载数据
       setTimeout(() => {
@@ -195,7 +188,6 @@ const handleRefresh = async () => {
       throw new Error('Failed to generate report, please try again later')
     }
   } catch (error) {
-    console.error('TokenNotFoundView: Failed to refresh report:', error)
     emit('refresh-error', error)
     showRefreshModal.value = false
   } finally {

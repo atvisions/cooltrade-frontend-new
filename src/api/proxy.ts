@@ -79,12 +79,8 @@ export const proxyRequest = async (config: AxiosRequestConfig): Promise<any> => 
         } else {
           updatedHeaders = { ...updatedHeaders, Authorization: `Token ${token}` };
         }
-        console.log('Proxy: Added token to headers:', token.substring(0, 20) + '...');
       } else {
-        console.warn('Proxy: No token found in localStorage');
       }
-    } else {
-      console.log('Proxy: Using existing Authorization header:', updatedHeaders.Authorization.substring(0, 20) + '...');
     }
 
     // Send proxy request
@@ -100,18 +96,9 @@ export const proxyRequest = async (config: AxiosRequestConfig): Promise<any> => 
     // Additional check for runtime.id (may not be available in all contexts)
     try {
       if (!chrome.runtime.id) {
-        console.warn('Chrome runtime.id not available, but proceeding with request')
       }
     } catch (e) {
-      console.warn('Cannot access chrome.runtime.id, but proceeding with request')
     }
-
-    console.log('Proxy request details:', {
-      url: fullUrl,
-      method: requestMethod,
-      hasAuth: !!updatedHeaders.Authorization,
-      authPrefix: updatedHeaders.Authorization ? updatedHeaders.Authorization.substring(0, 10) + '...' : 'none'
-    });
 
     chrome.runtime.sendMessage({
       type: 'PROXY_API_REQUEST',
@@ -160,8 +147,6 @@ export const proxyRequest = async (config: AxiosRequestConfig): Promise<any> => 
           }
         }
 
-        console.log('Proxy response processed data:', processedData);
-
         // Return simplified response object with processed data
         resolve({
           data: processedData,
@@ -171,7 +156,6 @@ export const proxyRequest = async (config: AxiosRequestConfig): Promise<any> => 
           config: {}
         })
       } catch (error) {
-        console.error('Proxy response processing error:', error);
         // If error, return minimal response object
         resolve({
           data: response.data,
