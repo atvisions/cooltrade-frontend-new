@@ -21,8 +21,10 @@
           <div class="p-5">
             <!-- 搜索输入框 -->
             <div class="relative mb-4">
-              <div class="absolute left-4 top-1/2 transform -translate-y-1/2">
-                <i class="ri-search-line text-blue-400/60"></i>
+              <div class="absolute left-4 top-1/2 transform -translate-y-1/2 z-10 pointer-events-none">
+                <svg class="w-5 h-5 text-blue-400/60" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                </svg>
               </div>
               <input
                 v-model="searchQuery"
@@ -318,6 +320,7 @@
                     <!-- 收藏按钮 -->
                     <FavoriteButton
                       v-if="currentSymbol"
+                      ref="favoriteButtonRef"
                       :symbol="currentSymbol"
                       :market-type="currentMarketType"
                       @favorite-changed="handleFavoriteChanged"
@@ -621,10 +624,10 @@
                 <div class="flex items-center justify-between p-4 rounded-xl bg-slate-700/30 hover:bg-slate-700/40 transition-colors duration-200">
                   <div class="text-base font-semibold text-slate-300">{{ t('analysis.recommended_action') }}</div>
                   <div class="px-4 py-2 rounded-xl text-base font-bold transition-all duration-200 hover:scale-105"
-                    :class="analysisData.trading_advice.action === '买入' ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 hover:bg-emerald-500/30' :
-                            analysisData.trading_advice.action === '卖出' ? 'bg-red-500/20 text-red-400 border border-red-500/40 hover:bg-red-500/30' :
+                    :class="analysisData.trading_advice?.action === '买入' ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 hover:bg-emerald-500/30' :
+                            analysisData.trading_advice?.action === '卖出' ? 'bg-red-500/20 text-red-400 border border-red-500/40 hover:bg-red-500/30' :
                             'bg-slate-500/20 text-slate-400 border border-slate-500/40 hover:bg-slate-500/30'">
-                    {{ getLocalizedAction(analysisData.trading_advice.action, currentLanguage) }}
+                    {{ getLocalizedAction(analysisData.trading_advice?.action, currentLanguage) }}
                   </div>
                 </div>
 
@@ -633,13 +636,13 @@
                   <div class="group/price text-center p-4 rounded-xl bg-blue-500/10 border border-blue-500/30 hover:border-blue-400/50 transition-all duration-200 hover:scale-105">
                     <div class="text-sm text-blue-300 font-semibold mb-2">{{ t('analysis.entry_price') }}</div>
                     <div class="text-sm font-bold text-white">
-                      <template v-if="formatPriceParts(analysisData.trading_advice.entry_price).value">
-                        <span v-if="formatPriceParts(analysisData.trading_advice.entry_price).prefix" class="text-gray-400">{{ formatPriceParts(analysisData.trading_advice.entry_price).prefix }}</span>
-                        <span v-if="formatPriceParts(analysisData.trading_advice.entry_price).repeat" class="text-gray-400">{{ formatPriceParts(analysisData.trading_advice.entry_price).repeat }}</span>
-                        <span class="text-blue-400">{{ formatPriceParts(analysisData.trading_advice.entry_price).value }}</span>
+                      <template v-if="formatPriceParts(analysisData.trading_advice?.entry_price).value">
+                        <span v-if="formatPriceParts(analysisData.trading_advice?.entry_price).prefix" class="text-gray-400">{{ formatPriceParts(analysisData.trading_advice?.entry_price).prefix }}</span>
+                        <span v-if="formatPriceParts(analysisData.trading_advice?.entry_price).repeat" class="text-gray-400">{{ formatPriceParts(analysisData.trading_advice?.entry_price).repeat }}</span>
+                        <span class="text-blue-400">{{ formatPriceParts(analysisData.trading_advice?.entry_price).value }}</span>
                       </template>
                       <template v-else>
-                        {{ formatPriceParts(analysisData.trading_advice.entry_price).prefix }}
+                        {{ formatPriceParts(analysisData.trading_advice?.entry_price).prefix }}
                       </template>
                     </div>
                   </div>
@@ -991,6 +994,9 @@ const searchLoading = ref(false)
 const favoriteAssets = ref<any[]>([])
 const favoritesLoading = ref(false)
 
+// FavoriteButton组件引用
+const favoriteButtonRef = ref<any>(null)
+
 // 兼容旧的状态变量
 const showSearchModal = ref(false)
 const showFavoritesModal = ref(false)
@@ -1087,6 +1093,18 @@ const loadPopularAssets = async () => {
   }
 }
 
+// 验证symbol是否适合指定的市场类型
+const isValidSymbolForMarket = (symbol: string, marketType: 'crypto' | 'stock' | 'china'): boolean => {
+  if (marketType === 'crypto') {
+    // 加密货币应该包含USDT、BTC、ETH等
+    return symbol.includes('USDT') || symbol.includes('BTC') || symbol.includes('ETH') || symbol.endsWith('USD')
+  } else if (marketType === 'stock') {
+    // 股票不应该包含USDT等加密货币标识
+    return !symbol.includes('USDT') && !symbol.includes('BTC') && !symbol.includes('ETH') && !symbol.endsWith('USD')
+  }
+  return true
+}
+
 // 市场类型切换处理函数
 const handleMarketTypeChange = (marketType: 'crypto' | 'stock' | 'china') => {
   console.log(`切换市场类型从 ${currentMarketType.value} 到 ${marketType}`)
@@ -1111,7 +1129,17 @@ const handleMarketTypeChange = (marketType: 'crypto' | 'stock' | 'china') => {
   }
 
   // 恢复该市场之前选中的资产，如果没有则使用默认资产
-  const savedSymbol = getCurrentSymbolForMarket(marketType)
+  let savedSymbol = getCurrentSymbolForMarket(marketType)
+
+  // 验证保存的symbol是否适合当前市场类型
+  if (!isValidSymbolForMarket(savedSymbol, marketType)) {
+    console.log(`保存的symbol ${savedSymbol} 不适合市场类型 ${marketType}，使用默认值`)
+    savedSymbol = getDefaultSymbol(marketType)
+    // 清理错误的localStorage数据
+    const storageKey = `currentSymbol_${marketType}`
+    localStorage.setItem(storageKey, savedSymbol)
+  }
+
   switchToAsset(savedSymbol, marketType)
 }
 
@@ -1155,23 +1183,30 @@ const switchToToken = async (symbol: string) => {
 
 // 收藏变化处理函数
 const handleFavoriteChanged = (isFavorite: boolean) => {
-  console.log(`Asset ${currentSymbol.value} favorite status changed to:`, isFavorite)
-
   // 重新加载收藏列表以反映最新状态
   loadFavorites()
-
-  // 这里可以添加额外的逻辑，比如显示提示消息
 }
 
 // 收藏选择处理
 const handleFavoriteSelect = (favorite: any) => {
-  console.log('选择收藏项:', favorite)
   switchToAsset(favorite.symbol, favorite.market_type)
 }
 
 // 收藏移除处理
 const handleFavoriteRemoved = (favorite: any) => {
-  console.log('移除收藏项:', favorite)
+  // 立即更新本地收藏列表，避免重新加载导致的延迟
+  favoriteAssets.value = favoriteAssets.value.filter(asset =>
+    !(asset.symbol === favorite.symbol && asset.market_type === favorite.market_type)
+  )
+
+  // 如果删除的收藏是当前显示的资产，刷新FavoriteButton状态
+  if (favorite.symbol === currentSymbol.value && favorite.market_type === currentMarketType.value) {
+    nextTick(() => {
+      if (favoriteButtonRef.value && favoriteButtonRef.value.checkFavoriteStatus) {
+        favoriteButtonRef.value.checkFavoriteStatus()
+      }
+    })
+  }
 }
 
 // 获取当前交易对
@@ -1441,17 +1476,41 @@ const handleSearch = () => {
 
     searchLoading.value = true
     try {
+      console.log('开始搜索，关键词:', searchQuery.value.trim())
+      console.log('市场类型:', currentMarketType.value)
+      console.log('当前URL:', window.location.href)
+      console.log('是否扩展环境:', typeof chrome !== 'undefined' && chrome.runtime)
+      console.log('Chrome对象:', typeof chrome !== 'undefined' ? chrome : 'undefined')
+      console.log('Chrome runtime:', typeof chrome !== 'undefined' && chrome.runtime ? chrome.runtime : 'undefined')
+
       // 调用真实的搜索API
       const response = await search.searchAssets(
-        searchQuery.value.trim(), 
-        currentMarketType.value as 'crypto' | 'stock', 
+        searchQuery.value.trim(),
+        currentMarketType.value as 'crypto' | 'stock',
         20 // 增加搜索数量，然后过滤
       )
 
-      if (response.status === 'success' && response.data) {
+      console.log('搜索API响应:', response)
+
+      // 处理两种可能的响应格式
+      let responseData = null
+      if (Array.isArray(response)) {
+        // 如果直接返回数组，说明是成功的搜索结果
+        responseData = response
+        console.log('响应格式：直接数组')
+      } else if (response && response.status === 'success' && response.data) {
+        // 如果是标准格式 {status: 'success', data: [...]}
+        responseData = response.data
+        console.log('响应格式：标准格式')
+      }
+
+      if (responseData && Array.isArray(responseData)) {
+        console.log('搜索API返回数据:', responseData)
         // 格式化搜索结果并过滤
         const keyword = searchQuery.value.trim().toLowerCase()
-        const filteredResults = response.data
+        console.log('搜索关键词:', keyword)
+
+        const filteredResults = responseData
           .map((asset: any) => ({
             symbol: asset.symbol,
             name: asset.name || asset.symbol,
@@ -1460,25 +1519,42 @@ const handleSearch = () => {
             sector: asset.sector
           }))
           .filter((asset: any) => {
-            // 只保留 symbol 或 name 包含关键词的结果
-            const symbolMatch = asset.symbol.toLowerCase().includes(keyword)
-            const nameMatch = asset.name && asset.name.toLowerCase().includes(keyword)
-            if (!(symbolMatch || nameMatch)) return false
-            // 对于加密货币，只保留有效的USDT交易对
-            if (asset.market_type === 'crypto') {
-              return isValidCryptoSymbol(asset.symbol)
+            try {
+              // 只保留 symbol 或 name 包含关键词的结果
+              const symbolMatch = asset.symbol && typeof asset.symbol === 'string' ? asset.symbol.toLowerCase().includes(keyword) : false
+              const nameMatch = asset.name && typeof asset.name === 'string' ? asset.name.toLowerCase().includes(keyword) : false
+              const match = symbolMatch || nameMatch
+              console.log(`资产 ${asset.symbol}: symbolMatch=${symbolMatch}, nameMatch=${nameMatch}, match=${match}`)
+              return match
+            } catch (error) {
+              console.error('Filter asset error:', error, asset)
+              return false
             }
-            return true
+          })
+          // 去重：基于symbol去重，保留第一个
+          .filter((asset: any, index: number, array: any[]) => {
+            return array.findIndex(item => item.symbol === asset.symbol) === index
           })
           .slice(0, 10) // 限制最终结果数量
 
+        console.log('过滤后的结果:', filteredResults)
         searchResults.value = filteredResults
+        console.log('searchResults.value 设置为:', searchResults.value)
       } else {
         console.log('搜索API返回无数据或失败:', response)
+        console.log('响应类型:', typeof response)
+        console.log('是否为数组:', Array.isArray(response))
+        if (response && typeof response === 'object') {
+          console.log('响应对象键:', Object.keys(response))
+          console.log('响应status:', response.status)
+          console.log('响应data:', response.data)
+        }
         searchResults.value = []
       }
     } catch (error) {
       console.error('搜索失败:', error)
+      console.error('错误详情:', error.message)
+      console.error('错误堆栈:', error.stack)
       searchResults.value = []
     } finally {
       searchLoading.value = false
@@ -1490,77 +1566,45 @@ const handleSearch = () => {
 const loadFavorites = async () => {
   favoritesLoading.value = true
   try {
-    console.log('loadFavorites: 开始通过API加载收藏数据')
-    console.log('loadFavorites: 当前市场类型:', currentMarketType.value)
-
-    // 检查是否在扩展环境
-    const isExtension = typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.id
-    console.log('loadFavorites: 扩展环境:', isExtension)
-
     // 检查token
     const token = localStorage.getItem('token')
-    console.log('loadFavorites: token状态:', token ? '存在' : '不存在')
-
     if (!token) {
-      console.warn('loadFavorites: 没有token，无法加载收藏数据')
       favoriteAssets.value = []
       return
     }
 
-
-
     // 直接调用API获取收藏数据
     const response = await favorites.getFavorites()
-    console.log('loadFavorites: API响应完整数据:', JSON.stringify(response, null, 2))
-    console.log('loadFavorites: response.status:', response.status)
-    console.log('loadFavorites: response.data:', response.data)
-    console.log('loadFavorites: response.data类型:', typeof response.data)
-    console.log('loadFavorites: response.data是否为数组:', Array.isArray(response.data))
+    console.log('HomeView loadFavorites response:', response)
 
-    if (response.status === 'success' && response.data) {
-      // 确保data是数组
-      const dataArray = Array.isArray(response.data) ? response.data : []
-      console.log('loadFavorites: 数据数组长度:', dataArray.length)
-
-      // 根据当前市场类型过滤收藏数据
-      const filteredFavorites = dataArray.filter((asset: any) => {
-        console.log('loadFavorites: 检查资产:', asset.symbol, '市场类型:', asset.market_type, '当前市场:', currentMarketType.value)
-        return asset.market_type === currentMarketType.value
-      })
-      console.log('loadFavorites: 过滤后的收藏数据:', filteredFavorites)
-
-      favoriteAssets.value = filteredFavorites
-    } else {
-      console.log('loadFavorites: API返回无数据或失败，status:', response.status)
-      favoriteAssets.value = []
+    let dataArray: any[] = []
+    if (response && typeof response === 'object') {
+      // 检查直接的data字段
+      if (Array.isArray(response.data)) {
+        dataArray = response.data
+      }
+      // 检查嵌套的data.data字段
+      else if (response.data && Array.isArray(response.data.data)) {
+        dataArray = response.data.data
+      }
+      // 检查是否直接是数组
+      else if (Array.isArray(response)) {
+        dataArray = response
+      }
+      // 检查status为success的情况
+      else if (response.status === 'success' && response.data) {
+        dataArray = Array.isArray(response.data) ? response.data : []
+      }
     }
 
-  } catch (error: any) {
-    console.error('loadFavorites: API加载收藏数据失败:', error)
-    console.error('loadFavorites: 错误详情:', {
-      message: error?.message || 'Unknown error',
-      stack: error?.stack || 'No stack trace',
-      name: error?.name || 'Unknown error type'
+    // 根据当前市场类型过滤收藏数据
+    const filteredFavorites = dataArray.filter((asset: any) => {
+      return asset.market_type === currentMarketType.value
     })
 
-    // 在扩展环境下，提供更详细的错误信息
-    const isExtension = typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.id
-    if (isExtension) {
-      console.error('loadFavorites: Chrome扩展环境下加载收藏数据失败')
-      if (error?.message && error.message.includes('proxy')) {
-        console.error('loadFavorites: 可能是代理相关问题')
-      }
-      if (error?.message && error.message.includes('401')) {
-        console.error('loadFavorites: 可能是认证问题，检查token是否正确传递')
-      }
-      if (error?.message && error.message.includes('timeout')) {
-        console.error('loadFavorites: 请求超时，可能是网络问题')
-      }
-      if (error?.message && error.message.includes('CORS')) {
-        console.error('loadFavorites: CORS问题，检查代理配置')
-      }
-    }
-
+    favoriteAssets.value = filteredFavorites
+  } catch (error: any) {
+    console.error('loadFavorites: API加载收藏数据失败:', error)
     favoriteAssets.value = []
   } finally {
     favoritesLoading.value = false
@@ -1573,32 +1617,69 @@ const loadFavorites = async () => {
 
 // 格式化显示符号，移除USDT后缀
 const formatDisplaySymbol = (symbol: string, marketType: string) => {
-  if (marketType === 'crypto' && symbol.endsWith('USDT')) {
-    return symbol.replace('USDT', '')
+  try {
+    if (!symbol || typeof symbol !== 'string') return symbol || ''
+    if (marketType === 'crypto' && symbol.endsWith('USDT')) {
+      return symbol.replace('USDT', '')
+    }
+    return symbol
+  } catch (error) {
+    console.error('formatDisplaySymbol error:', error)
+    return symbol || ''
   }
-  return symbol
 }
 
 // 移除收藏 - 完全通过API
 const removeFavorite = async (symbol: string, marketType: string) => {
   try {
-    console.log('removeFavorite: 开始移除收藏', symbol, marketType)
-
     // 直接调用API移除收藏
     const response = await favorites.removeFavorite(symbol, marketType as 'crypto' | 'stock')
-    console.log('removeFavorite: API响应:', response)
 
-    if (response.status === 'success') {
-      // 更新本地状态
-      favoriteAssets.value = favoriteAssets.value.filter(asset =>
-        !(asset.symbol === symbol && asset.market_type === marketType)
-      )
-      console.log('removeFavorite: 成功移除收藏并更新本地状态')
-    } else {
-      console.error('removeFavorite: API返回失败状态')
+    // 检查响应格式，处理不同的响应结构
+    let isSuccess = false
+    if (response && typeof response === 'object') {
+      // 检查直接的status字段
+      if (response.status === 'success') {
+        isSuccess = true
+      }
+      // 检查嵌套的data.status字段
+      else if (response.data && response.data.status === 'success') {
+        isSuccess = true
+      }
+      // 如果没有明确的错误，且响应存在，认为是成功的
+      else if (!response.error && response.status !== 'error') {
+        isSuccess = true
+      }
+    }
+
+    // 无论API响应如何，都更新本地状态（因为实际操作可能成功了）
+    favoriteAssets.value = favoriteAssets.value.filter(asset =>
+      !(asset.symbol === symbol && asset.market_type === marketType)
+    )
+
+    // 如果删除的是当前显示的资产，更新FavoriteButton状态
+    if (symbol === currentSymbol.value && marketType === currentMarketType.value) {
+      nextTick(() => {
+        if (favoriteButtonRef.value && favoriteButtonRef.value.checkFavoriteStatus) {
+          favoriteButtonRef.value.checkFavoriteStatus()
+        }
+      })
     }
   } catch (error) {
     console.error('removeFavorite: API调用失败:', error)
+    // 即使API调用失败，也尝试更新本地状态（因为从日志看实际操作可能成功了）
+    favoriteAssets.value = favoriteAssets.value.filter(asset =>
+      !(asset.symbol === symbol && asset.market_type === marketType)
+    )
+
+    // 如果删除的是当前显示的资产，更新FavoriteButton状态
+    if (symbol === currentSymbol.value && marketType === currentMarketType.value) {
+      nextTick(() => {
+        if (favoriteButtonRef.value && favoriteButtonRef.value.checkFavoriteStatus) {
+          favoriteButtonRef.value.checkFavoriteStatus()
+        }
+      })
+    }
   }
 }
 
@@ -1696,9 +1777,21 @@ const doActualLoadAnalysisData = async (showLoading = true, noCache = false) => 
     })
     .catch(err => {
       console.error(`loadAnalysisData: 请求失败`, err)
-      error.value = err instanceof Error ? err.message : '加载数据失败'
-      analysisData.value = null
-      isTokenNotFound.value = false
+
+      // 检查是否是not_found错误
+      if (err instanceof Error && err.message === 'not_found') {
+        // 这是正常的未找到状态，不是错误
+        error.value = null
+        analysisData.value = null
+        isTokenNotFound.value = true
+        console.log('设置 isTokenNotFound = true (from catch), loading =', loading.value)
+      } else {
+        // 这是真正的错误
+        error.value = err instanceof Error ? err.message : '加载数据失败'
+        analysisData.value = null
+        isTokenNotFound.value = false
+      }
+
       // 错误情况下也要设置loading状态
       loading.value = false
       analysisLoading.value = false
@@ -2355,13 +2448,13 @@ const riskLevelMap: Record<LangType, Record<string, string>> = {
 }
 
 const getLocalizedAction = (action: ActionType, lang: LangType): string => {
-  if (!action) return '--'
+  if (!action || typeof action !== 'string') return '--'
   const map = actionMap[lang] || actionMap['en-US']
   return map[action.toLowerCase()] || map['wait'] || action
 }
 
 const getLocalizedRiskLevel = (level: RiskLevelType, lang: LangType): string => {
-  if (!level) return '--'
+  if (!level || typeof level !== 'string') return '--'
   const map = riskLevelMap[lang] || riskLevelMap['en-US']
   return map[level.toLowerCase()] || map['medium'] || level
 }
@@ -2702,20 +2795,36 @@ onUnmounted(() => {
 
 // 在setup中添加handleTokenNotFoundCancel方法
 const handleTokenNotFoundCancel = () => {
-  // 记录当前symbol
+  // 记录当前symbol和marketType
   const prevSymbol = localStorage.getItem('prevSymbol')
-  if (prevSymbol && prevSymbol !== currentSymbol.value) {
-    switchToAsset(prevSymbol, currentMarketType.value)
+  const prevMarketType = localStorage.getItem('prevMarketType') as 'crypto' | 'stock' | 'china'
+
+  if (prevSymbol && prevSymbol !== currentSymbol.value && prevMarketType) {
+    switchToAsset(prevSymbol, prevMarketType)
   } else {
     switchToAsset('BTCUSDT', 'crypto')
   }
   isTokenNotFound.value = false
   error.value = null
 }
-// 在每次切换symbol时记录prevSymbol
+
+// 在每次切换symbol时记录prevSymbol和prevMarketType
 watch(currentSymbol, (newSymbol, oldSymbol) => {
   if (oldSymbol && oldSymbol !== newSymbol) {
     localStorage.setItem('prevSymbol', oldSymbol)
+  }
+})
+
+watch(currentMarketType, (newMarketType, oldMarketType) => {
+  if (oldMarketType && oldMarketType !== newMarketType) {
+    localStorage.setItem('prevMarketType', oldMarketType)
+
+    // 切换市场时清空搜索相关数据
+    searchQuery.value = ''
+    searchResults.value = []
+    searchLoading.value = false
+
+    console.log(`市场类型从 ${oldMarketType} 切换到 ${newMarketType}，已清空搜索数据`)
   }
 })
 

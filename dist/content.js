@@ -192,8 +192,6 @@ const exchanges = [
 
 function parseSymbolFromUrl(url) {
   try {
-    console.log('解析 URL:', url);
-
     // 特殊处理MEXC期货URL
     if (url.includes('mexc.com') && url.includes('/futures/')) {
       const pathMatch = url.match(/\/futures\/([A-Z0-9_]+)/i);

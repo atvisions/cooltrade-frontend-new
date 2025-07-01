@@ -325,9 +325,20 @@ async function handleApiProxyRequest(data, sendResponse) {
       }
 
       // Success - send response and return
-      // 对于收藏功能，即使是404也应该被视为成功的响应（只是收藏不存在）
+      // 对于某些API，404也应该被视为成功的响应
       const isSuccessfulResponse = response.ok ||
-        (response.status === 404 && fullUrl.includes('/favorites/'));
+        (response.status === 404 && (
+          fullUrl.includes('/favorites/') ||
+          fullUrl.includes('/technical-indicators/')
+        ));
+
+      // 对于技术分析API的404，转换为not_found状态
+      if (response.status === 404 && fullUrl.includes('/technical-indicators/')) {
+        responseData = {
+          status: 'not_found',
+          message: 'Technical analysis report not found'
+        };
+      }
 
       const finalResponse = {
         status: response.status,

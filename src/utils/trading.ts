@@ -225,12 +225,12 @@ export const parseSymbolFromUrl = (url: string): string | null => {
             // 特殊处理 Gate.io 的 _USDT 格式
             if (ex.name === 'Gate.io' && regex.source.includes('_USDT')) {
               // 对于 Gate.io 的 _USDT 格式，只取第一个捕获组并添加 USDT
-              const baseSymbol = matches[1].toUpperCase();
+              const baseSymbol = matches[1] ? matches[1].toUpperCase() : '';
               return baseSymbol + 'USDT';
             }
 
             // 合并所有捕获组为 symbol
-            const symbol = matches.slice(1).map(s => s.toUpperCase()).join('');
+            const symbol = matches.slice(1).map(s => s ? s.toUpperCase() : '').join('');
             return symbol;
           }
         }

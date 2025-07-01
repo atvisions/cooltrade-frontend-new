@@ -62,10 +62,14 @@
             <!-- 取消收藏按钮 -->
             <button
               @click="removeFavorite(favorite)"
-              class="ml-3 w-6 h-6 rounded-full bg-red-500/20 hover:bg-red-500/40 text-red-400 hover:text-red-300 flex items-center justify-center transition-all duration-200"
+              :disabled="removingFavorites.has(`${favorite.symbol}-${favorite.market_type}`)"
+              class="ml-3 w-6 h-6 rounded-full bg-red-500/20 hover:bg-red-500/40 text-red-400 hover:text-red-300 flex items-center justify-center transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
               :title="t('favorites.remove')"
             >
-              <i class="ri-close-line text-sm"></i>
+              <i
+                :class="removingFavorites.has(`${favorite.symbol}-${favorite.market_type}`) ? 'ri-loader-4-line animate-spin' : 'ri-close-line'"
+                class="text-sm"
+              ></i>
             </button>
           </div>
         </div>
@@ -103,6 +107,7 @@ const emit = defineEmits<Emits>()
 
 const loading = ref(false)
 const favoritesList = ref<Favorite[]>([])
+const removingFavorites = ref<Set<string>>(new Set()) // 正在删除的收藏
 
 // 获取市场图标
 const getMarketIcon = (marketType: string) => {
@@ -137,7 +142,26 @@ const loadFavorites = async () => {
   loading.value = true
   try {
     const response = await favorites.getFavorites()
-    favoritesList.value = response.data || []
+    console.log('FavoritesModal loadFavorites response:', response)
+
+    // 处理不同的响应格式
+    let favoritesData = []
+    if (response && typeof response === 'object') {
+      // 检查直接的data字段
+      if (Array.isArray(response.data)) {
+        favoritesData = response.data
+      }
+      // 检查嵌套的data.data字段
+      else if (response.data && Array.isArray(response.data.data)) {
+        favoritesData = response.data.data
+      }
+      // 检查是否直接是数组
+      else if (Array.isArray(response)) {
+        favoritesData = response
+      }
+    }
+
+    favoritesList.value = favoritesData
   } catch (error) {
     console.error('Failed to load favorites:', error)
     favoritesList.value = []
@@ -154,12 +178,44 @@ const selectFavorite = (favorite: Favorite) => {
 
 // 移除收藏
 const removeFavorite = async (favorite: Favorite) => {
+  const favoriteKey = `${favorite.symbol}-${favorite.market_type}`
+
+  // 防止重复删除
+  if (removingFavorites.value.has(favoriteKey)) {
+    console.log('Already removing favorite:', favoriteKey)
+    return
+  }
+
+  removingFavorites.value.add(favoriteKey)
+
   try {
-    await favorites.removeFavorite(favorite.symbol, favorite.market_type)
-    favoritesList.value = favoritesList.value.filter(f => f.id !== favorite.id)
+    console.log('Removing favorite:', favorite)
+    const response = await favorites.removeFavorite(favorite.symbol, favorite.market_type)
+    console.log('Remove favorite response:', response)
+
+    // 检查响应格式，处理不同的响应结构
+    let isSuccess = false
+    if (response && typeof response === 'object') {
+      if (response.status === 'success' || (response.data && response.data.status === 'success') || (!response.error && response.status !== 'error')) {
+        isSuccess = true
+      }
+    }
+
+    // 无论API响应如何，都更新本地状态（因为实际操作可能成功了）
+    favoritesList.value = favoritesList.value.filter(f =>
+      !(f.symbol === favorite.symbol && f.market_type === favorite.market_type)
+    )
     emit('favorite-removed', favorite)
   } catch (error) {
     console.error('Failed to remove favorite:', error)
+    // 即使出错，也尝试更新本地状态
+    favoritesList.value = favoritesList.value.filter(f =>
+      !(f.symbol === favorite.symbol && f.market_type === favorite.market_type)
+    )
+    emit('favorite-removed', favorite)
+  } finally {
+    // 清除删除状态
+    removingFavorites.value.delete(favoriteKey)
   }
 }
 

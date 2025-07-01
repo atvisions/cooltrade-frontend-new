@@ -192,7 +192,12 @@ api.interceptors.request.use(
       if (!isAuthRequest(config.url) && !config.headers.Authorization) {
         const token = localStorage.getItem('token');
         if (token) {
-          config.headers.Authorization = token;
+          // 确保token格式正确
+          if (token.startsWith('Token ') || token.startsWith('Bearer ')) {
+            config.headers.Authorization = token;
+          } else {
+            config.headers.Authorization = `Token ${token}`;
+          }
         }
       } else if (config.headers.Authorization) {
       }
@@ -552,32 +557,66 @@ export const getTechnicalAnalysis = async (
   try {
     // 构建完整的symbol
     const fullSymbol = symbol.toUpperCase()
-    
+
     // 构建请求URL
     const endpoint = marketType === 'crypto' ? 'crypto' : 'stock'
-    const url = `/api/${endpoint}/technical-indicators/${fullSymbol}/`
-    
+    const url = `/${endpoint}/technical-indicators/${fullSymbol}/`
+
     // 构建请求参数
     const params: any = {}
     if (noCache) {
       params.no_cache = 'true'
     }
-    
-    // 构建请求头
-    const authHeader = validateToken()
-    const headers = {
-      'Content-Type': 'application/json',
-      'Authorization': authHeader
+
+    // 验证token
+    if (!validateToken()) {
+      throw new Error('Token validation failed')
     }
 
-    // 发送请求
-    const response = await api.get(url, { params, headers })
-    
+    // 构建请求头
+    const token = localStorage.getItem('token')
+    const headers: any = {
+      'Content-Type': 'application/json'
+    }
+
+    // 确保token格式正确 - 避免重复前缀
+    if (token) {
+      let cleanToken = token;
+      if (token.startsWith('Token ')) {
+        cleanToken = token.substring(6); // Remove "Token " prefix
+      } else if (token.startsWith('Bearer ')) {
+        cleanToken = token.substring(7); // Remove "Bearer " prefix
+      }
+      headers.Authorization = `Token ${cleanToken}`;
+    }
+
+    let response: any
+
+    // 检查是否在扩展环境中
+    if (isExtension()) {
+      const requestData = {
+        url: url,
+        method: 'GET',
+        params: params,
+        headers: headers
+      }
+
+      response = await proxyRequest(requestData)
+    } else {
+      // 在非扩展环境中使用axios请求
+      response = await api.get(url, { params, headers })
+    }
+
+    // 检查响应状态
+    if (response.data && response.data.status === 'not_found') {
+      throw new Error('not_found')
+    }
+
     // 格式化数据
     const formattedData = formatTechnicalAnalysisData(response.data)
     return formattedData
   } catch (error: any) {
-    if (error.response?.status === 404) {
+    if (error.response?.status === 404 || error.message === 'not_found') {
       throw new Error('not_found')
     }
     throw error
@@ -598,23 +637,56 @@ export const getLatestTechnicalAnalysis = async (
     
     // 构建请求URL
     const endpoint = marketType === 'crypto' ? 'crypto' : 'stock'
-    const url = `/api/${endpoint}/get_report/${fullSymbol}/`
+    const url = `/${endpoint}/get_report/${fullSymbol}/`
     
-    // 构建请求头
-    const authHeader = validateToken()
-    const headers = {
-      'Content-Type': 'application/json',
-      'Authorization': authHeader
+    // 验证token
+    if (!validateToken()) {
+      throw new Error('Token validation failed')
     }
 
-    // 发送请求
-    const response = await api.post(url, {}, { headers })
-    
+    // 构建请求头
+    const token = localStorage.getItem('token')
+    const headers: any = {
+      'Content-Type': 'application/json'
+    }
+
+    // 确保token格式正确 - 避免重复前缀
+    if (token) {
+      let cleanToken = token;
+      if (token.startsWith('Token ')) {
+        cleanToken = token.substring(6); // Remove "Token " prefix
+      } else if (token.startsWith('Bearer ')) {
+        cleanToken = token.substring(7); // Remove "Bearer " prefix
+      }
+      headers.Authorization = `Token ${cleanToken}`;
+    }
+
+    let response: any
+
+    // 检查是否在扩展环境中
+    if (isExtension()) {
+      const requestData = {
+        url: url,
+        method: 'GET',
+        headers: headers
+      }
+
+      response = await proxyRequest(requestData)
+    } else {
+      // 在非扩展环境中使用axios请求
+      response = await api.get(url, { headers })
+    }
+
+    // 检查响应状态
+    if (response.data && response.data.status === 'not_found') {
+      throw new Error('not_found')
+    }
+
     // 格式化数据
     const formattedData = formatTechnicalAnalysisData(response.data)
     return formattedData
   } catch (error: any) {
-    if (error.response?.status === 404) {
+    if (error.response?.status === 404 || error.message === 'not_found') {
       throw new Error('not_found')
     }
     throw error
@@ -656,7 +728,11 @@ export const points = {
               url: '/auth/invitation-info/',
               method: 'GET',
               headers: {
-                'Authorization': localStorage.getItem('token'),
+                'Authorization': (() => {
+                  const token = localStorage.getItem('token');
+                  if (!token) return null;
+                  return token.startsWith('Token ') || token.startsWith('Bearer ') ? token : `Token ${token}`;
+                })(),
                 'Accept': 'application/json'
               }
             }
@@ -700,7 +776,11 @@ export const points = {
               url: '/auth/invitation-info/ranking/',
               method: 'GET',
               headers: {
-                'Authorization': localStorage.getItem('token'),
+                'Authorization': (() => {
+                  const token = localStorage.getItem('token');
+                  if (!token) return null;
+                  return token.startsWith('Token ') || token.startsWith('Bearer ') ? token : `Token ${token}`;
+                })(),
                 'Accept': 'application/json'
               }
             }
@@ -738,7 +818,11 @@ export const points = {
               url: '/auth/claim-temporary-invitation/',
               method: 'POST',
               headers: {
-                'Authorization': localStorage.getItem('token'),
+                'Authorization': (() => {
+                  const token = localStorage.getItem('token');
+                  if (!token) return null;
+                  return token.startsWith('Token ') || token.startsWith('Bearer ') ? token : `Token ${token}`;
+                })(),
                 'Accept': 'application/json',
                 'Content-Type': 'application/json'
               },
@@ -817,29 +901,33 @@ export const search = {
         throw new Error('No authentication token')
       }
 
+      // 根据市场类型构建正确的URL路径
+      const endpoint = marketType === 'crypto' ? 'crypto' : 'stock'
+      const searchUrl = `/${endpoint}/search/`
+
       // 检查是否在扩展环境中
       if (isExtension()) {
         const requestData = {
-          url: '/api/crypto/search/',
+          url: searchUrl,
           method: 'GET',
           params: {
-            query: query,
+            q: query,  // 后端期望的参数名是 'q' 而不是 'query'
             market_type: marketType,
             limit: limit
           },
           headers: {
-            'Authorization': `Token ${token}`,
+            'Authorization': token.startsWith('Token ') ? token : `Token ${token}`,
             'Content-Type': 'application/json'
           }
         }
 
         const response = await proxyRequest(requestData)
-        return response
+        return response.data
       } else {
         // 在非扩展环境中使用axios请求
-        const response = await api.get('/api/crypto/search/', {
+        const response = await api.get(searchUrl, {
           params: {
-            query: query,
+            q: query,  // 后端期望的参数名是 'q' 而不是 'query'
             market_type: marketType,
             limit: limit
           }
@@ -859,25 +947,29 @@ export const search = {
         throw new Error('No authentication token')
       }
 
+      // 根据市场类型构建正确的URL路径
+      const endpoint = marketType === 'crypto' ? 'crypto' : 'stock'
+      const popularUrl = `/${endpoint}/popular-assets/`
+
       // 检查是否在扩展环境中
       if (isExtension()) {
         const requestData = {
-          url: '/api/crypto/popular/',
+          url: popularUrl,
           method: 'GET',
           params: {
             market_type: marketType
           },
           headers: {
-            'Authorization': `Token ${token}`,
+            'Authorization': token.startsWith('Token ') ? token : `Token ${token}`,
             'Content-Type': 'application/json'
           }
         }
 
         const response = await proxyRequest(requestData)
-        return response
+        return response.data
       } else {
         // 在非扩展环境中使用axios请求
-        const response = await api.get('/api/crypto/popular/', {
+        const response = await api.get(popularUrl, {
           params: {
             market_type: marketType
           }
@@ -901,20 +993,23 @@ export const favorites = {
 
       // 检查是否在扩展环境中
       if (isExtension()) {
+        // 确保token格式正确
+        const authToken = token.startsWith('Token ') || token.startsWith('Bearer ') ? token : `Token ${token}`
+
         const requestData = {
-          url: '/api/favorites/',
+          url: '/crypto/favorites/',
           method: 'GET',
           headers: {
-            'Authorization': `Token ${token}`,
+            'Authorization': authToken,
             'Content-Type': 'application/json'
           }
         }
 
         const response = await proxyRequest(requestData)
-        return response
+        return response.data
       } else {
         // 在非扩展环境中使用axios请求
-        const response = await api.get('/api/favorites/')
+        const response = await api.get('/crypto/favorites/')
         return response.data
       }
     } catch (error: any) {
@@ -932,21 +1027,28 @@ export const favorites = {
 
       // 检查是否在扩展环境中
       if (isExtension()) {
+        // 确保token格式正确
+        const authToken = token.startsWith('Token ') || token.startsWith('Bearer ') ? token : `Token ${token}`
+
         const requestData = {
-          url: '/api/favorites/',
+          url: '/crypto/favorites/',
           method: 'POST',
           data: asset,
           headers: {
-            'Authorization': `Token ${token}`,
+            'Authorization': authToken,
             'Content-Type': 'application/json'
           }
         }
 
         const response = await proxyRequest(requestData)
+        // 确保返回标准格式的响应
+        if (response && response.data) {
+          return response.data
+        }
         return response
       } else {
         // 在非扩展环境中使用axios请求
-        const response = await api.post('/api/favorites/', asset)
+        const response = await api.post('/crypto/favorites/', asset)
         return response.data
       }
     } catch (error: any) {
@@ -964,24 +1066,31 @@ export const favorites = {
 
       // 检查是否在扩展环境中
       if (isExtension()) {
+        // 确保token格式正确
+        const authToken = token.startsWith('Token ') || token.startsWith('Bearer ') ? token : `Token ${token}`
+
         const requestData = {
-          url: '/api/favorites/',
+          url: '/crypto/favorites/',
           method: 'DELETE',
           data: {
             symbol: symbol,
             market_type: marketType
           },
           headers: {
-            'Authorization': `Token ${token}`,
+            'Authorization': authToken,
             'Content-Type': 'application/json'
           }
         }
 
         const response = await proxyRequest(requestData)
+        // 确保返回标准格式的响应
+        if (response && response.data) {
+          return response.data
+        }
         return response
       } else {
         // 在非扩展环境中使用axios请求
-        const response = await api.delete('/api/favorites/', {
+        const response = await api.delete('/crypto/favorites/', {
           data: {
             symbol: symbol,
             market_type: marketType
@@ -991,7 +1100,9 @@ export const favorites = {
       }
     } catch (error: any) {
       // 如果是404错误，说明收藏不存在，视为成功移除
-      if (error.response?.status === 404) {
+      // 处理不同环境下的错误结构
+      const status = error.response?.status || error.status
+      if (status === 404 || error.message?.includes('404') || error.message?.includes('Not Found')) {
         return {
           status: 'success',
           message: 'Favorite not found, considered as removed'
@@ -1011,26 +1122,33 @@ export const favorites = {
 
       // 检查是否在扩展环境中
       if (isExtension()) {
+        // 确保token格式正确
+        const authToken = token.startsWith('Token ') || token.startsWith('Bearer ') ? token : `Token ${token}`
+
         const requestData = {
-          url: '/api/favorites/check/',
-          method: 'POST',
-          data: {
-            symbol: symbol,
+          url: `/crypto/favorites/status/${symbol}/`,
+          method: 'GET',
+          params: {
             market_type: marketType
           },
           headers: {
-            'Authorization': `Token ${token}`,
+            'Authorization': authToken,
             'Content-Type': 'application/json'
           }
         }
 
         const response = await proxyRequest(requestData)
+        // 确保返回标准格式的响应
+        if (response && response.data) {
+          return response.data
+        }
         return response
       } else {
         // 在非扩展环境中使用axios请求
-        const response = await api.post('/api/favorites/check/', {
-          symbol: symbol,
-          market_type: marketType
+        const response = await api.get(`/crypto/favorites/status/${symbol}/`, {
+          params: {
+            market_type: marketType
+          }
         })
         return response.data
       }

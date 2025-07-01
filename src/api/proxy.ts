@@ -42,23 +42,12 @@ export const proxyRequest = async (config: AxiosRequestConfig): Promise<any> => 
   return new Promise((resolve, reject) => {
     const { url, method, headers, data, params } = config
 
-    // Build full URL with query params
-    let fullUrl = url || ''
-    if (params && Object.keys(params).length > 0) {
-      const searchParams = new URLSearchParams()
-      Object.entries(params).forEach(([key, value]) => {
-        if (value !== null && value !== undefined) {
-          searchParams.append(key, String(value))
-        }
-      })
-      const queryString = searchParams.toString()
-      if (queryString) {
-        fullUrl += (fullUrl.includes('?') ? '&' : '?') + queryString
-      }
-    }
+    // Don't build full URL here, let background.js handle it
+    const requestUrl = url || ''
 
     // Check if force refresh request
-    const isForceRefresh = fullUrl.includes('force_refresh=true')
+    const isForceRefresh = requestUrl.includes('force_refresh=true') ||
+                          (params && Object.values(params).some(v => String(v).includes('force_refresh=true')))
 
     // Set timeout
     let timeoutId: number | null = null
@@ -73,12 +62,14 @@ export const proxyRequest = async (config: AxiosRequestConfig): Promise<any> => 
     if (!updatedHeaders.Authorization) {
       const token = localStorage.getItem('token');
       if (token) {
-        // Ensure token format is correct
-        if (token.startsWith('Token ') || token.startsWith('Bearer ')) {
-          updatedHeaders = { ...updatedHeaders, Authorization: token };
-        } else {
-          updatedHeaders = { ...updatedHeaders, Authorization: `Token ${token}` };
+        // Ensure token format is correct - avoid double prefix
+        let cleanToken = token;
+        if (token.startsWith('Token ')) {
+          cleanToken = token.substring(6); // Remove "Token " prefix
+        } else if (token.startsWith('Bearer ')) {
+          cleanToken = token.substring(7); // Remove "Bearer " prefix
         }
+        updatedHeaders = { ...updatedHeaders, Authorization: `Token ${cleanToken}` };
       } else {
       }
     }
@@ -103,10 +94,11 @@ export const proxyRequest = async (config: AxiosRequestConfig): Promise<any> => 
     chrome.runtime.sendMessage({
       type: 'PROXY_API_REQUEST',
       data: {
-        url: fullUrl,  // Use full URL with query params
+        url: requestUrl,  // Use original URL, let background.js handle baseURL
         method: requestMethod,
         headers: updatedHeaders,  // Use updated headers
-        body: data
+        body: data,
+        params: params  // Pass params separately for background.js to handle
       }
     }, (response) => {
       // Clear timeout
@@ -133,10 +125,18 @@ export const proxyRequest = async (config: AxiosRequestConfig): Promise<any> => 
         // Process response data similar to axios response interceptor
         let processedData = response.data;
 
-        // Check if response data has the standard format
-        if (processedData && typeof processedData === 'object') {
-          // If response is already in standard format, use it directly
-          if (processedData.status === 'success' || processedData.status === 'error') {
+        // For 404 responses, ensure we return the correct status
+        if (response.status === 404) {
+          // For technical analysis endpoints, return not_found status
+          if (config.url && config.url.includes('/technical-indicators/')) {
+            processedData = {
+              status: 'not_found',
+              message: 'Report not found'
+            };
+          }
+        } else if (processedData && typeof processedData === 'object') {
+          // Check if response data has the standard format
+          if (processedData.status === 'success' || processedData.status === 'error' || processedData.status === 'not_found') {
             processedData = processedData;
           } else {
             // If not standard format, wrap as standard format
@@ -159,8 +159,8 @@ export const proxyRequest = async (config: AxiosRequestConfig): Promise<any> => 
         // If error, return minimal response object
         resolve({
           data: response.data,
-          status: 200,
-          statusText: 'OK',
+          status: response.status || 200,
+          statusText: response.statusText || 'OK',
           headers: {},
           config: {}
         })
