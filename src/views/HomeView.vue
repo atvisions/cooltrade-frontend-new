@@ -291,20 +291,20 @@
           </div>
 
           <!-- 正常内容 - 有数据时显示 -->
-          <div v-else-if="analysisData" class="space-y-6 pb-10">
+          <div v-else-if="analysisData" class="space-y-3 pb-8">
 
-            <!-- 资产信息卡片 - 现代化设计 -->
-            <div class="group relative overflow-hidden rounded-3xl bg-gradient-to-br from-slate-800/95 via-slate-900/95 to-slate-800/95 backdrop-blur-xl border border-slate-700/40 hover:border-slate-600/60 transition-all duration-500 hover:shadow-2xl hover:shadow-blue-500/10">
+            <!-- 资产信息卡片 - 紧凑设计 -->
+            <div class="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-slate-800/95 via-slate-900/95 to-slate-800/95 backdrop-blur-xl border border-slate-700/40 hover:border-slate-600/60 transition-all duration-300 hover:shadow-lg hover:shadow-blue-500/10">
               <!-- 动态背景光效 -->
-              <div class="absolute inset-0 bg-gradient-to-br from-blue-500/5 via-purple-500/5 to-indigo-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-700"></div>
+              <div class="absolute inset-0 bg-gradient-to-br from-blue-500/5 via-purple-500/5 to-indigo-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
 
-              <div class="relative p-4">
+              <div class="relative p-3">
                 <!-- 顶部区域：标题和导航 -->
-                <div class="flex items-center justify-between mb-3">
+                <div class="flex items-center justify-between mb-2">
                   <!-- 左侧：资产信息 -->
-                  <div class="flex items-center space-x-3">
+                  <div class="flex items-center space-x-2">
                     <!-- 市场指示器 -->
-                    <div class="w-3 h-3 rounded-full"
+                    <div class="w-2 h-2 rounded-full"
                          :class="{
                            'bg-gradient-to-r from-orange-400 to-yellow-400': currentMarketType === 'crypto',
                            'bg-gradient-to-r from-green-400 to-emerald-400': currentMarketType === 'stock',
@@ -313,7 +313,7 @@
                     </div>
 
                     <!-- 标题 -->
-                    <h1 class="text-lg font-bold bg-gradient-to-r from-white to-slate-200 bg-clip-text text-transparent">
+                    <h1 class="text-base font-bold bg-gradient-to-r from-white to-slate-200 bg-clip-text text-transparent">
                       {{ currentSymbol ? getDisplayTitle() : t('common.loading') }}
                     </h1>
 
@@ -324,50 +324,50 @@
                       :symbol="currentSymbol"
                       :market-type="currentMarketType"
                       @favorite-changed="handleFavoriteChanged"
-                      class="scale-110 hover:scale-125 transition-transform duration-300"
+                      class="scale-90 hover:scale-100 transition-transform duration-300"
                     />
                   </div>
 
                   <!-- 右侧：导航按钮 -->
-                  <div class="flex items-center space-x-2">
+                  <div class="flex items-center space-x-1">
                     <button
                       @click="togglePanel('favorites')"
-                      class="group/btn relative p-2 rounded-xl border transition-all duration-300 hover:scale-110 hover:rotate-3"
+                      class="group/btn relative p-1.5 rounded-lg border transition-all duration-300 hover:scale-105"
                       :class="{
-                        'bg-yellow-500/20 border-yellow-400/60 text-yellow-300 shadow-lg shadow-yellow-500/20': activePanel === 'favorites',
+                        'bg-yellow-500/20 border-yellow-400/60 text-yellow-300 shadow-md shadow-yellow-500/20': activePanel === 'favorites',
                         'bg-yellow-500/10 hover:bg-yellow-500/20 border-yellow-500/30 text-yellow-400 hover:border-yellow-400/50': activePanel !== 'favorites'
                       }"
                       :title="t('common.my_favorites')"
                     >
-                      <i class="ri-bookmark-line text-sm transition-transform duration-200 group-hover/btn:scale-110"></i>
+                      <i class="ri-bookmark-line text-xs transition-transform duration-200 group-hover/btn:scale-110"></i>
                     </button>
 
                     <button
                       v-if="(currentMarketType as string) !== 'china'"
                       @click="togglePanel('popular')"
-                      class="group/btn relative p-2 rounded-xl border transition-all duration-300 hover:scale-110 hover:rotate-3"
+                      class="group/btn relative p-1.5 rounded-lg border transition-all duration-300 hover:scale-105"
                       :class="{
-                        'bg-green-500/20 border-green-400/60 text-green-300 shadow-lg shadow-green-500/20': activePanel === 'popular',
+                        'bg-green-500/20 border-green-400/60 text-green-300 shadow-md shadow-green-500/20': activePanel === 'popular',
                         'bg-green-500/10 hover:bg-green-500/20 border-green-500/30 text-green-400 hover:border-green-400/50': activePanel !== 'popular'
                       }"
                       :title="currentMarketType === 'crypto' ? t('common.popular_tokens') : t('common.popular_stocks')"
                     >
-                      <i class="ri-fire-line text-sm transition-transform duration-200 group-hover/btn:scale-110"></i>
+                      <i class="ri-fire-line text-xs transition-transform duration-200 group-hover/btn:scale-110"></i>
                     </button>
                   </div>
                 </div>
 
                 <!-- 价格区域 -->
-                <div class="mb-3">
+                <div class="mb-2">
                   <!-- 快照标签 -->
-                  <div class="flex items-center space-x-2 mb-2">
-                    <i class="ri-camera-line text-blue-400 text-sm"></i>
+                  <div class="flex items-center space-x-1.5 mb-1">
+                    <i class="ri-camera-line text-blue-400 text-xs"></i>
                     <span class="text-blue-300 text-xs font-medium uppercase tracking-wide">{{ t('analysis.snapshot_price') }}</span>
                   </div>
 
                   <!-- 价格显示 -->
                   <div class="flex items-baseline space-x-3">
-                    <span class="text-2xl font-bold bg-gradient-to-r from-white via-slate-100 to-slate-200 bg-clip-text text-transparent tracking-tight">
+                    <span class="text-3xl font-bold bg-gradient-to-r from-white via-slate-100 to-slate-200 bg-clip-text text-transparent tracking-tight">
                       <template v-if="formatPriceParts(analysisData?.current_price).value">
                         <span v-if="formatPriceParts(analysisData?.current_price).prefix" class="text-gray-400">{{ formatPriceParts(analysisData?.current_price).prefix }}</span>
                         <span v-if="formatPriceParts(analysisData?.current_price).repeat" class="text-gray-400">{{ formatPriceParts(analysisData?.current_price).repeat }}</span>
@@ -377,31 +377,31 @@
                         {{ formatPriceParts(analysisData?.current_price).prefix }}
                       </template>
                     </span>
-                    <span class="text-sm text-slate-400 uppercase font-medium tracking-wider">{{ currentMarketType === 'crypto' ? 'USD' : 'USD' }}</span>
+                    <span class="text-base text-slate-400 uppercase font-medium tracking-wider">{{ currentMarketType === 'crypto' ? 'USD' : 'USD' }}</span>
                   </div>
                 </div>
 
                 <!-- 底部操作区域 -->
-                <div class="flex items-center justify-between pt-2 border-t border-slate-700/30">
+                <div class="flex items-center justify-between pt-1.5 border-t border-slate-700/30">
                   <!-- 时间信息 -->
                   <div class="flex items-center text-xs text-slate-400">
-                    <i class="ri-time-line mr-2 text-blue-400/60"></i>
+                    <i class="ri-time-line mr-1.5 text-blue-400/60 text-xs"></i>
                     <span>{{ formatTime(analysisData?.last_update_time) }}</span>
                   </div>
 
                   <!-- 操作按钮组 -->
-                  <div class="flex items-center space-x-2">
+                  <div class="flex items-center space-x-1">
                     <!-- 刷新按钮 -->
                     <el-tooltip :content="!canRefreshReport ? t('analysis.refresh_report_too_soon') : t('analysis.refresh_report')" placement="top">
                       <button
                         @click="canRefreshReport && handleRefreshReport()"
                         :disabled="!canRefreshReport || isRefreshing"
-                        class="group/refresh relative p-2 rounded-xl transition-all duration-300 hover:scale-110"
+                        class="group/refresh relative p-1.5 rounded-lg transition-all duration-300 hover:scale-105"
                         :class="canRefreshReport
-                          ? 'bg-green-500/15 text-green-400 hover:bg-green-500/25 border border-green-500/40 hover:border-green-400/60 hover:shadow-lg hover:shadow-green-500/20'
+                          ? 'bg-green-500/15 text-green-400 hover:bg-green-500/25 border border-green-500/40 hover:border-green-400/60 hover:shadow-md hover:shadow-green-500/20'
                           : 'bg-slate-700/30 text-slate-500 cursor-not-allowed border border-slate-700/30'"
                       >
-                        <i class="ri-refresh-line text-sm transition-transform duration-300 group-hover/refresh:rotate-180" :class="{ 'animate-spin': isRefreshing }"></i>
+                        <i class="ri-refresh-line text-xs transition-transform duration-300 group-hover/refresh:rotate-180" :class="{ 'animate-spin': isRefreshing }"></i>
                       </button>
                     </el-tooltip>
 
@@ -409,9 +409,9 @@
                     <el-tooltip :content="t('analysis.share_to_twitter')" placement="top">
                       <button
                         @click="shareToTwitter"
-                        class="group/share relative p-2 rounded-xl transition-all duration-300 hover:scale-110 bg-blue-500/15 text-blue-400 hover:bg-blue-500/25 border border-blue-500/40 hover:border-blue-400/60 hover:shadow-lg hover:shadow-blue-500/20"
+                        class="group/share relative p-1.5 rounded-lg transition-all duration-300 hover:scale-105 bg-blue-500/15 text-blue-400 hover:bg-blue-500/25 border border-blue-500/40 hover:border-blue-400/60 hover:shadow-md hover:shadow-blue-500/20"
                       >
-                        <i class="ri-twitter-fill text-sm transition-transform duration-200 group-hover/share:scale-110"></i>
+                        <i class="ri-twitter-fill text-xs transition-transform duration-200 group-hover/share:scale-110"></i>
                       </button>
                     </el-tooltip>
 
@@ -419,9 +419,9 @@
                     <el-tooltip :content="t('analysis.save_image')" placement="top">
                       <button
                         @click="saveChartImage"
-                        class="group/save relative p-2 rounded-xl transition-all duration-300 hover:scale-110 bg-slate-600/15 text-slate-400 hover:bg-slate-600/25 border border-slate-600/40 hover:border-slate-500/60 hover:shadow-lg hover:shadow-slate-500/20"
+                        class="group/save relative p-1.5 rounded-lg transition-all duration-300 hover:scale-105 bg-slate-600/15 text-slate-400 hover:bg-slate-600/25 border border-slate-600/40 hover:border-slate-500/60 hover:shadow-md hover:shadow-slate-500/20"
                       >
-                        <i class="ri-image-line text-sm transition-transform duration-200 group-hover/save:scale-110"></i>
+                        <i class="ri-image-line text-xs transition-transform duration-200 group-hover/save:scale-110"></i>
                       </button>
                     </el-tooltip>
                   </div>
@@ -452,53 +452,53 @@
 
             <!-- 趋势分析卡片 -->
             <div v-if="analysisData?.trend_analysis?.probabilities">
-              <h3 class="text-lg font-bold text-white mb-5 flex items-center">
-                <div class="w-1 h-6 bg-gradient-to-b from-emerald-400 to-red-400 rounded-full mr-3"></div>
+              <h3 class="text-base font-bold text-white mb-3 flex items-center">
+                <div class="w-0.5 h-4 bg-gradient-to-b from-emerald-400 to-red-400 rounded-full mr-2"></div>
                 {{ t('analysis.trend_analysis') }}
               </h3>
-              <div class="grid grid-cols-3 gap-4">
+              <div class="grid grid-cols-3 gap-2">
                 <!-- 上涨趋势 -->
-                <div class="group p-5 rounded-2xl bg-gradient-to-br from-emerald-500/15 to-emerald-600/10 border border-emerald-500/30 hover:border-emerald-400/50 text-center space-y-3 transition-all duration-300 hover:scale-105 hover:shadow-lg hover:shadow-emerald-500/20">
-                  <div class="w-10 h-10 mx-auto bg-emerald-500/20 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform duration-200">
-                    <i class="ri-arrow-up-line text-emerald-400 text-lg"></i>
+                <div class="group p-3 rounded-xl bg-gradient-to-br from-emerald-500/15 to-emerald-600/10 border border-emerald-500/30 hover:border-emerald-400/50 text-center space-y-2 transition-all duration-300 hover:scale-105 hover:shadow-md hover:shadow-emerald-500/20">
+                  <div class="w-6 h-6 mx-auto bg-emerald-500/20 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform duration-200">
+                    <i class="ri-arrow-up-line text-emerald-400 text-sm"></i>
                   </div>
-                  <div class="text-2xl font-bold text-emerald-400">{{ formatPercent(analysisData?.trend_analysis?.probabilities?.up) }}</div>
-                  <div class="text-sm text-emerald-300 font-medium">{{ t('analysis.uptrend') }}</div>
+                  <div class="text-lg font-bold text-emerald-400">{{ formatPercent(analysisData?.trend_analysis?.probabilities?.up) }}</div>
+                  <div class="text-xs text-emerald-300 font-medium">{{ t('analysis.uptrend') }}</div>
                 </div>
 
                 <!-- 横盘趋势 -->
-                <div class="group p-5 rounded-2xl bg-gradient-to-br from-slate-500/15 to-slate-600/10 border border-slate-500/30 hover:border-slate-400/50 text-center space-y-3 transition-all duration-300 hover:scale-105 hover:shadow-lg hover:shadow-slate-500/20">
-                  <div class="w-10 h-10 mx-auto bg-slate-500/20 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform duration-200">
-                    <i class="ri-subtract-line text-slate-400 text-lg"></i>
+                <div class="group p-3 rounded-xl bg-gradient-to-br from-slate-500/15 to-slate-600/10 border border-slate-500/30 hover:border-slate-400/50 text-center space-y-2 transition-all duration-300 hover:scale-105 hover:shadow-md hover:shadow-slate-500/20">
+                  <div class="w-6 h-6 mx-auto bg-slate-500/20 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform duration-200">
+                    <i class="ri-subtract-line text-slate-400 text-sm"></i>
                   </div>
-                  <div class="text-2xl font-bold text-slate-300">{{ formatPercent(analysisData?.trend_analysis?.probabilities?.sideways) }}</div>
-                  <div class="text-sm text-slate-400 font-medium">{{ t('analysis.sideways') }}</div>
+                  <div class="text-lg font-bold text-slate-300">{{ formatPercent(analysisData?.trend_analysis?.probabilities?.sideways) }}</div>
+                  <div class="text-xs text-slate-400 font-medium">{{ t('analysis.sideways') }}</div>
                 </div>
 
                 <!-- 下跌趋势 -->
-                <div class="group p-5 rounded-2xl bg-gradient-to-br from-red-500/15 to-red-600/10 border border-red-500/30 hover:border-red-400/50 text-center space-y-3 transition-all duration-300 hover:scale-105 hover:shadow-lg hover:shadow-red-500/20">
-                  <div class="w-10 h-10 mx-auto bg-red-500/20 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform duration-200">
-                    <i class="ri-arrow-down-line text-red-400 text-lg"></i>
+                <div class="group p-3 rounded-xl bg-gradient-to-br from-red-500/15 to-red-600/10 border border-red-500/30 hover:border-red-400/50 text-center space-y-2 transition-all duration-300 hover:scale-105 hover:shadow-md hover:shadow-red-500/20">
+                  <div class="w-6 h-6 mx-auto bg-red-500/20 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform duration-200">
+                    <i class="ri-arrow-down-line text-red-400 text-sm"></i>
                   </div>
-                  <div class="text-2xl font-bold text-red-400">{{ formatPercent(analysisData?.trend_analysis?.probabilities?.down) }}</div>
-                  <div class="text-sm text-red-300 font-medium">{{ t('analysis.downtrend') }}</div>
+                  <div class="text-lg font-bold text-red-400">{{ formatPercent(analysisData?.trend_analysis?.probabilities?.down) }}</div>
+                  <div class="text-xs text-red-300 font-medium">{{ t('analysis.downtrend') }}</div>
                 </div>
               </div>
             </div>
 
             <!-- 市场趋势分析 -->
             <div v-if="analysisData?.trend_analysis?.summary">
-              <h3 class="text-lg font-bold text-white mb-5 flex items-center">
-                <div class="w-1 h-6 bg-gradient-to-b from-blue-400 to-purple-400 rounded-full mr-3"></div>
+              <h3 class="text-base font-bold text-white mb-3 flex items-center">
+                <div class="w-0.5 h-4 bg-gradient-to-b from-blue-400 to-purple-400 rounded-full mr-2"></div>
                 {{ t('analysis.market_trend_analysis') }}
               </h3>
-              <div class="group p-6 rounded-2xl bg-gradient-to-br from-slate-800/60 to-slate-900/60 border border-slate-700/50 hover:border-slate-600/60 transition-all duration-300 hover:shadow-lg hover:shadow-blue-500/10">
-                <div class="flex items-start space-x-4">
-                  <div class="w-10 h-10 bg-blue-500/20 rounded-xl flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform duration-200">
-                    <i class="ri-line-chart-line text-blue-400 text-lg"></i>
+              <div class="group p-4 rounded-xl bg-gradient-to-br from-slate-800/60 to-slate-900/60 border border-slate-700/50 hover:border-slate-600/60 transition-all duration-300 hover:shadow-md hover:shadow-blue-500/10">
+                <div class="flex items-start space-x-3">
+                  <div class="w-6 h-6 bg-blue-500/20 rounded-lg flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform duration-200">
+                    <i class="ri-line-chart-line text-blue-400 text-sm"></i>
                   </div>
                   <div class="flex-1">
-                    <p class="text-base text-slate-200 leading-relaxed">
+                    <p class="text-sm text-slate-200 leading-relaxed">
                       <span v-if="loadingTranslation" class="text-slate-400">翻译中...</span>
                       <span v-else>{{ translatedSummary }}</span>
                     </p>
@@ -509,101 +509,101 @@
 
             <!-- 技术指标分析 -->
             <div v-if="analysisData?.indicators_analysis">
-              <h3 class="text-lg font-bold text-white mb-5 flex items-center">
-                <div class="w-1 h-6 bg-gradient-to-b from-cyan-400 to-blue-400 rounded-full mr-3"></div>
+              <h3 class="text-base font-bold text-white mb-3 flex items-center">
+                <div class="w-0.5 h-4 bg-gradient-to-b from-cyan-400 to-blue-400 rounded-full mr-2"></div>
                 {{ t('analysis.technical_indicators') }}
               </h3>
 
               <!-- 单参数指标网格 -->
-              <div class="grid grid-cols-2 gap-4 mb-6">
+              <div class="grid grid-cols-2 gap-2 mb-4">
                 <template v-for="(indicator, key) in analysisData?.indicators_analysis" :key="key">
-                  <div v-if="!['MACD','BollingerBands','DMI'].includes(key) && shouldShowIndicator(key)" class="group p-5 rounded-2xl bg-slate-800/40 border border-slate-700/50 hover:border-slate-600/60 transition-all duration-300 hover:scale-105 hover:shadow-lg hover:shadow-slate-500/10">
-                    <div class="flex items-center justify-between mb-3">
-                      <div class="flex items-center space-x-2 flex-1 min-w-0">
-                        <span class="text-sm font-semibold text-slate-300 truncate">{{ getIndicatorDisplayName(key) }}</span>
+                  <div v-if="!['MACD','BollingerBands','DMI'].includes(key) && shouldShowIndicator(key)" class="group p-3 rounded-xl bg-slate-800/40 border border-slate-700/50 hover:border-slate-600/60 transition-all duration-300 hover:scale-105 hover:shadow-md hover:shadow-slate-500/10">
+                    <div class="flex items-center justify-between mb-2">
+                      <div class="flex items-center space-x-1.5 flex-1 min-w-0">
+                        <span class="text-xs font-semibold text-slate-300 truncate">{{ getIndicatorDisplayName(key) }}</span>
                         <el-tooltip :content="getIndicatorExplanation(key)" placement="top">
-                          <i class="ri-question-line text-slate-500 cursor-help text-sm flex-shrink-0 hover:text-slate-400 transition-colors"></i>
+                          <i class="ri-question-line text-slate-500 cursor-help text-xs flex-shrink-0 hover:text-slate-400 transition-colors"></i>
                         </el-tooltip>
                       </div>
                       <div
-                        class="w-7 h-7 rounded-xl flex items-center justify-center flex-shrink-0 ml-2 group-hover:scale-110 transition-transform duration-200"
+                        class="w-5 h-5 rounded-lg flex items-center justify-center flex-shrink-0 ml-1 group-hover:scale-110 transition-transform duration-200"
                         :class="getIndicatorClass(indicator.support_trend)"
                         :style="`background:${getIndicatorBgColor(indicator.support_trend)}`"
                       >
-                        <i :class="getTrendIconClass(indicator.support_trend)" class="text-sm"></i>
+                        <i :class="getTrendIconClass(indicator.support_trend)" class="text-xs"></i>
                       </div>
                     </div>
-                    <div class="text-lg font-bold text-white">
+                    <div class="text-sm font-bold text-white">
                       {{ typeof indicator.value === 'number' ? indicator.value.toFixed(2) : indicator.value }}
                     </div>
                   </div>
                 </template>
               </div>
               <!-- 复杂指标 -->
-              <div class="space-y-6">
+              <div class="space-y-3">
                 <template v-for="key in ['MACD','BollingerBands','DMI']" :key="key">
-                  <div v-if="analysisData?.indicators_analysis && (analysisData.indicators_analysis as any)[key]" class="group p-6 rounded-2xl bg-slate-800/40 border border-slate-700/50 hover:border-slate-600/60 transition-all duration-300 hover:shadow-lg hover:shadow-slate-500/10">
-                    <div class="flex items-center justify-between mb-5">
-                      <div class="flex items-center space-x-3">
-                        <span class="text-lg font-bold text-white">{{ key }}</span>
+                  <div v-if="analysisData?.indicators_analysis && (analysisData.indicators_analysis as any)[key]" class="group p-4 rounded-xl bg-slate-800/40 border border-slate-700/50 hover:border-slate-600/60 transition-all duration-300 hover:shadow-md hover:shadow-slate-500/10">
+                    <div class="flex items-center justify-between mb-3">
+                      <div class="flex items-center space-x-2">
+                        <span class="text-sm font-bold text-white">{{ key }}</span>
                         <el-tooltip :content="getIndicatorExplanation(key)" placement="top">
-                          <i class="ri-question-line text-slate-500 cursor-help text-base hover:text-slate-400 transition-colors"></i>
+                          <i class="ri-question-line text-slate-500 cursor-help text-xs hover:text-slate-400 transition-colors"></i>
                         </el-tooltip>
                       </div>
                       <div
-                        class="w-10 h-10 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform duration-200"
+                        class="w-6 h-6 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform duration-200"
                         :class="getIndicatorClass((analysisData.indicators_analysis as any)[key].support_trend)"
                         :style="`background:${getIndicatorBgColor((analysisData.indicators_analysis as any)[key].support_trend)}`"
                       >
-                        <i :class="getTrendIconClass((analysisData.indicators_analysis as any)[key].support_trend)" class="text-base"></i>
+                        <i :class="getTrendIconClass((analysisData.indicators_analysis as any)[key].support_trend)" class="text-sm"></i>
                       </div>
                     </div>
 
-                    <div :class="key === 'DMI' && currentMarketType === 'stock' ? 'grid grid-cols-2 gap-4' : 'grid grid-cols-3 gap-4'">
+                    <div :class="key === 'DMI' && currentMarketType === 'stock' ? 'grid grid-cols-2 gap-2' : 'grid grid-cols-3 gap-2'">
                       <!-- MACD -->
                       <template v-if="key === 'MACD'">
-                        <div class="group/item text-center p-4 rounded-xl bg-blue-500/10 border border-blue-500/30 hover:border-blue-400/50 transition-all duration-200 hover:scale-105">
-                          <div class="text-sm text-blue-300 font-semibold mb-2">Histogram</div>
-                          <div class="text-base font-bold text-white">{{ typeof (analysisData.indicators_analysis as any)[key].value === 'object' && (analysisData.indicators_analysis as any)[key].value && 'histogram' in (analysisData.indicators_analysis as any)[key].value && typeof (analysisData.indicators_analysis as any)[key].value.histogram === 'number' ? (analysisData.indicators_analysis as any)[key].value.histogram.toFixed(2) : '--' }}</div>
+                        <div class="group/item text-center p-2 rounded-lg bg-blue-500/10 border border-blue-500/30 hover:border-blue-400/50 transition-all duration-200 hover:scale-105">
+                          <div class="text-xs text-blue-300 font-semibold mb-1">Histogram</div>
+                          <div class="text-sm font-bold text-white">{{ typeof (analysisData.indicators_analysis as any)[key].value === 'object' && (analysisData.indicators_analysis as any)[key].value && 'histogram' in (analysisData.indicators_analysis as any)[key].value && typeof (analysisData.indicators_analysis as any)[key].value.histogram === 'number' ? (analysisData.indicators_analysis as any)[key].value.histogram.toFixed(2) : '--' }}</div>
                         </div>
-                        <div class="group/item text-center p-4 rounded-xl bg-blue-500/10 border border-blue-500/30 hover:border-blue-400/50 transition-all duration-200 hover:scale-105">
-                          <div class="text-sm text-blue-300 font-semibold mb-2">MACD Line</div>
-                          <div class="text-base font-bold text-white">{{ typeof (analysisData.indicators_analysis as any)[key].value === 'object' && (analysisData.indicators_analysis as any)[key].value && 'line' in (analysisData.indicators_analysis as any)[key].value && typeof (analysisData.indicators_analysis as any)[key].value.line === 'number' ? (analysisData.indicators_analysis as any)[key].value.line.toFixed(2) : '--' }}</div>
+                        <div class="group/item text-center p-2 rounded-lg bg-blue-500/10 border border-blue-500/30 hover:border-blue-400/50 transition-all duration-200 hover:scale-105">
+                          <div class="text-xs text-blue-300 font-semibold mb-1">MACD Line</div>
+                          <div class="text-sm font-bold text-white">{{ typeof (analysisData.indicators_analysis as any)[key].value === 'object' && (analysisData.indicators_analysis as any)[key].value && 'line' in (analysisData.indicators_analysis as any)[key].value && typeof (analysisData.indicators_analysis as any)[key].value.line === 'number' ? (analysisData.indicators_analysis as any)[key].value.line.toFixed(2) : '--' }}</div>
                         </div>
-                        <div class="group/item text-center p-4 rounded-xl bg-blue-500/10 border border-blue-500/30 hover:border-blue-400/50 transition-all duration-200 hover:scale-105">
-                          <div class="text-sm text-blue-300 font-semibold mb-2">Signal Line</div>
-                          <div class="text-base font-bold text-white">{{ typeof (analysisData.indicators_analysis as any)[key].value === 'object' && (analysisData.indicators_analysis as any)[key].value && 'signal' in (analysisData.indicators_analysis as any)[key].value && typeof (analysisData.indicators_analysis as any)[key].value.signal === 'number' ? (analysisData.indicators_analysis as any)[key].value.signal.toFixed(2) : '--' }}</div>
+                        <div class="group/item text-center p-2 rounded-lg bg-blue-500/10 border border-blue-500/30 hover:border-blue-400/50 transition-all duration-200 hover:scale-105">
+                          <div class="text-xs text-blue-300 font-semibold mb-1">Signal Line</div>
+                          <div class="text-sm font-bold text-white">{{ typeof (analysisData.indicators_analysis as any)[key].value === 'object' && (analysisData.indicators_analysis as any)[key].value && 'signal' in (analysisData.indicators_analysis as any)[key].value && typeof (analysisData.indicators_analysis as any)[key].value.signal === 'number' ? (analysisData.indicators_analysis as any)[key].value.signal.toFixed(2) : '--' }}</div>
                         </div>
                       </template>
                       <!-- Bollinger Bands -->
                       <template v-else-if="key === 'BollingerBands'">
-                        <div class="group/item text-center p-4 rounded-xl bg-red-500/10 border border-red-500/30 hover:border-red-400/50 transition-all duration-200 hover:scale-105">
-                          <div class="text-sm text-red-300 font-semibold mb-2">Upper Band</div>
-                          <div class="text-base font-bold text-white">{{ typeof (analysisData.indicators_analysis as any)[key].value === 'object' && (analysisData.indicators_analysis as any)[key].value && 'upper' in (analysisData.indicators_analysis as any)[key].value && typeof (analysisData.indicators_analysis as any)[key].value.upper === 'number' ? (analysisData.indicators_analysis as any)[key].value.upper.toFixed(2) : '--' }}</div>
+                        <div class="group/item text-center p-2 rounded-lg bg-red-500/10 border border-red-500/30 hover:border-red-400/50 transition-all duration-200 hover:scale-105">
+                          <div class="text-xs text-red-300 font-semibold mb-1">Upper Band</div>
+                          <div class="text-sm font-bold text-white">{{ typeof (analysisData.indicators_analysis as any)[key].value === 'object' && (analysisData.indicators_analysis as any)[key].value && 'upper' in (analysisData.indicators_analysis as any)[key].value && typeof (analysisData.indicators_analysis as any)[key].value.upper === 'number' ? (analysisData.indicators_analysis as any)[key].value.upper.toFixed(2) : '--' }}</div>
                         </div>
-                        <div class="group/item text-center p-4 rounded-xl bg-slate-500/10 border border-slate-500/30 hover:border-slate-400/50 transition-all duration-200 hover:scale-105">
-                          <div class="text-sm text-slate-300 font-semibold mb-2">Middle Band</div>
-                          <div class="text-base font-bold text-white">{{ typeof (analysisData.indicators_analysis as any)[key].value === 'object' && (analysisData.indicators_analysis as any)[key].value && 'middle' in (analysisData.indicators_analysis as any)[key].value && typeof (analysisData.indicators_analysis as any)[key].value.middle === 'number' ? (analysisData.indicators_analysis as any)[key].value.middle.toFixed(2) : '--' }}</div>
+                        <div class="group/item text-center p-2 rounded-lg bg-slate-500/10 border border-slate-500/30 hover:border-slate-400/50 transition-all duration-200 hover:scale-105">
+                          <div class="text-xs text-slate-300 font-semibold mb-1">Middle Band</div>
+                          <div class="text-sm font-bold text-white">{{ typeof (analysisData.indicators_analysis as any)[key].value === 'object' && (analysisData.indicators_analysis as any)[key].value && 'middle' in (analysisData.indicators_analysis as any)[key].value && typeof (analysisData.indicators_analysis as any)[key].value.middle === 'number' ? (analysisData.indicators_analysis as any)[key].value.middle.toFixed(2) : '--' }}</div>
                         </div>
-                        <div class="group/item text-center p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/30 hover:border-emerald-400/50 transition-all duration-200 hover:scale-105">
-                          <div class="text-sm text-emerald-300 font-semibold mb-2">Lower Band</div>
-                          <div class="text-base font-bold text-white">{{ typeof (analysisData.indicators_analysis as any)[key].value === 'object' && (analysisData.indicators_analysis as any)[key].value && 'lower' in (analysisData.indicators_analysis as any)[key].value && typeof (analysisData.indicators_analysis as any)[key].value.lower === 'number' ? (analysisData.indicators_analysis as any)[key].value.lower.toFixed(2) : '--' }}</div>
+                        <div class="group/item text-center p-2 rounded-lg bg-emerald-500/10 border border-emerald-500/30 hover:border-emerald-400/50 transition-all duration-200 hover:scale-105">
+                          <div class="text-xs text-emerald-300 font-semibold mb-1">Lower Band</div>
+                          <div class="text-sm font-bold text-white">{{ typeof (analysisData.indicators_analysis as any)[key].value === 'object' && (analysisData.indicators_analysis as any)[key].value && 'lower' in (analysisData.indicators_analysis as any)[key].value && typeof (analysisData.indicators_analysis as any)[key].value.lower === 'number' ? (analysisData.indicators_analysis as any)[key].value.lower.toFixed(2) : '--' }}</div>
                         </div>
                       </template>
                       <!-- DMI -->
                       <template v-else-if="key === 'DMI'">
-                        <div class="group/item text-center p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/30 hover:border-emerald-400/50 transition-all duration-200 hover:scale-105">
-                          <div class="text-sm text-emerald-300 font-semibold mb-2">+DI</div>
-                          <div class="text-base font-bold text-white">{{ typeof (analysisData.indicators_analysis as any)[key].value === 'object' && (analysisData.indicators_analysis as any)[key].value && 'plus_di' in (analysisData.indicators_analysis as any)[key].value && typeof (analysisData.indicators_analysis as any)[key].value.plus_di === 'number' ? (analysisData.indicators_analysis as any)[key].value.plus_di.toFixed(2) : '--' }}</div>
+                        <div class="group/item text-center p-2 rounded-lg bg-emerald-500/10 border border-emerald-500/30 hover:border-emerald-400/50 transition-all duration-200 hover:scale-105">
+                          <div class="text-xs text-emerald-300 font-semibold mb-1">+DI</div>
+                          <div class="text-sm font-bold text-white">{{ typeof (analysisData.indicators_analysis as any)[key].value === 'object' && (analysisData.indicators_analysis as any)[key].value && 'plus_di' in (analysisData.indicators_analysis as any)[key].value && typeof (analysisData.indicators_analysis as any)[key].value.plus_di === 'number' ? (analysisData.indicators_analysis as any)[key].value.plus_di.toFixed(2) : '--' }}</div>
                         </div>
-                        <div class="group/item text-center p-4 rounded-xl bg-red-500/10 border border-red-500/30 hover:border-red-400/50 transition-all duration-200 hover:scale-105">
-                          <div class="text-sm text-red-300 font-semibold mb-2">-DI</div>
-                          <div class="text-base font-bold text-white">{{ typeof (analysisData.indicators_analysis as any)[key].value === 'object' && (analysisData.indicators_analysis as any)[key].value && 'minus_di' in (analysisData.indicators_analysis as any)[key].value && typeof (analysisData.indicators_analysis as any)[key].value.minus_di === 'number' ? (analysisData.indicators_analysis as any)[key].value.minus_di.toFixed(2) : '--' }}</div>
+                        <div class="group/item text-center p-2 rounded-lg bg-red-500/10 border border-red-500/30 hover:border-red-400/50 transition-all duration-200 hover:scale-105">
+                          <div class="text-xs text-red-300 font-semibold mb-1">-DI</div>
+                          <div class="text-sm font-bold text-white">{{ typeof (analysisData.indicators_analysis as any)[key].value === 'object' && (analysisData.indicators_analysis as any)[key].value && 'minus_di' in (analysisData.indicators_analysis as any)[key].value && typeof (analysisData.indicators_analysis as any)[key].value.minus_di === 'number' ? (analysisData.indicators_analysis as any)[key].value.minus_di.toFixed(2) : '--' }}</div>
                         </div>
                         <!-- 只在加密货币市场显示ADX -->
-                        <div v-if="currentMarketType === 'crypto'" class="group/item text-center p-4 rounded-xl bg-blue-500/10 border border-blue-500/30 hover:border-blue-400/50 transition-all duration-200 hover:scale-105">
-                          <div class="text-sm text-blue-300 font-semibold mb-2">ADX</div>
-                          <div class="text-base font-bold text-white">{{ typeof (analysisData.indicators_analysis as any)[key].value === 'object' && (analysisData.indicators_analysis as any)[key].value && 'adx' in (analysisData.indicators_analysis as any)[key].value && typeof (analysisData.indicators_analysis as any)[key].value.adx === 'number' ? (analysisData.indicators_analysis as any)[key].value.adx.toFixed(2) : '--' }}</div>
+                        <div v-if="currentMarketType === 'crypto'" class="group/item text-center p-2 rounded-lg bg-blue-500/10 border border-blue-500/30 hover:border-blue-400/50 transition-all duration-200 hover:scale-105">
+                          <div class="text-xs text-blue-300 font-semibold mb-1">ADX</div>
+                          <div class="text-sm font-bold text-white">{{ typeof (analysisData.indicators_analysis as any)[key].value === 'object' && (analysisData.indicators_analysis as any)[key].value && 'adx' in (analysisData.indicators_analysis as any)[key].value && typeof (analysisData.indicators_analysis as any)[key].value.adx === 'number' ? (analysisData.indicators_analysis as any)[key].value.adx.toFixed(2) : '--' }}</div>
                         </div>
                       </template>
                     </div>
@@ -614,16 +614,16 @@
 
             <!-- 交易建议 -->
             <div v-if="analysisData?.trading_advice">
-              <h3 class="text-lg font-bold text-white mb-5 flex items-center">
-                <div class="w-1 h-6 bg-gradient-to-b from-amber-400 to-orange-400 rounded-full mr-3"></div>
+              <h3 class="text-base font-bold text-white mb-3 flex items-center">
+                <div class="w-0.5 h-4 bg-gradient-to-b from-amber-400 to-orange-400 rounded-full mr-2"></div>
                 {{ t('analysis.trading_advice') }}
               </h3>
-              <div class="group p-6 rounded-2xl bg-gradient-to-br from-slate-800/60 to-slate-900/60 border border-slate-700/50 hover:border-slate-600/60 transition-all duration-300 hover:shadow-lg hover:shadow-amber-500/10 space-y-5">
+              <div class="group p-4 rounded-xl bg-gradient-to-br from-slate-800/60 to-slate-900/60 border border-slate-700/50 hover:border-slate-600/60 transition-all duration-300 hover:shadow-md hover:shadow-amber-500/10 space-y-3">
 
                 <!-- 推荐操作 -->
-                <div class="flex items-center justify-between p-4 rounded-xl bg-slate-700/30 hover:bg-slate-700/40 transition-colors duration-200">
-                  <div class="text-base font-semibold text-slate-300">{{ t('analysis.recommended_action') }}</div>
-                  <div class="px-4 py-2 rounded-xl text-base font-bold transition-all duration-200 hover:scale-105"
+                <div class="flex items-center justify-between p-3 rounded-lg bg-slate-700/30 hover:bg-slate-700/40 transition-colors duration-200">
+                  <div class="text-sm font-semibold text-slate-300">{{ t('analysis.recommended_action') }}</div>
+                  <div class="px-3 py-1.5 rounded-lg text-sm font-bold transition-all duration-200 hover:scale-105"
                     :class="analysisData.trading_advice?.action === '买入' ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 hover:bg-emerald-500/30' :
                             analysisData.trading_advice?.action === '卖出' ? 'bg-red-500/20 text-red-400 border border-red-500/40 hover:bg-red-500/30' :
                             'bg-slate-500/20 text-slate-400 border border-slate-500/40 hover:bg-slate-500/30'">
@@ -632,10 +632,10 @@
                 </div>
 
                 <!-- 价格信息 -->
-                <div class="grid grid-cols-3 gap-4">
-                  <div class="group/price text-center p-4 rounded-xl bg-blue-500/10 border border-blue-500/30 hover:border-blue-400/50 transition-all duration-200 hover:scale-105">
-                    <div class="text-sm text-blue-300 font-semibold mb-2">{{ t('analysis.entry_price') }}</div>
-                    <div class="text-sm font-bold text-white">
+                <div class="grid grid-cols-3 gap-2">
+                  <div class="group/price text-center p-2 rounded-lg bg-blue-500/10 border border-blue-500/30 hover:border-blue-400/50 transition-all duration-200 hover:scale-105">
+                    <div class="text-xs text-blue-300 font-semibold mb-1">{{ t('analysis.entry_price') }}</div>
+                    <div class="text-xs font-bold text-white">
                       <template v-if="formatPriceParts(analysisData.trading_advice?.entry_price).value">
                         <span v-if="formatPriceParts(analysisData.trading_advice?.entry_price).prefix" class="text-gray-400">{{ formatPriceParts(analysisData.trading_advice?.entry_price).prefix }}</span>
                         <span v-if="formatPriceParts(analysisData.trading_advice?.entry_price).repeat" class="text-gray-400">{{ formatPriceParts(analysisData.trading_advice?.entry_price).repeat }}</span>
@@ -646,9 +646,9 @@
                       </template>
                     </div>
                   </div>
-                  <div class="group/price text-center p-4 rounded-xl bg-red-500/10 border border-red-500/30 hover:border-red-400/50 transition-all duration-200 hover:scale-105">
-                    <div class="text-sm text-red-300 font-semibold mb-2">{{ t('analysis.stop_loss') }}</div>
-                    <div class="text-sm font-bold text-red-400">
+                  <div class="group/price text-center p-2 rounded-lg bg-red-500/10 border border-red-500/30 hover:border-red-400/50 transition-all duration-200 hover:scale-105">
+                    <div class="text-xs text-red-300 font-semibold mb-1">{{ t('analysis.stop_loss') }}</div>
+                    <div class="text-xs font-bold text-red-400">
                       <template v-if="formatPriceParts(analysisData.trading_advice.stop_loss).value">
                         <span v-if="formatPriceParts(analysisData.trading_advice.stop_loss).prefix" class="text-gray-400">{{ formatPriceParts(analysisData.trading_advice.stop_loss).prefix }}</span>
                         <span v-if="formatPriceParts(analysisData.trading_advice.stop_loss).repeat" class="text-gray-400">{{ formatPriceParts(analysisData.trading_advice.stop_loss).repeat }}</span>
@@ -659,9 +659,9 @@
                       </template>
                     </div>
                   </div>
-                  <div class="group/price text-center p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/30 hover:border-emerald-400/50 transition-all duration-200 hover:scale-105">
-                    <div class="text-sm text-emerald-300 font-semibold mb-2">{{ t('analysis.take_profit') }}</div>
-                    <div class="text-sm font-bold text-emerald-400">
+                  <div class="group/price text-center p-2 rounded-lg bg-emerald-500/10 border border-emerald-500/30 hover:border-emerald-400/50 transition-all duration-200 hover:scale-105">
+                    <div class="text-xs text-emerald-300 font-semibold mb-1">{{ t('analysis.take_profit') }}</div>
+                    <div class="text-xs font-bold text-emerald-400">
                       <template v-if="formatPriceParts(analysisData.trading_advice.take_profit).value">
                         <span v-if="formatPriceParts(analysisData.trading_advice.take_profit).prefix" class="text-gray-400">{{ formatPriceParts(analysisData.trading_advice.take_profit).prefix }}</span>
                         <span v-if="formatPriceParts(analysisData.trading_advice.take_profit).repeat" class="text-gray-400">{{ formatPriceParts(analysisData.trading_advice.take_profit).repeat }}</span>
@@ -675,14 +675,14 @@
                 </div>
 
                 <!-- 理由说明 -->
-                <div class="p-5 rounded-xl bg-slate-700/20 border border-slate-600/30 hover:border-slate-600/40 transition-colors duration-200">
-                  <div class="flex items-start space-x-4">
-                    <div class="w-8 h-8 bg-amber-500/20 rounded-xl flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform duration-200">
-                      <i class="ri-lightbulb-line text-amber-400 text-base"></i>
+                <div class="p-3 rounded-lg bg-slate-700/20 border border-slate-600/30 hover:border-slate-600/40 transition-colors duration-200">
+                  <div class="flex items-start space-x-3">
+                    <div class="w-6 h-6 bg-amber-500/20 rounded-lg flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform duration-200">
+                      <i class="ri-lightbulb-line text-amber-400 text-sm"></i>
                     </div>
                     <div class="flex-1">
-                      <div class="text-base font-semibold text-slate-300 mb-3">{{ t('analysis.reason') }}</div>
-                      <div class="text-base text-slate-200 leading-relaxed">
+                      <div class="text-sm font-semibold text-slate-300 mb-2">{{ t('analysis.reason') }}</div>
+                      <div class="text-sm text-slate-200 leading-relaxed">
                         <span v-if="loadingReasonTranslation" class="text-slate-400">翻译中...</span>
                         <span v-else>{{ translatedReason || analysisData.trading_advice.reason }}</span>
                       </div>
@@ -694,16 +694,16 @@
 
             <!-- 风险评估 -->
             <div v-if="analysisData?.risk_assessment">
-              <h3 class="text-lg font-bold text-white mb-5 flex items-center">
-                <div class="w-1 h-6 bg-gradient-to-b from-red-400 to-orange-400 rounded-full mr-3"></div>
+              <h3 class="text-base font-bold text-white mb-3 flex items-center">
+                <div class="w-0.5 h-4 bg-gradient-to-b from-red-400 to-orange-400 rounded-full mr-2"></div>
                 {{ t('analysis.risk_assessment') }}
               </h3>
-              <div class="group p-6 rounded-2xl bg-gradient-to-br from-slate-800/60 to-slate-900/60 border border-slate-700/50 hover:border-slate-600/60 transition-all duration-300 hover:shadow-lg hover:shadow-red-500/10 space-y-5">
+              <div class="group p-4 rounded-xl bg-gradient-to-br from-slate-800/60 to-slate-900/60 border border-slate-700/50 hover:border-slate-600/60 transition-all duration-300 hover:shadow-md hover:shadow-red-500/10 space-y-3">
 
                 <!-- 风险等级 -->
-                <div class="flex items-center justify-between p-4 rounded-xl bg-slate-700/30 hover:bg-slate-700/40 transition-colors duration-200">
-                  <div class="text-base font-semibold text-slate-300">{{ t('analysis.risk_level') }}</div>
-                  <div class="px-4 py-2 rounded-xl text-base font-bold transition-all duration-200 hover:scale-105"
+                <div class="flex items-center justify-between p-3 rounded-lg bg-slate-700/30 hover:bg-slate-700/40 transition-colors duration-200">
+                  <div class="text-sm font-semibold text-slate-300">{{ t('analysis.risk_level') }}</div>
+                  <div class="px-3 py-1.5 rounded-lg text-sm font-bold transition-all duration-200 hover:scale-105"
                     :class="{
                       'bg-red-500/20 text-red-400 border border-red-500/40 hover:bg-red-500/30': analysisData.risk_assessment.level === '高',
                       'bg-amber-500/20 text-amber-400 border border-amber-500/40 hover:bg-amber-500/30': analysisData.risk_assessment.level === '中',
@@ -714,12 +714,12 @@
                 </div>
 
                 <!-- 风险评分 -->
-                <div class="space-y-3">
+                <div class="space-y-2">
                   <div class="flex items-center justify-between">
-                    <span class="text-base font-semibold text-slate-300">{{ t('analysis.risk_score') }}</span>
-                    <span class="text-xl font-bold text-white">{{ analysisData.risk_assessment.score }}%</span>
+                    <span class="text-sm font-semibold text-slate-300">{{ t('analysis.risk_score') }}</span>
+                    <span class="text-lg font-bold text-white">{{ analysisData.risk_assessment.score }}%</span>
                   </div>
-                  <div class="w-full bg-slate-700/50 rounded-full h-4 overflow-hidden shadow-inner">
+                  <div class="w-full bg-slate-700/50 rounded-full h-3 overflow-hidden shadow-inner">
                     <div class="h-full rounded-full transition-all duration-700 shadow-lg"
                       :class="{
                         'bg-gradient-to-r from-red-500 to-red-400 shadow-red-500/30': analysisData.risk_assessment.score > 70,
@@ -732,20 +732,20 @@
                 </div>
 
                 <!-- 风险因素 -->
-                <div v-if="analysisData.risk_assessment.details && analysisData.risk_assessment.details.length > 0" class="space-y-4">
-                  <div class="flex items-center space-x-3">
-                    <div class="w-8 h-8 bg-orange-500/20 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform duration-200">
-                      <i class="ri-alert-line text-orange-400 text-base"></i>
+                <div v-if="analysisData.risk_assessment.details && analysisData.risk_assessment.details.length > 0" class="space-y-3">
+                  <div class="flex items-center space-x-2">
+                    <div class="w-6 h-6 bg-orange-500/20 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform duration-200">
+                      <i class="ri-alert-line text-orange-400 text-sm"></i>
                     </div>
-                    <span class="text-base font-semibold text-slate-300">{{ t('analysis.risk_factors') }}</span>
+                    <span class="text-sm font-semibold text-slate-300">{{ t('analysis.risk_factors') }}</span>
                   </div>
-                  <div class="pl-11 space-y-3">
-                    <div v-if="loadingRiskTranslation" class="text-slate-400 text-base">翻译中...</div>
-                    <div v-else class="space-y-3">
+                  <div class="pl-8 space-y-2">
+                    <div v-if="loadingRiskTranslation" class="text-slate-400 text-sm">翻译中...</div>
+                    <div v-else class="space-y-2">
                       <div v-for="(detail, index) in (translatedRiskFactors.length > 0 ? translatedRiskFactors : analysisData.risk_assessment.details)"
                            :key="index"
-                           class="flex items-start space-x-3 text-base text-slate-200 p-3 rounded-lg bg-slate-700/20 hover:bg-slate-700/30 transition-colors duration-200">
-                        <div class="w-2 h-2 bg-orange-400 rounded-full mt-2 flex-shrink-0"></div>
+                           class="flex items-start space-x-2 text-sm text-slate-200 p-2 rounded-lg bg-slate-700/20 hover:bg-slate-700/30 transition-colors duration-200">
+                        <div class="w-1.5 h-1.5 bg-orange-400 rounded-full mt-1.5 flex-shrink-0"></div>
                         <span class="leading-relaxed">{{ detail }}</span>
                       </div>
                     </div>
