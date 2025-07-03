@@ -994,6 +994,7 @@ import type {
 } from '@/types/technical-analysis'
 import { formatTechnicalAnalysisData } from '@/utils/data-formatter'
 import { fetchNews as fetchNewsAPI } from '@/api/index'
+import api from '@/api/index'
 import { isExtensionEnvironment as isExtension, proxyRequest } from '@/api/proxy'
 import TokenNotFoundView from '@/components/TokenNotFoundView.vue'
 import ChartSkeleton from '@/components/ChartSkeleton.vue'
@@ -2857,9 +2858,9 @@ const fetchNews = async (skipCache: boolean = false) => {
     // 动态选择API路径
     let apiPath = ''
     if (currentMarketType.value === 'crypto') {
-      apiPath = `/api/crypto/news/${encodeURIComponent(symbol)}/`
+      apiPath = `/crypto/news/${encodeURIComponent(symbol)}/`
     } else if (currentMarketType.value === 'stock') {
-      apiPath = `/api/stock/news/${encodeURIComponent(symbol)}/`
+      apiPath = `/stock/news/${encodeURIComponent(symbol)}/`
     }
 
     let response
@@ -2882,7 +2883,7 @@ const fetchNews = async (skipCache: boolean = false) => {
       if (skipCache) {
         params.skip_cache = 'true'
       }
-      response = await axios.get(apiPath, {
+      response = await api.get(apiPath, {
         params,
         headers: {
           'Content-Type': 'application/json',
@@ -2891,10 +2892,21 @@ const fetchNews = async (skipCache: boolean = false) => {
       })
     }
 
-    if (response.data?.status === 'success') {
-      currentNews.value = response.data.data || []
+    // 处理不同环境的响应格式
+    if (isExtension()) {
+      // 扩展环境：proxyRequest 返回 {data: {status: 'success', data: [...]}}
+      if (response?.data?.status === 'success') {
+        currentNews.value = response.data.data || []
+      } else {
+        currentNews.value = []
+      }
     } else {
-      currentNews.value = []
+      // 非扩展环境：api 实例经过响应拦截器处理，直接返回 {status: 'success', data: [...]}
+      if (response?.status === 'success') {
+        currentNews.value = response.data || []
+      } else {
+        currentNews.value = []
+      }
     }
     currentNewsIndex.value = 0
 

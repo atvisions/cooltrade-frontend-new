@@ -15,6 +15,7 @@ const isDevelopment = (): boolean => {
 
 // Get base URL
 const getBaseUrl = (): string => {
+  // 直接使用生产环境API
   return getApiBaseUrl();
 }
 
@@ -250,6 +251,15 @@ api.interceptors.response.use(
     // Check if response is already in standard format
     if (response.data.status === 'success' || response.data.status === 'error') {
       return response.data
+    }
+
+    // Handle Django REST Framework error responses
+    if (response.data.detail) {
+      return {
+        status: 'error',
+        message: response.data.detail,
+        data: null
+      }
     }
 
     // If not standard format, wrap as standard format
@@ -608,7 +618,7 @@ export const getTechnicalAnalysis = async (
     }
 
     // 检查响应状态
-    if (response.data && response.data.status === 'not_found') {
+    if (response && response.status === 'not_found') {
       throw new Error('not_found')
     }
 
@@ -678,7 +688,7 @@ export const getLatestTechnicalAnalysis = async (
     }
 
     // 检查响应状态
-    if (response.data && response.data.status === 'not_found') {
+    if (response && response.status === 'not_found') {
       throw new Error('not_found')
     }
 
@@ -932,7 +942,7 @@ export const search = {
             limit: limit
           }
         })
-        return response.data
+        return response as any
       }
     } catch (error: any) {
       throw error
@@ -974,7 +984,7 @@ export const search = {
             market_type: marketType
           }
         })
-        return response.data
+        return response as any
       }
     } catch (error: any) {
       throw error
@@ -1010,7 +1020,7 @@ export const favorites = {
       } else {
         // 在非扩展环境中使用axios请求
         const response = await api.get('/crypto/favorites/')
-        return response.data
+        return response as any
       }
     } catch (error: any) {
       throw error
@@ -1049,7 +1059,7 @@ export const favorites = {
       } else {
         // 在非扩展环境中使用axios请求
         const response = await api.post('/crypto/favorites/', asset)
-        return response.data
+        return response as any
       }
     } catch (error: any) {
       throw error
@@ -1096,7 +1106,7 @@ export const favorites = {
             market_type: marketType
           }
         })
-        return response.data
+        return response as any
       }
     } catch (error: any) {
       // 如果是404错误，说明收藏不存在，视为成功移除
@@ -1150,7 +1160,7 @@ export const favorites = {
             market_type: marketType
           }
         })
-        return response.data
+        return response as any
       }
     } catch (error: any) {
       // 如果是404错误，说明资产未收藏
@@ -1214,10 +1224,10 @@ export const fetchNews = async (symbol: string, limit: number = 10, skipCache: b
       })
     }
 
-    if (response.data?.status === 'success') {
-      return response.data.data || []
+    if (response?.status === 'success') {
+      return response.data || []
     } else {
-      throw new Error(response.data?.message || 'Failed to fetch news')
+      throw new Error(response?.message || 'Failed to fetch news')
     }
   } catch (error: any) {
     console.error('News API error:', error)
