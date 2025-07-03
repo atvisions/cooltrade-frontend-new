@@ -271,5 +271,14 @@ export default {
     empty: '즐겨찾기가 없습니다',
     added: '즐겨찾기에 추가되었습니다',
     removed: '즐겨찾기에서 제거되었습니다'
+  },
+  news: {
+    marketNews: '마켓 뉴스',
+    loading: '로딩 중...',
+    loadFailed: '뉴스 로드 실패',
+    noNews: '관련 뉴스가 없습니다',
+    justNow: '방금 전',
+    hoursAgo: '시간 전',
+    daysAgo: '일 전'
   }
 }

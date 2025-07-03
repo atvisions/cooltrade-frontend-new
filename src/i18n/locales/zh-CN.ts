@@ -280,5 +280,14 @@ export default {
     empty_hint: '点击星标按钮添加收藏',
     added: '已添加到收藏',
     removed: '已取消收藏'
+  },
+  news: {
+    marketNews: '市场新闻',
+    loading: '加载中...',
+    loadFailed: '新闻加载失败',
+    noNews: '暂无相关新闻',
+    justNow: '刚刚',
+    hoursAgo: '小时前',
+    daysAgo: '天前'
   }
 }

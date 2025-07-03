@@ -429,6 +429,59 @@
               </div>
             </div>
 
+            <!-- 新闻滚动栏 -->
+            <div v-if="currentMarketType !== 'china'" class="relative overflow-hidden rounded-xl bg-gradient-to-br from-slate-800/60 to-slate-900/60 border border-slate-700/50 hover:border-slate-600/60 transition-all duration-300">
+              <div class="p-3">
+                <!-- 新闻标题栏 -->
+                <div class="flex items-center justify-between mb-3">
+                  <h3 class="text-slate-300 text-sm font-medium">{{ t('news.marketNews') }}</h3>
+                  <!-- 新闻控制按钮 -->
+                  <div class="flex flex-col space-y-0.5">
+                    <button
+                      @click="previousNews"
+                      :disabled="currentNews.length <= 1"
+                      class="w-4 h-2.5 rounded flex items-center justify-center transition-all duration-200 hover:bg-slate-600/40 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      <i class="ri-arrow-up-s-line text-slate-400 text-xs"></i>
+                    </button>
+                    <button
+                      @click="nextNews"
+                      :disabled="currentNews.length <= 1"
+                      class="w-4 h-2.5 rounded flex items-center justify-center transition-all duration-200 hover:bg-slate-600/40 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      <i class="ri-arrow-down-s-line text-slate-400 text-xs"></i>
+                    </button>
+                  </div>
+                </div>
+
+                <!-- 新闻内容区域 -->
+                <div class="overflow-hidden news-scroller" @mouseenter="pauseNewsScroll" @mouseleave="resumeNewsScroll" style="height:48px;">
+                  <ul
+                    class="news-scroll-list"
+                    :style="newsScrollStyle"
+                    ref="newsListRef"
+                  >
+                    <li
+                      v-for="(item, idx) in seamlessNewsList"
+                      :key="`news-${idx}`"
+                      class="news-item flex items-start px-2 py-1 cursor-pointer rounded-lg transition-all duration-500"
+                      @click="openNewsLink(item)"
+                      style="height:48px;line-height:1.4;"
+                    >
+                      <div class="flex-1 min-w-0">
+                        <div class="text-sm text-slate-200 leading-tight line-clamp-2 pr-16">
+                          {{ getTranslatedTitle(item, idx % currentNews.length) }}
+                        </div>
+                      </div>
+                      <div class="absolute top-1 right-0 text-slate-400 text-xs bg-gradient-to-l from-slate-800/60 to-transparent pl-4">
+                        {{ formatNewsTime(item.published_at || item.publishedDate) }}
+                      </div>
+                    </li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+
       <!-- A股开发中页面 -->
       <main class="flex-1 pt-16 pb-16 overflow-y-auto max-w-[375px] w-full mx-auto" v-if="(currentMarketType as string) === 'china'">
         <div class="px-4 w-full">
@@ -940,6 +993,8 @@ import type {
   FormattedTechnicalAnalysisData
 } from '@/types/technical-analysis'
 import { formatTechnicalAnalysisData } from '@/utils/data-formatter'
+import { fetchNews as fetchNewsAPI } from '@/api/index'
+import { isExtensionEnvironment as isExtension, proxyRequest } from '@/api/proxy'
 import TokenNotFoundView from '@/components/TokenNotFoundView.vue'
 import ChartSkeleton from '@/components/ChartSkeleton.vue'
 import MarketHeader from '@/components/MarketHeader.vue'
@@ -948,6 +1003,7 @@ import LoadingModal from '@/components/LoadingModal.vue'
 // @ts-ignore
 import { googleTranslate } from '@/utils/translate'
 import BottomTabBar from '@/components/BottomTabBar.vue'
+import axios from 'axios'
 
 // Asset interface for search
 interface Asset {
@@ -991,6 +1047,13 @@ const activePanel = ref<'search' | 'favorites' | 'popular' | null>(null)
 const searchQuery = ref('')
 const searchResults = ref<any[]>([])
 const searchLoading = ref(false)
+
+// 新闻相关状态
+const currentNews = ref<any[]>([])
+const newsLoading = ref(false)
+const newsError = ref<string | null>(null)
+const currentNewsIndex = ref(0)
+let newsTimer: NodeJS.Timeout | null = null
 const favoriteAssets = ref<any[]>([])
 const favoritesLoading = ref(false)
 
@@ -1095,12 +1158,15 @@ const loadPopularAssets = async () => {
 
 // 验证symbol是否适合指定的市场类型
 const isValidSymbolForMarket = (symbol: string, marketType: 'crypto' | 'stock' | 'china'): boolean => {
-  if (marketType === 'crypto') {
+  if (String(marketType) === 'crypto') {
     // 加密货币应该包含USDT、BTC、ETH等
     return symbol.includes('USDT') || symbol.includes('BTC') || symbol.includes('ETH') || symbol.endsWith('USD')
-  } else if (marketType === 'stock') {
+  } else if (String(marketType) === 'stock') {
     // 股票不应该包含USDT等加密货币标识
     return !symbol.includes('USDT') && !symbol.includes('BTC') && !symbol.includes('ETH') && !symbol.endsWith('USD')
+  } else if (String(marketType) === 'china') {
+    // A股暂时全部允许
+    return true
   }
   return true
 }
@@ -1551,7 +1617,7 @@ const handleSearch = () => {
         }
         searchResults.value = []
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('搜索失败:', error)
       console.error('错误详情:', error.message)
       console.error('错误堆栈:', error.stack)
@@ -1578,28 +1644,24 @@ const loadFavorites = async () => {
     console.log('HomeView loadFavorites response:', response)
 
     let dataArray: any[] = []
-    if (response && typeof response === 'object') {
+    if (response && typeof response === 'object' && 'data' in response) {
       // 检查直接的data字段
-      if (Array.isArray(response.data)) {
-        dataArray = response.data
+      if (Array.isArray((response as any).data)) {
+        dataArray = (response as any).data
       }
       // 检查嵌套的data.data字段
-      else if (response.data && Array.isArray(response.data.data)) {
-        dataArray = response.data.data
+      else if ((response as any).data && Array.isArray((response as any).data.data)) {
+        dataArray = (response as any).data.data
       }
-      // 检查是否直接是数组
-      else if (Array.isArray(response)) {
-        dataArray = response
-      }
-      // 检查status为success的情况
-      else if (response.status === 'success' && response.data) {
-        dataArray = Array.isArray(response.data) ? response.data : []
-      }
+    } else if (Array.isArray(response)) {
+      dataArray = response
+    } else if ((response as any).status === 'success' && (response as any).data) {
+      dataArray = Array.isArray((response as any).data) ? (response as any).data : []
     }
 
     // 根据当前市场类型过滤收藏数据
-    const filteredFavorites = dataArray.filter((asset: any) => {
-      return asset.market_type === currentMarketType.value
+    const filteredFavorites = (dataArray as any[]).filter((asset: any) => {
+      return (asset as any).market_type === currentMarketType.value
     })
 
     favoriteAssets.value = filteredFavorites
@@ -1639,15 +1701,15 @@ const removeFavorite = async (symbol: string, marketType: string) => {
     let isSuccess = false
     if (response && typeof response === 'object') {
       // 检查直接的status字段
-      if (response.status === 'success') {
+      if ((response as any).status === 'success') {
         isSuccess = true
       }
       // 检查嵌套的data.status字段
-      else if (response.data && response.data.status === 'success') {
+      else if ((response as any).data && (response as any).data.status === 'success') {
         isSuccess = true
       }
       // 如果没有明确的错误，且响应存在，认为是成功的
-      else if (!response.error && response.status !== 'error') {
+      else if (!(response as any).error && (response as any).status !== 'error') {
         isSuccess = true
       }
     }
@@ -2681,6 +2743,15 @@ const translatedRiskFactors = ref<string[]>([])
 const loadingTranslation = ref(false)
 const loadingReasonTranslation = ref(false)
 const loadingRiskTranslation = ref(false)
+
+// 新闻翻译相关状态
+const translatedNewsTitle = ref('')
+const loadingNewsTranslation = ref(false)
+
+// 新闻滚动相关状态
+const newsScrollOffset = ref(0)
+const isScrolling = ref(false)
+const newsDisplayList = ref<any[]>([])
 const langMap: Record<string, string> = {
   'zh-CN': 'zh-CN',
   'en-US': 'en',
@@ -2766,6 +2837,243 @@ watch(
   { immediate: true }
 )
 
+// 新闻相关函数
+const fetchNews = async (skipCache: boolean = false) => {
+  if (currentMarketType.value === 'china') return
+
+  newsLoading.value = true
+  newsError.value = null
+
+  try {
+    let symbol = ''
+    if (currentMarketType.value === 'crypto') {
+      // 对于加密货币，使用基础货币名称（去掉USDT后缀）
+      symbol = currentSymbol.value.replace(/USDT$/, '')
+    } else {
+      // 对于股票，直接使用symbol
+      symbol = currentSymbol.value
+    }
+
+    // 动态选择API路径
+    let apiPath = ''
+    if (currentMarketType.value === 'crypto') {
+      apiPath = `/api/crypto/news/${encodeURIComponent(symbol)}/`
+    } else if (currentMarketType.value === 'stock') {
+      apiPath = `/api/stock/news/${encodeURIComponent(symbol)}/`
+    }
+
+    let response
+    if (isExtension()) {
+      // 在扩展环境中使用代理
+      const url = skipCache
+        ? `${apiPath}?limit=10&skip_cache=true`
+        : `${apiPath}?limit=10`
+      response = await proxyRequest({
+        url,
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': localStorage.getItem('token') || ''
+        }
+      })
+    } else {
+      // 在localhost环境中直接调用
+      const params: any = { limit: 10 }
+      if (skipCache) {
+        params.skip_cache = 'true'
+      }
+      response = await axios.get(apiPath, {
+        params,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': localStorage.getItem('token') || ''
+        }
+      })
+    }
+
+    if (response.data?.status === 'success') {
+      currentNews.value = response.data.data || []
+    } else {
+      currentNews.value = []
+    }
+    currentNewsIndex.value = 0
+
+    // 翻译第一条新闻标题
+    if (currentNews.value.length > 0) {
+      translateCurrentNewsTitle()
+    }
+
+    // 启动新闻轮播
+    startNewsRotation()
+
+  } catch (error: any) {
+    console.error('Failed to fetch news:', error)
+    newsError.value = '新闻加载失败'
+    currentNews.value = []
+  } finally {
+    newsLoading.value = false
+  }
+}
+
+// 启动新闻轮播
+const startNewsRotation = () => {
+  if (newsTimer) {
+    clearInterval(newsTimer)
+  }
+
+  if (currentNews.value.length > 1) {
+    newsTimer = setInterval(() => {
+      performScroll()
+    }, 5000) // 每5秒切换一条新闻
+  }
+}
+
+// 停止新闻轮播
+const stopNewsRotation = () => {
+  if (newsTimer) {
+    clearInterval(newsTimer)
+    newsTimer = null
+  }
+}
+
+// 手动切换新闻
+const nextNews = () => {
+  if (currentNews.value.length > 1 && !isScrolling.value) {
+    performScroll()
+    // 重启轮播
+    startNewsRotation()
+  }
+}
+
+const previousNews = () => {
+  if (currentNews.value.length > 1 && !isScrolling.value) {
+    // 向上滚动：直接更新索引
+    currentNewsIndex.value = currentNewsIndex.value === 0
+      ? currentNews.value.length - 1
+      : currentNewsIndex.value - 1
+
+    // 翻译新的当前新闻标题
+    translateCurrentNewsTitle()
+    // 重启轮播
+    startNewsRotation()
+  }
+}
+
+// 打开新闻链接
+const openNewsLink = (news: any) => {
+  if (news?.url) {
+    window.open(news.url, '_blank')
+  }
+}
+
+// 格式化新闻时间
+const formatNewsTime = (dateString: string) => {
+  if (!dateString) return ''
+
+  try {
+    const date = new Date(dateString)
+    const now = new Date()
+    const diffMs = now.getTime() - date.getTime()
+    const diffHours = Math.floor(diffMs / (1000 * 60 * 60))
+    const diffDays = Math.floor(diffHours / 24)
+
+    if (diffHours < 1) {
+      return t('news.justNow')
+    } else if (diffHours < 24) {
+      return `${diffHours}${t('news.hoursAgo')}`
+    } else if (diffDays < 7) {
+      return `${diffDays}${t('news.daysAgo')}`
+    } else {
+      return date.toLocaleDateString(currentLanguage.value, { month: 'short', day: 'numeric' })
+    }
+  } catch (error) {
+    return ''
+  }
+}
+
+// 截断新闻标题（2行显示，为时间留空间）
+const truncateTitle = (title: string) => {
+  if (!title) return t('news.noNews')
+  const maxLength = 120 // 2行显示，右侧为时间留空间
+  if (title.length <= maxLength) {
+    return title
+  }
+  return title.substring(0, maxLength) + '...'
+}
+
+// 获取翻译后的标题
+const getTranslatedTitle = (news: any, index: number) => {
+  if (!news?.title) return '暂无新闻'
+
+  // 如果是当前显示的新闻且有翻译结果，使用翻译结果
+  if (index === currentNewsIndex.value && translatedNewsTitle.value) {
+    return truncateTitle(translatedNewsTitle.value)
+  }
+
+  // 否则使用原标题
+  return truncateTitle(news.title)
+}
+
+// 翻译当前新闻标题
+const translateCurrentNewsTitle = async () => {
+  const currentNews_ = currentNews.value[currentNewsIndex.value]
+  if (!currentNews_?.title) {
+    translatedNewsTitle.value = ''
+    return
+  }
+
+  const lang = currentLanguage.value
+  if (lang === 'en-US') {
+    translatedNewsTitle.value = currentNews_.title
+    return
+  }
+
+  loadingNewsTranslation.value = true
+  try {
+    translatedNewsTitle.value = await googleTranslate(currentNews_.title, langMap[lang] || 'zh-CN')
+  } catch (e) {
+    console.error('[TRANSLATION] News title translation failed:', e)
+    translatedNewsTitle.value = currentNews_.title
+  }
+  loadingNewsTranslation.value = false
+}
+
+// 获取当前新闻
+const getCurrentNews = () => {
+  return currentNews.value[currentNewsIndex.value]
+}
+
+// 更新新闻显示列表
+const updateNewsDisplayList = () => {
+  if (currentNews.value.length === 0) {
+    newsDisplayList.value = []
+    return
+  }
+
+  // 默认只显示当前新闻
+  newsDisplayList.value = [currentNews.value[currentNewsIndex.value]]
+}
+
+// 执行滚动 - 简化版本，直接切换
+const performScroll = () => {
+  if (isScrolling.value || currentNews.value.length <= 1) return
+
+  isScrolling.value = true
+
+  // 直接更新索引
+  currentNewsIndex.value = (currentNewsIndex.value + 1) % currentNews.value.length
+
+  // 翻译新的当前新闻标题
+  translateCurrentNewsTitle()
+
+  // 短暂延迟后重置状态
+  setTimeout(() => {
+    isScrolling.value = false
+  }, 100)
+}
+
+
+
 const MIN_SKELETON_TIME = 400
 const skeletonVisible = ref(false)
 let skeletonTimer: ReturnType<typeof setTimeout> | null = null
@@ -2791,6 +3099,7 @@ watch([loading, analysisLoading], ([l, a]) => {
 
 onUnmounted(() => {
   if (skeletonTimer) clearTimeout(skeletonTimer)
+  stopNewsRotation()
 })
 
 // 在setup中添加handleTokenNotFoundCancel方法
@@ -2824,8 +3133,27 @@ watch(currentMarketType, (newMarketType, oldMarketType) => {
     searchResults.value = []
     searchLoading.value = false
 
+    // 切换市场时获取新闻
+    fetchNews()
+
     console.log(`市场类型从 ${oldMarketType} 切换到 ${newMarketType}，已清空搜索数据`)
   }
+})
+
+// 监听symbol变化，获取相关新闻
+watch(currentSymbol, () => {
+  fetchNews()
+})
+
+// 组件挂载时获取新闻
+onMounted(() => {
+  fetchNews()
+})
+
+// 监听语言变化，重新获取新闻数据
+watch(currentLanguage, () => {
+  // 重新获取新闻数据，跳过缓存确保获取最新的新闻
+  fetchNews(true)
 })
 
 // 新增：极小价格分段高亮显示（0.(n)85格式）
@@ -2853,6 +3181,65 @@ const formatPriceParts = (price?: number | string | null) => {
   // 其它情况直接返回整体为value
   return { prefix: '', repeat: '', value: formatPrice(numPrice) }
 }
+
+const newsListRef = ref<HTMLElement | null>(null)
+const scrollIndex = ref(0)
+const scrollTimer = ref<NodeJS.Timeout | null>(null)
+const isNewsPaused = ref(false)
+
+// 拼接一份新闻，实现无缝
+const seamlessNewsList = computed(() => {
+  return currentNews.value.length > 0
+    ? [...currentNews.value, ...currentNews.value]
+    : []
+})
+
+// 滚动样式
+const newsScrollStyle = computed(() => ({
+  transform: `translateY(-${scrollIndex.value * 48}px)`,
+  transition: isNewsPaused.value ? 'none' : 'transform 0.5s cubic-bezier(.4,0,.2,1)'
+}))
+
+function startNewsScroll() {
+  stopNewsScroll()
+  if (currentNews.value.length <= 1) return
+  scrollTimer.value = setInterval(() => {
+    if (isNewsPaused.value) return
+    scrollIndex.value++
+    // 到达"伪底部"时，瞬间跳回顶部
+    if (scrollIndex.value >= currentNews.value.length) {
+      setTimeout(() => {
+        isNewsPaused.value = true
+        scrollIndex.value = 0
+        // 强制刷新样式
+        nextTick(() => {
+          isNewsPaused.value = false
+        })
+      }, 500)
+    }
+  }, 3000)
+}
+function stopNewsScroll() {
+  if (scrollTimer.value) clearInterval(scrollTimer.value)
+  scrollTimer.value = null
+}
+function pauseNewsScroll() {
+  isNewsPaused.value = true
+}
+function resumeNewsScroll() {
+  isNewsPaused.value = false
+}
+
+onMounted(() => {
+  startNewsScroll()
+})
+onUnmounted(() => {
+  stopNewsScroll()
+})
+watch(currentNews, () => {
+  scrollIndex.value = 0
+  startNewsScroll()
+})
 
 </script>
 
@@ -2885,5 +3272,78 @@ const formatPriceParts = (price?: number | string | null) => {
   letter-spacing: 0.01em;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+/* 新闻滚动样式 */
+.news-container:hover .news-content {
+  animation-play-state: paused;
+}
+
+/* 1行文本截断 */
+.line-clamp-1 {
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  word-break: break-word;
+  line-height: 1.4;
+  max-height: 1.4em; /* 1行的最大高度 */
+}
+
+/* 2行文本截断 */
+.line-clamp-2 {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  word-break: break-word;
+  line-height: 1.4;
+  max-height: 2.8em; /* 2行的最大高度 */
+}
+
+/* 新闻滚动动画优化 */
+.news-scroll-container {
+  transition: transform 0.5s ease-in-out;
+}
+
+/* 新闻无缝滚动动画 */
+@keyframes news-slide-up {
+  0% {
+    transform: translateY(0);
+  }
+  100% {
+    transform: translateY(-48px); /* h-12 = 48px */
+  }
+}
+
+.news-slide-animation {
+  animation: news-slide-up 0.5s ease-in-out;
+}
+
+/* 新闻项悬停效果 */
+.news-item:hover {
+  background-color: rgba(51, 65, 85, 0.3);
+  transition: background-color 0.2s ease-in-out;
+}
+
+.news-scroller {
+  height: 48px;
+  overflow: hidden;
+  position: relative;
+}
+.news-scroll-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.news-item {
+  height: 48px;
+  line-height: 1.4;
+  position: relative;
+  background: transparent;
+  transition: background 0.2s;
+}
+.news-item:hover {
+  background: rgba(51, 65, 85, 0.3);
 }
 </style>

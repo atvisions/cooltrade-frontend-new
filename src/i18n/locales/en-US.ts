@@ -282,5 +282,14 @@ export default {
     empty_hint: 'Click the star button to add favorites',
     added: 'Added to favorites',
     removed: 'Removed from favorites'
+  },
+  news: {
+    marketNews: 'Market News',
+    loading: 'Loading...',
+    loadFailed: 'Failed to load news',
+    noNews: 'No related news',
+    justNow: 'Just now',
+    hoursAgo: 'hours ago',
+    daysAgo: 'days ago'
   }
 }

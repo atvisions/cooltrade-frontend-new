@@ -1169,4 +1169,60 @@ export const favorites = {
   }
 }
 
+// 新闻API - 通过后端代理调用，支持按符号获取新闻
+export const fetchNews = async (symbol: string, limit: number = 10, skipCache: boolean = false) => {
+  const token = localStorage.getItem('token')
+  if (!token) {
+    throw new Error('No authentication token')
+  }
+
+  // 确保token格式正确 - 避免重复前缀
+  let cleanToken = token;
+  if (token.startsWith('Token ')) {
+    cleanToken = token.substring(6); // Remove "Token " prefix
+  } else if (token.startsWith('Bearer ')) {
+    cleanToken = token.substring(7); // Remove "Bearer " prefix
+  }
+
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+    'Authorization': `Token ${cleanToken}`
+  }
+
+  try {
+    let response;
+
+    if (isExtension()) {
+      // 在扩展环境中使用代理
+      const url = skipCache
+        ? `/crypto/news/${encodeURIComponent(symbol)}/?limit=${limit}&skip_cache=true`
+        : `/crypto/news/${encodeURIComponent(symbol)}/?limit=${limit}`
+      response = await proxyRequest({
+        url,
+        method: 'GET',
+        headers
+      })
+    } else {
+      // 在localhost环境中直接调用
+      const params: any = { limit }
+      if (skipCache) {
+        params.skip_cache = 'true'
+      }
+      response = await axios.get(`${getBaseUrl()}/crypto/news/${encodeURIComponent(symbol)}/`, {
+        params,
+        headers
+      })
+    }
+
+    if (response.data?.status === 'success') {
+      return response.data.data || []
+    } else {
+      throw new Error(response.data?.message || 'Failed to fetch news')
+    }
+  } catch (error: any) {
+    console.error('News API error:', error)
+    throw error
+  }
+}
+
 export default api
