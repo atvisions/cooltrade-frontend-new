@@ -277,6 +277,8 @@ export default {
     loading: '読み込み中...',
     loadFailed: 'ニュースの読み込みに失敗しました',
     noNews: '関連ニュースがありません',
+    no_news_available: 'ニュースがありません',
+    loading_news: 'ニュース読み込み中...',
     justNow: 'たった今',
     hoursAgo: '時間前',
     daysAgo: '日前'

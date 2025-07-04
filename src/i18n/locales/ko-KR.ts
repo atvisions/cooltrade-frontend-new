@@ -277,6 +277,8 @@ export default {
     loading: '로딩 중...',
     loadFailed: '뉴스 로드 실패',
     noNews: '관련 뉴스가 없습니다',
+    no_news_available: '뉴스가 없습니다',
+    loading_news: '뉴스 로딩 중...',
     justNow: '방금 전',
     hoursAgo: '시간 전',
     daysAgo: '일 전'

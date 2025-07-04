@@ -288,6 +288,8 @@ export default {
     loading: 'Loading...',
     loadFailed: 'Failed to load news',
     noNews: 'No related news',
+    no_news_available: 'No news available',
+    loading_news: 'Loading news...',
     justNow: 'Just now',
     hoursAgo: 'hours ago',
     daysAgo: 'days ago'

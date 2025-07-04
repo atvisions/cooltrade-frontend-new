@@ -286,6 +286,8 @@ export default {
     loading: '加载中...',
     loadFailed: '新闻加载失败',
     noNews: '暂无相关新闻',
+    no_news_available: '暂无新闻',
+    loading_news: '加载新闻中...',
     justNow: '刚刚',
     hoursAgo: '小时前',
     daysAgo: '天前'

@@ -461,7 +461,9 @@
                 <div class="p-3">
                   <!-- 新闻内容区域 -->
                   <div class="overflow-hidden news-scroller" @mouseenter="pauseNewsScroll" @mouseleave="resumeNewsScroll" style="height:48px;">
+                    <!-- 有新闻时显示新闻列表 -->
                     <ul
+                      v-if="currentNews.length > 0"
                       class="news-scroll-list"
                       :style="newsScrollStyle"
                       ref="newsListRef"
@@ -483,6 +485,22 @@
                         </div>
                       </li>
                     </ul>
+
+                    <!-- 空状态显示 -->
+                    <div v-else-if="!newsLoading" class="flex items-center justify-center h-full">
+                      <div class="text-center">
+                        <i class="ri-newspaper-line text-slate-500 text-lg mb-1"></i>
+                        <div class="text-xs text-slate-500">{{ t('news.no_news_available') }}</div>
+                      </div>
+                    </div>
+
+                    <!-- 加载状态 -->
+                    <div v-else class="flex items-center justify-center h-full">
+                      <div class="text-center">
+                        <i class="ri-loader-4-line text-slate-500 text-lg mb-1 animate-spin"></i>
+                        <div class="text-xs text-slate-500">{{ t('news.loading_news') }}</div>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
