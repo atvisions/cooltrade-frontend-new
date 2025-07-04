@@ -300,7 +300,7 @@
 
               <div class="relative p-3">
                 <!-- 顶部区域：标题和导航 -->
-                <div class="flex items-center justify-between mb-2">
+                <div class="flex items-center justify-between mb-3">
                   <!-- 左侧：资产信息 -->
                   <div class="flex items-center space-x-2">
                     <!-- 市场指示器 -->
@@ -358,9 +358,9 @@
                 </div>
 
                 <!-- 价格区域 -->
-                <div class="mb-2">
+                <div class="mb-3">
                   <!-- 快照标签 -->
-                  <div class="flex items-center space-x-1.5 mb-1">
+                  <div class="flex items-center space-x-1.5 mb-2">
                     <i class="ri-camera-line text-blue-400 text-xs"></i>
                     <span class="text-blue-300 text-xs font-medium uppercase tracking-wide">{{ t('analysis.snapshot_price') }}</span>
                   </div>
@@ -382,7 +382,7 @@
                 </div>
 
                 <!-- 底部操作区域 -->
-                <div class="flex items-center justify-between pt-1.5 border-t border-slate-700/30">
+                <div class="flex items-center justify-between pt-2 pb-1 border-t border-slate-700/30">
                   <!-- 时间信息 -->
                   <div class="flex items-center text-xs text-slate-400">
                     <i class="ri-time-line mr-1.5 text-blue-400/60 text-xs"></i>
@@ -429,55 +429,61 @@
               </div>
             </div>
 
-            <!-- 新闻滚动栏 -->
-            <div v-if="currentMarketType !== 'china'" class="relative overflow-hidden rounded-xl bg-gradient-to-br from-slate-800/60 to-slate-900/60 border border-slate-700/50 hover:border-slate-600/60 transition-all duration-300">
-              <div class="p-3">
-                <!-- 新闻标题栏 -->
-                <div class="flex items-center justify-between mb-3">
-                  <h3 class="text-slate-300 text-sm font-medium">{{ t('news.marketNews') }}</h3>
-                  <!-- 新闻控制按钮 -->
-                  <div class="flex flex-col space-y-0.5">
-                    <button
-                      @click="previousNews"
-                      :disabled="currentNews.length <= 1"
-                      class="w-4 h-2.5 rounded flex items-center justify-center transition-all duration-200 hover:bg-slate-600/40 disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      <i class="ri-arrow-up-s-line text-slate-400 text-xs"></i>
-                    </button>
-                    <button
-                      @click="nextNews"
-                      :disabled="currentNews.length <= 1"
-                      class="w-4 h-2.5 rounded flex items-center justify-center transition-all duration-200 hover:bg-slate-600/40 disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      <i class="ri-arrow-down-s-line text-slate-400 text-xs"></i>
-                    </button>
-                  </div>
-                </div>
-
-                <!-- 新闻内容区域 -->
-                <div class="overflow-hidden news-scroller" @mouseenter="pauseNewsScroll" @mouseleave="resumeNewsScroll" style="height:48px;">
-                  <ul
-                    class="news-scroll-list"
-                    :style="newsScrollStyle"
-                    ref="newsListRef"
+            <!-- Market News 标题和内容 -->
+            <div v-if="currentMarketType !== 'china'">
+              <!-- Market News 标题 -->
+              <div class="flex items-center justify-between mb-3">
+                <h3 class="text-base font-bold text-white flex items-center">
+                  <div class="w-0.5 bg-gradient-to-b from-orange-400 to-red-400 rounded-full mr-2" style="height: 20px;"></div>
+                  {{ t('news.marketNews') }}
+                </h3>
+                <!-- 新闻控制按钮 -->
+                <div class="flex flex-col space-y-0.5">
+                  <button
+                    @click="previousNews"
+                    :disabled="currentNews.length <= 1"
+                    class="w-4 h-2.5 rounded flex items-center justify-center transition-all duration-200 hover:bg-slate-600/40 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    <li
-                      v-for="(item, idx) in seamlessNewsList"
-                      :key="`news-${idx}`"
-                      class="news-item flex items-start px-2 py-1 cursor-pointer rounded-lg transition-all duration-500"
-                      @click="openNewsLink(item)"
-                      style="height:48px;line-height:1.4;"
+                    <i class="ri-arrow-up-s-line text-slate-400 text-xs"></i>
+                  </button>
+                  <button
+                    @click="nextNews"
+                    :disabled="currentNews.length <= 1"
+                    class="w-4 h-2.5 rounded flex items-center justify-center transition-all duration-200 hover:bg-slate-600/40 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <i class="ri-arrow-down-s-line text-slate-400 text-xs"></i>
+                  </button>
+                </div>
+              </div>
+
+              <!-- 新闻内容卡片 -->
+              <div class="relative overflow-hidden rounded-xl bg-gradient-to-br from-slate-800/60 to-slate-900/60 border border-slate-700/50 hover:border-slate-600/60 transition-all duration-300">
+                <div class="p-3">
+                  <!-- 新闻内容区域 -->
+                  <div class="overflow-hidden news-scroller" @mouseenter="pauseNewsScroll" @mouseleave="resumeNewsScroll" style="height:48px;">
+                    <ul
+                      class="news-scroll-list"
+                      :style="newsScrollStyle"
+                      ref="newsListRef"
                     >
-                      <div class="flex-1 min-w-0">
-                        <div class="text-sm text-slate-200 leading-tight line-clamp-2 pr-16">
-                          {{ getTranslatedTitle(item, idx % currentNews.length) }}
+                      <li
+                        v-for="(item, idx) in seamlessNewsList"
+                        :key="`news-${idx}`"
+                        class="news-item flex items-start px-2 py-1 cursor-pointer rounded-lg transition-all duration-500"
+                        @click="openNewsLink(item)"
+                        style="height:48px;line-height:1.4;"
+                      >
+                        <div class="flex-1 min-w-0">
+                          <div class="text-sm text-slate-200 leading-tight line-clamp-2 pr-16">
+                            {{ getTranslatedTitle(item, idx % currentNews.length) }}
+                          </div>
                         </div>
-                      </div>
-                      <div class="absolute top-1 right-0 text-slate-400 text-xs bg-gradient-to-l from-slate-800/60 to-transparent pl-4">
-                        {{ formatNewsTime(item.published_at || item.publishedDate) }}
-                      </div>
-                    </li>
-                  </ul>
+                        <div class="absolute top-1 right-0 text-slate-400 text-xs bg-gradient-to-l from-slate-800/60 to-transparent pl-4">
+                          {{ formatNewsTime(item.published_at || item.publishedDate) }}
+                        </div>
+                      </li>
+                    </ul>
+                  </div>
                 </div>
               </div>
             </div>
@@ -506,7 +512,7 @@
             <!-- 趋势分析卡片 -->
             <div v-if="analysisData?.trend_analysis?.probabilities">
               <h3 class="text-base font-bold text-white mb-3 flex items-center">
-                <div class="w-0.5 h-4 bg-gradient-to-b from-emerald-400 to-red-400 rounded-full mr-2"></div>
+                <div class="w-0.5 bg-gradient-to-b from-emerald-400 to-red-400 rounded-full mr-2" style="height: 20px;"></div>
                 {{ t('analysis.trend_analysis') }}
               </h3>
               <div class="grid grid-cols-3 gap-2">
@@ -542,7 +548,7 @@
             <!-- 市场趋势分析 -->
             <div v-if="analysisData?.trend_analysis?.summary">
               <h3 class="text-base font-bold text-white mb-3 flex items-center">
-                <div class="w-0.5 h-4 bg-gradient-to-b from-blue-400 to-purple-400 rounded-full mr-2"></div>
+                <div class="w-0.5 bg-gradient-to-b from-blue-400 to-purple-400 rounded-full mr-2" style="height: 20px;"></div>
                 {{ t('analysis.market_trend_analysis') }}
               </h3>
               <div class="group p-4 rounded-xl bg-gradient-to-br from-slate-800/60 to-slate-900/60 border border-slate-700/50 hover:border-slate-600/60 transition-all duration-300 hover:shadow-md hover:shadow-blue-500/10">
@@ -563,7 +569,7 @@
             <!-- 技术指标分析 -->
             <div v-if="analysisData?.indicators_analysis">
               <h3 class="text-base font-bold text-white mb-3 flex items-center">
-                <div class="w-0.5 h-4 bg-gradient-to-b from-cyan-400 to-blue-400 rounded-full mr-2"></div>
+                <div class="w-0.5 bg-gradient-to-b from-cyan-400 to-blue-400 rounded-full mr-2" style="height: 20px;"></div>
                 {{ t('analysis.technical_indicators') }}
               </h3>
 
@@ -668,7 +674,7 @@
             <!-- 交易建议 -->
             <div v-if="analysisData?.trading_advice">
               <h3 class="text-base font-bold text-white mb-3 flex items-center">
-                <div class="w-0.5 h-4 bg-gradient-to-b from-amber-400 to-orange-400 rounded-full mr-2"></div>
+                <div class="w-0.5 bg-gradient-to-b from-amber-400 to-orange-400 rounded-full mr-2" style="height: 20px;"></div>
                 {{ t('analysis.trading_advice') }}
               </h3>
               <div class="group p-4 rounded-xl bg-gradient-to-br from-slate-800/60 to-slate-900/60 border border-slate-700/50 hover:border-slate-600/60 transition-all duration-300 hover:shadow-md hover:shadow-amber-500/10 space-y-3">
@@ -748,7 +754,7 @@
             <!-- 风险评估 -->
             <div v-if="analysisData?.risk_assessment">
               <h3 class="text-base font-bold text-white mb-3 flex items-center">
-                <div class="w-0.5 h-4 bg-gradient-to-b from-red-400 to-orange-400 rounded-full mr-2"></div>
+                <div class="w-0.5 bg-gradient-to-b from-red-400 to-orange-400 rounded-full mr-2" style="height: 20px;"></div>
                 {{ t('analysis.risk_assessment') }}
               </h3>
               <div class="group p-4 rounded-xl bg-gradient-to-br from-slate-800/60 to-slate-900/60 border border-slate-700/50 hover:border-slate-600/60 transition-all duration-300 hover:shadow-md hover:shadow-red-500/10 space-y-3">
@@ -2951,23 +2957,41 @@ const stopNewsRotation = () => {
 // 手动切换新闻
 const nextNews = () => {
   if (currentNews.value.length > 1 && !isScrolling.value) {
-    performScroll()
-    // 重启轮播
-    startNewsRotation()
+    // 停止自动滚动
+    stopNewsScroll()
+
+    // 更新两个索引保持同步
+    currentNewsIndex.value = (currentNewsIndex.value + 1) % currentNews.value.length
+    scrollIndex.value = currentNewsIndex.value
+
+    // 翻译新的当前新闻标题
+    translateCurrentNewsTitle()
+
+    // 重启自动滚动
+    setTimeout(() => {
+      startNewsScroll()
+    }, 100)
   }
 }
 
 const previousNews = () => {
   if (currentNews.value.length > 1 && !isScrolling.value) {
-    // 向上滚动：直接更新索引
+    // 停止自动滚动
+    stopNewsScroll()
+
+    // 向上滚动：更新两个索引保持同步
     currentNewsIndex.value = currentNewsIndex.value === 0
       ? currentNews.value.length - 1
       : currentNewsIndex.value - 1
+    scrollIndex.value = currentNewsIndex.value
 
     // 翻译新的当前新闻标题
     translateCurrentNewsTitle()
-    // 重启轮播
-    startNewsRotation()
+
+    // 重启自动滚动
+    setTimeout(() => {
+      startNewsScroll()
+    }, 100)
   }
 }
 
@@ -3217,17 +3241,28 @@ function startNewsScroll() {
   if (currentNews.value.length <= 1) return
   scrollTimer.value = setInterval(() => {
     if (isNewsPaused.value) return
+
     scrollIndex.value++
-    // 到达"伪底部"时，瞬间跳回顶部
+    // 同步更新 currentNewsIndex（基于实际新闻数量循环）
+    currentNewsIndex.value = scrollIndex.value % currentNews.value.length
+    // 翻译新的当前新闻标题
+    translateCurrentNewsTitle()
+
+    // 当滚动到第一组新闻的末尾时，准备无缝重置
+    // seamlessNewsList 包含两倍的新闻，当滚动到第一组末尾时开始准备重置
     if (scrollIndex.value >= currentNews.value.length) {
+      // 继续滚动到第二组的第一个元素，然后无缝重置
       setTimeout(() => {
+        // 禁用过渡动画
         isNewsPaused.value = true
+        // 立即重置到开头位置（视觉上看起来是连续的）
         scrollIndex.value = 0
-        // 强制刷新样式
-        nextTick(() => {
+        currentNewsIndex.value = 0
+        // 短暂延迟后重新启用过渡动画
+        setTimeout(() => {
           isNewsPaused.value = false
-        })
-      }, 500)
+        }, 50)
+      }, 600) // 等待滚动动画完成
     }
   }, 3000)
 }
@@ -3250,6 +3285,7 @@ onUnmounted(() => {
 })
 watch(currentNews, () => {
   scrollIndex.value = 0
+  currentNewsIndex.value = 0
   startNewsScroll()
 })
 
