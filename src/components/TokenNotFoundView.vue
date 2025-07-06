@@ -173,7 +173,7 @@ const handleRefresh = async () => {
 
   try {
     // 调用 getLatestTechnicalAnalysis 生成新报告
-    const marketType = (props.marketType === 'china' ? 'stock' : props.marketType) || 'crypto'
+    const marketType = props.marketType || 'crypto'
     const result = await getLatestTechnicalAnalysis(props.symbol, marketType)
 
     // 如果返回了有效数据

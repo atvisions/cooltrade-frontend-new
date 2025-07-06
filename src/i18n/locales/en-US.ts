@@ -153,7 +153,8 @@ export default {
     please_wait: 'Please wait, this may take some time',
     timeout_error: 'Request timeout. Server is processing, please try again later.',
     refresh_report: 'Refresh Report',
-    refresh_report_too_soon: 'The report cannot be refreshed until 12 hours have passed'
+    refresh_report_too_soon: 'The report cannot be refreshed until 6 hours have passed',
+    share_to_wechat: 'Share to WeChat'
   },
   tokenNotFound: {
     title: '{symbol} Data Not Found',
@@ -264,7 +265,16 @@ export default {
     MayerMultiple: 'Mayer Multiple, the ratio of the current price to the 200-day moving average.',
     MACD: 'Moving Average Convergence Divergence, used to judge trend strength and turning points.',
     BollingerBands: 'Bollinger Bands, measures price volatility and support/resistance levels.',
-    DMI: 'Directional Movement Index, used to judge trend direction and strength.'
+    DMI: 'Directional Movement Index, used to judge trend direction and strength.',
+    // A-share specific indicators
+    TurnoverRate: 'Turnover Rate, the ratio of trading volume to circulating shares, reflecting stock activity.',
+    VolumeRatio: 'Volume Ratio, the ratio of current day volume to 5-day average volume, reflecting relative volume changes.',
+    PE: 'Price-to-Earnings Ratio (P/E), the ratio of stock price to earnings per share, used to evaluate stock valuation.',
+    PB: 'Price-to-Book Ratio (P/B), the ratio of stock price to book value per share, reflecting valuation relative to net assets.',
+    PS: 'Price-to-Sales Ratio (P/S), the ratio of stock price to sales per share, used to evaluate valuation relative to revenue.',
+    DividendYield: 'Dividend Yield, the ratio of dividend per share to stock price, reflecting dividend return rate.',
+    TotalMarketValue: 'Total Market Value, the total market value of all company shares, reflecting company size.',
+    CircMarketValue: 'Circulating Market Value, the market value of freely tradable shares, reflecting actual tradable market cap.'
   },
   search: {
     title: 'Search Assets',

@@ -1,7 +1,7 @@
 // Initialize environment variables
 let envConfig = {
-  baseApiUrl: 'https://www.cooltrade.xyz/api',
-  env: 'production',
+  baseApiUrl: 'http://localhost:8000/api',
+  env: 'development',
   token: null
 };
 
@@ -232,7 +232,7 @@ async function handleApiProxyRequest(data, sendResponse) {
 
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     try {
-      const baseApiUrl = 'https://www.cooltrade.xyz/api';
+      const baseApiUrl = 'http://localhost:8000/api';
       const { url, method, headers, body, params } = data;
 
       if (attempt > 1) {

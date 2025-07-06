@@ -137,11 +137,13 @@
                 <div class="flex-shrink-0 w-4 h-4 rounded flex items-center justify-center mr-2"
                      :class="{
                        'bg-blue-500/20 text-blue-400': asset.market_type === 'crypto',
-                       'bg-green-500/20 text-green-400': asset.market_type === 'stock'
+                       'bg-green-500/20 text-green-400': asset.market_type === 'stock',
+                       'bg-red-500/20 text-red-400': asset.market_type === 'china'
                      }">
                   <i :class="{
                        'ri-currency-line': asset.market_type === 'crypto',
-                       'ri-line-chart-line': asset.market_type === 'stock'
+                       'ri-line-chart-line': asset.market_type === 'stock',
+                       'ri-building-line': asset.market_type === 'china'
                      }" class="text-xs"></i>
                 </div>
 
@@ -234,35 +236,7 @@
           </div>
         </div>
 
-        <!-- 热门资产面板 -->
-        <div v-if="activePanel === 'popular'"
-             class="w-full max-w-[375px] mx-auto bg-gradient-to-br from-slate-800/95 via-slate-900/95 to-slate-800/95 rounded-3xl border border-green-500/40 backdrop-blur-xl shadow-2xl shadow-green-500/10 p-5"
-             @click.stop>
-          <h3 class="text-base font-semibold text-green-400 mb-4 flex items-center">
-            <i class="ri-fire-line mr-2"></i>
-            {{ currentMarketType === 'crypto' ? t('common.popular_tokens') : t('common.popular_stocks') }}
-          </h3>
-          <div class="grid grid-cols-4 gap-3">
-            <button
-              v-for="asset in currentPopularAssets"
-              :key="asset.symbol"
-              @click="handleAssetSwitch(asset.symbol)"
-              :disabled="analysisLoading || asset.symbol === currentSymbol"
-              class="group relative p-3 rounded-lg border transition-all duration-300 hover:scale-105"
-              :class="{
-                'bg-blue-500/20 border-blue-400/50 text-blue-300 shadow-lg shadow-blue-500/20': asset.symbol === currentSymbol,
-                'bg-slate-700/40 border-slate-600/50 text-slate-300 hover:bg-slate-600/50 hover:border-slate-500/60': asset.symbol !== currentSymbol && !analysisLoading,
-                'bg-slate-800/30 border-slate-700/30 text-slate-500 cursor-not-allowed': analysisLoading
-              }"
-            >
-              <div class="text-sm font-bold text-center">{{ asset.display }}</div>
-              <div
-                v-if="asset.symbol === currentSymbol"
-                class="absolute -top-1 -right-1 w-2.5 h-2.5 bg-blue-400 rounded-full border border-slate-800"
-              ></div>
-            </button>
-          </div>
-        </div>
+
       </div>
 
       <!-- 点击遮罩关闭面板 -->
@@ -271,16 +245,11 @@
            class="fixed inset-0 z-40 bg-black/20"></div>
 
       <!-- 主要内容区域 - 固定高度，内容滚动 -->
-      <main class="flex-1 pt-16 pb-16 overflow-y-auto max-w-[375px] w-full mx-auto" v-if="currentMarketType !== 'china'">
+      <main class="flex-1 pt-16 pb-16 overflow-y-auto max-w-[375px] w-full mx-auto">
         <div class="px-4 space-y-4 w-full">
 
-          <!-- 骨架屏 - 在加载过程中显示，但不包括TokenNotFound状态 -->
-          <div v-if="skeletonVisible && !isTokenNotFound">
-            <ChartSkeleton loadingText="Loading price data..." />
-          </div>
-
-          <!-- Token未找到状态 - 提高优先级 -->
-          <div v-else-if="isTokenNotFound">
+          <!-- Token未找到状态 - 最高优先级 -->
+          <div v-if="isTokenNotFound">
             <TokenNotFoundView
               :symbol="currentSymbol"
               :marketType="currentMarketType"
@@ -290,596 +259,535 @@
             />
           </div>
 
-          <!-- 正常内容 - 有数据时显示 -->
-          <div v-else-if="analysisData" class="space-y-3 pb-8">
-
-            <!-- 资产信息卡片 - 紧凑设计 -->
-            <div class="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-slate-800/95 via-slate-900/95 to-slate-800/95 backdrop-blur-xl border border-slate-700/40 hover:border-slate-600/60 transition-all duration-300 hover:shadow-lg hover:shadow-blue-500/10">
-              <!-- 动态背景光效 -->
-              <div class="absolute inset-0 bg-gradient-to-br from-blue-500/5 via-purple-500/5 to-indigo-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
-
-              <div class="relative p-3">
-                <!-- 顶部区域：标题和导航 -->
-                <div class="flex items-center justify-between mb-3">
-                  <!-- 左侧：资产信息 -->
-                  <div class="flex items-center space-x-2">
-                    <!-- 市场指示器 -->
-                    <div class="w-2 h-2 rounded-full"
-                         :class="{
-                           'bg-gradient-to-r from-orange-400 to-yellow-400': currentMarketType === 'crypto',
-                           'bg-gradient-to-r from-green-400 to-emerald-400': currentMarketType === 'stock',
-                           'bg-gradient-to-r from-red-400 to-pink-400': (currentMarketType as string) === 'china'
-                         }">
-                    </div>
-
-                    <!-- 标题 -->
-                    <h1 class="text-base font-bold bg-gradient-to-r from-white to-slate-200 bg-clip-text text-transparent">
-                      {{ currentSymbol ? getDisplayTitle() : t('common.loading') }}
-                    </h1>
-
-                    <!-- 收藏按钮 -->
-                    <FavoriteButton
-                      v-if="currentSymbol"
-                      ref="favoriteButtonRef"
-                      :symbol="currentSymbol"
-                      :market-type="currentMarketType"
-                      @favorite-changed="handleFavoriteChanged"
-                      class="scale-90 hover:scale-100 transition-transform duration-300"
-                    />
-                  </div>
-
-                  <!-- 右侧：导航按钮 -->
-                  <div class="flex items-center space-x-1">
-                    <button
-                      @click="togglePanel('favorites')"
-                      class="group/btn relative p-1.5 rounded-lg border transition-all duration-300 hover:scale-105"
-                      :class="{
-                        'bg-yellow-500/20 border-yellow-400/60 text-yellow-300 shadow-md shadow-yellow-500/20': activePanel === 'favorites',
-                        'bg-yellow-500/10 hover:bg-yellow-500/20 border-yellow-500/30 text-yellow-400 hover:border-yellow-400/50': activePanel !== 'favorites'
-                      }"
-                      :title="t('common.my_favorites')"
-                    >
-                      <i class="ri-bookmark-line text-xs transition-transform duration-200 group-hover/btn:scale-110"></i>
-                    </button>
-
-                    <button
-                      v-if="(currentMarketType as string) !== 'china'"
-                      @click="togglePanel('popular')"
-                      class="group/btn relative p-1.5 rounded-lg border transition-all duration-300 hover:scale-105"
-                      :class="{
-                        'bg-green-500/20 border-green-400/60 text-green-300 shadow-md shadow-green-500/20': activePanel === 'popular',
-                        'bg-green-500/10 hover:bg-green-500/20 border-green-500/30 text-green-400 hover:border-green-400/50': activePanel !== 'popular'
-                      }"
-                      :title="currentMarketType === 'crypto' ? t('common.popular_tokens') : t('common.popular_stocks')"
-                    >
-                      <i class="ri-fire-line text-xs transition-transform duration-200 group-hover/btn:scale-110"></i>
-                    </button>
-                  </div>
-                </div>
-
-                <!-- 价格区域 -->
-                <div class="mb-3">
-                  <!-- 快照标签 -->
-                  <div class="flex items-center space-x-1.5 mb-2">
-                    <i class="ri-camera-line text-blue-400 text-xs"></i>
-                    <span class="text-blue-300 text-xs font-medium uppercase tracking-wide">{{ t('analysis.snapshot_price') }}</span>
-                  </div>
-
-                  <!-- 价格显示 -->
-                  <div class="flex items-baseline space-x-3">
-                    <span class="text-3xl font-bold bg-gradient-to-r from-white via-slate-100 to-slate-200 bg-clip-text text-transparent tracking-tight">
-                      <template v-if="formatPriceParts(analysisData?.current_price).value">
-                        <span v-if="formatPriceParts(analysisData?.current_price).prefix" class="text-gray-400">{{ formatPriceParts(analysisData?.current_price).prefix }}</span>
-                        <span v-if="formatPriceParts(analysisData?.current_price).repeat" class="text-gray-400">{{ formatPriceParts(analysisData?.current_price).repeat }}</span>
-                        <span class="text-emerald-400">{{ formatPriceParts(analysisData?.current_price).value }}</span>
-                      </template>
-                      <template v-else>
-                        {{ formatPriceParts(analysisData?.current_price).prefix }}
-                      </template>
-                    </span>
-                    <span class="text-base text-slate-400 uppercase font-medium tracking-wider">{{ currentMarketType === 'crypto' ? 'USD' : 'USD' }}</span>
-                  </div>
-                </div>
-
-                <!-- 底部操作区域 -->
-                <div class="flex items-center justify-between pt-2 pb-1 border-t border-slate-700/30">
-                  <!-- 时间信息 -->
-                  <div class="flex items-center text-xs text-slate-400">
-                    <i class="ri-time-line mr-1.5 text-blue-400/60 text-xs"></i>
-                    <span>{{ formatTime(analysisData?.last_update_time) }}</span>
-                  </div>
-
-                  <!-- 操作按钮组 -->
-                  <div class="flex items-center space-x-1">
-                    <!-- 刷新按钮 -->
-                    <el-tooltip :content="!canRefreshReport ? t('analysis.refresh_report_too_soon') : t('analysis.refresh_report')" placement="top">
-                      <button
-                        @click="canRefreshReport && handleRefreshReport()"
-                        :disabled="!canRefreshReport || isRefreshing"
-                        class="group/refresh relative p-1.5 rounded-lg transition-all duration-300 hover:scale-105"
-                        :class="canRefreshReport
-                          ? 'bg-green-500/15 text-green-400 hover:bg-green-500/25 border border-green-500/40 hover:border-green-400/60 hover:shadow-md hover:shadow-green-500/20'
-                          : 'bg-slate-700/30 text-slate-500 cursor-not-allowed border border-slate-700/30'"
-                      >
-                        <i class="ri-refresh-line text-xs transition-transform duration-300 group-hover/refresh:rotate-180" :class="{ 'animate-spin': isRefreshing }"></i>
-                      </button>
-                    </el-tooltip>
-
-                    <!-- 分享到Twitter -->
-                    <el-tooltip :content="t('analysis.share_to_twitter')" placement="top">
-                      <button
-                        @click="shareToTwitter"
-                        class="group/share relative p-1.5 rounded-lg transition-all duration-300 hover:scale-105 bg-blue-500/15 text-blue-400 hover:bg-blue-500/25 border border-blue-500/40 hover:border-blue-400/60 hover:shadow-md hover:shadow-blue-500/20"
-                      >
-                        <i class="ri-twitter-fill text-xs transition-transform duration-200 group-hover/share:scale-110"></i>
-                      </button>
-                    </el-tooltip>
-
-                    <!-- 保存图片 -->
-                    <el-tooltip :content="t('analysis.save_image')" placement="top">
-                      <button
-                        @click="saveChartImage"
-                        class="group/save relative p-1.5 rounded-lg transition-all duration-300 hover:scale-105 bg-slate-600/15 text-slate-400 hover:bg-slate-600/25 border border-slate-600/40 hover:border-slate-500/60 hover:shadow-md hover:shadow-slate-500/20"
-                      >
-                        <i class="ri-image-line text-xs transition-transform duration-200 group-hover/save:scale-110"></i>
-                      </button>
-                    </el-tooltip>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <!-- Market News 标题和内容 -->
-            <div v-if="currentMarketType !== 'china'">
-              <!-- Market News 标题 -->
-              <div class="flex items-center justify-between mb-3">
-                <h3 class="text-base font-bold text-white flex items-center">
-                  <div class="w-0.5 bg-gradient-to-b from-orange-400 to-red-400 rounded-full mr-2" style="height: 20px;"></div>
-                  {{ t('news.marketNews') }}
-                </h3>
-                <!-- 新闻控制按钮 -->
-                <div class="flex flex-col space-y-0.5">
-                  <button
-                    @click="previousNews"
-                    :disabled="currentNews.length <= 1"
-                    class="w-4 h-2.5 rounded flex items-center justify-center transition-all duration-200 hover:bg-slate-600/40 disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    <i class="ri-arrow-up-s-line text-slate-400 text-xs"></i>
-                  </button>
-                  <button
-                    @click="nextNews"
-                    :disabled="currentNews.length <= 1"
-                    class="w-4 h-2.5 rounded flex items-center justify-center transition-all duration-200 hover:bg-slate-600/40 disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    <i class="ri-arrow-down-s-line text-slate-400 text-xs"></i>
-                  </button>
-                </div>
-              </div>
-
-              <!-- 新闻内容卡片 -->
-              <div class="relative overflow-hidden rounded-xl bg-gradient-to-br from-slate-800/60 to-slate-900/60 border border-slate-700/50 hover:border-slate-600/60 transition-all duration-300">
-                <div class="p-3">
-                  <!-- 新闻内容区域 -->
-                  <div class="overflow-hidden news-scroller" @mouseenter="pauseNewsScroll" @mouseleave="resumeNewsScroll" style="height:48px;">
-                    <!-- 有新闻时显示新闻列表 -->
-                    <ul
-                      v-if="currentNews.length > 0"
-                      class="news-scroll-list"
-                      :style="newsScrollStyle"
-                      ref="newsListRef"
-                    >
-                      <li
-                        v-for="(item, idx) in seamlessNewsList"
-                        :key="`news-${idx}`"
-                        class="news-item flex items-start px-2 py-1 cursor-pointer rounded-lg transition-all duration-500"
-                        @click="openNewsLink(item)"
-                        style="height:48px;line-height:1.4;"
-                      >
-                        <div class="flex-1 min-w-0">
-                          <div class="text-sm text-slate-200 leading-tight line-clamp-2 pr-16">
-                            {{ getTranslatedTitle(item, idx % currentNews.length) }}
-                          </div>
-                        </div>
-                        <div class="absolute top-1 right-0 text-slate-400 text-xs bg-gradient-to-l from-slate-800/60 to-transparent pl-4">
-                          {{ formatNewsTime(item.published_at || item.publishedDate) }}
-                        </div>
-                      </li>
-                    </ul>
-
-                    <!-- 空状态显示 -->
-                    <div v-else-if="!newsLoading" class="flex items-center justify-center h-full">
-                      <div class="text-center">
-                        <i class="ri-newspaper-line text-slate-500 text-lg mb-1"></i>
-                        <div class="text-xs text-slate-500">{{ t('news.no_news_available') }}</div>
-                      </div>
-                    </div>
-
-                    <!-- 加载状态 -->
-                    <div v-else class="flex items-center justify-center h-full">
-                      <div class="text-center">
-                        <i class="ri-loader-4-line text-slate-500 text-lg mb-1 animate-spin"></i>
-                        <div class="text-xs text-slate-500">{{ t('news.loading_news') }}</div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-      <!-- A股开发中页面 -->
-      <main class="flex-1 pt-16 pb-16 overflow-y-auto max-w-[375px] w-full mx-auto" v-if="(currentMarketType as string) === 'china'">
-        <div class="px-4 w-full">
-          <div class="flex items-center justify-center h-full">
-            <div class="text-center space-y-6">
-              <div class="w-20 h-20 mx-auto bg-orange-500/20 rounded-full flex items-center justify-center">
-                <i class="ri-tools-line text-3xl text-orange-400"></i>
-              </div>
-              <div class="space-y-3">
-                <h3 class="text-lg font-bold text-white">A股市场</h3>
-                <p class="text-slate-400 text-sm leading-relaxed">该功能正在开发中，敬请期待</p>
-              </div>
-              <div class="inline-flex items-center px-4 py-2 rounded-full bg-orange-500/20 border border-orange-500/40">
-                <i class="ri-time-line mr-2 text-orange-400"></i>
-                <span class="text-orange-400 text-sm font-medium">{{ t('common.coming_soon') }}</span>
-              </div>
-            </div>
+          <!-- 骨架屏 - 在加载过程中显示，但不包括TokenNotFound状态 -->
+          <div v-else-if="skeletonVisible">
+            <ChartSkeleton loadingText="Loading price data..." />
           </div>
-        </div>
-      </main>
 
-            <!-- 趋势分析卡片 -->
-            <div v-if="analysisData?.trend_analysis?.probabilities">
-              <h3 class="text-base font-bold text-white mb-3 flex items-center">
-                <div class="w-0.5 bg-gradient-to-b from-emerald-400 to-red-400 rounded-full mr-2" style="height: 20px;"></div>
-                {{ t('analysis.trend_analysis') }}
-              </h3>
-              <div class="grid grid-cols-3 gap-2">
-                <!-- 上涨趋势 -->
-                <div class="group p-3 rounded-xl bg-gradient-to-br from-emerald-500/15 to-emerald-600/10 border border-emerald-500/30 hover:border-emerald-400/50 text-center space-y-2 transition-all duration-300 hover:scale-105 hover:shadow-md hover:shadow-emerald-500/20">
-                  <div class="w-6 h-6 mx-auto bg-emerald-500/20 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform duration-200">
-                    <i class="ri-arrow-up-line text-emerald-400 text-sm"></i>
-                  </div>
-                  <div class="text-lg font-bold text-emerald-400">{{ formatPercent(analysisData?.trend_analysis?.probabilities?.up) }}</div>
-                  <div class="text-xs text-emerald-300 font-medium">{{ t('analysis.uptrend') }}</div>
-                </div>
+          <!-- 主要内容区域 - 根据状态显示不同内容 -->
+          <div v-if="analysisData && !loading && !analysisLoading">
+            <!-- 分析数据内容 -->
+            <div class="space-y-6 pb-10">
+              <!-- 资产信息卡片 - 紧凑设计 -->
+              <div class="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-slate-800/95 via-slate-900/95 to-slate-800/95 backdrop-blur-xl border border-slate-700/40 hover:border-slate-600/60 transition-all duration-300 hover:shadow-lg hover:shadow-blue-500/10">
+                <!-- 动态背景光效 -->
+                <div class="absolute inset-0 bg-gradient-to-br from-blue-500/5 via-purple-500/5 to-indigo-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
 
-                <!-- 横盘趋势 -->
-                <div class="group p-3 rounded-xl bg-gradient-to-br from-slate-500/15 to-slate-600/10 border border-slate-500/30 hover:border-slate-400/50 text-center space-y-2 transition-all duration-300 hover:scale-105 hover:shadow-md hover:shadow-slate-500/20">
-                  <div class="w-6 h-6 mx-auto bg-slate-500/20 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform duration-200">
-                    <i class="ri-subtract-line text-slate-400 text-sm"></i>
-                  </div>
-                  <div class="text-lg font-bold text-slate-300">{{ formatPercent(analysisData?.trend_analysis?.probabilities?.sideways) }}</div>
-                  <div class="text-xs text-slate-400 font-medium">{{ t('analysis.sideways') }}</div>
-                </div>
-
-                <!-- 下跌趋势 -->
-                <div class="group p-3 rounded-xl bg-gradient-to-br from-red-500/15 to-red-600/10 border border-red-500/30 hover:border-red-400/50 text-center space-y-2 transition-all duration-300 hover:scale-105 hover:shadow-md hover:shadow-red-500/20">
-                  <div class="w-6 h-6 mx-auto bg-red-500/20 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform duration-200">
-                    <i class="ri-arrow-down-line text-red-400 text-sm"></i>
-                  </div>
-                  <div class="text-lg font-bold text-red-400">{{ formatPercent(analysisData?.trend_analysis?.probabilities?.down) }}</div>
-                  <div class="text-xs text-red-300 font-medium">{{ t('analysis.downtrend') }}</div>
-                </div>
-              </div>
-            </div>
-
-            <!-- 市场趋势分析 -->
-            <div v-if="analysisData?.trend_analysis?.summary">
-              <h3 class="text-base font-bold text-white mb-3 flex items-center">
-                <div class="w-0.5 bg-gradient-to-b from-blue-400 to-purple-400 rounded-full mr-2" style="height: 20px;"></div>
-                {{ t('analysis.market_trend_analysis') }}
-              </h3>
-              <div class="group p-4 rounded-xl bg-gradient-to-br from-slate-800/60 to-slate-900/60 border border-slate-700/50 hover:border-slate-600/60 transition-all duration-300 hover:shadow-md hover:shadow-blue-500/10">
-                <div class="flex items-start space-x-3">
-                  <div class="w-6 h-6 bg-blue-500/20 rounded-lg flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform duration-200">
-                    <i class="ri-line-chart-line text-blue-400 text-sm"></i>
-                  </div>
-                  <div class="flex-1">
-                    <p class="text-sm text-slate-200 leading-relaxed">
-                      <span v-if="loadingTranslation" class="text-slate-400">翻译中...</span>
-                      <span v-else>{{ translatedSummary }}</span>
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <!-- 技术指标分析 -->
-            <div v-if="analysisData?.indicators_analysis">
-              <h3 class="text-base font-bold text-white mb-3 flex items-center">
-                <div class="w-0.5 bg-gradient-to-b from-cyan-400 to-blue-400 rounded-full mr-2" style="height: 20px;"></div>
-                {{ t('analysis.technical_indicators') }}
-              </h3>
-
-              <!-- 单参数指标网格 -->
-              <div class="grid grid-cols-2 gap-2 mb-4">
-                <template v-for="(indicator, key) in analysisData?.indicators_analysis" :key="key">
-                  <div v-if="!['MACD','BollingerBands','DMI'].includes(key) && shouldShowIndicator(key)" class="group p-3 rounded-xl bg-slate-800/40 border border-slate-700/50 hover:border-slate-600/60 transition-all duration-300 hover:scale-105 hover:shadow-md hover:shadow-slate-500/10">
-                    <div class="flex items-center justify-between mb-2">
-                      <div class="flex items-center space-x-1.5 flex-1 min-w-0">
-                        <span class="text-xs font-semibold text-slate-300 truncate">{{ getIndicatorDisplayName(key) }}</span>
-                        <el-tooltip :content="getIndicatorExplanation(key)" placement="top">
-                          <i class="ri-question-line text-slate-500 cursor-help text-xs flex-shrink-0 hover:text-slate-400 transition-colors"></i>
-                        </el-tooltip>
+                <div class="relative p-3">
+                  <!-- 顶部区域：标题和导航 -->
+                  <div class="flex items-center justify-between mb-3">
+                    <!-- 左侧：资产信息 -->
+                    <div class="flex items-center space-x-2">
+                      <!-- 市场指示器 -->
+                      <div class="w-2 h-2 rounded-full"
+                           :class="{
+                             'bg-gradient-to-r from-orange-400 to-yellow-400': currentMarketType === 'crypto',
+                             'bg-gradient-to-r from-green-400 to-emerald-400': currentMarketType === 'stock',
+                             'bg-gradient-to-r from-red-400 to-pink-400': (currentMarketType as string) === 'china'
+                           }">
                       </div>
-                      <div
-                        class="w-5 h-5 rounded-lg flex items-center justify-center flex-shrink-0 ml-1 group-hover:scale-110 transition-transform duration-200"
-                        :class="getIndicatorClass(indicator.support_trend)"
-                        :style="`background:${getIndicatorBgColor(indicator.support_trend)}`"
+
+                      <!-- 标题 -->
+                      <h1 class="text-base font-bold bg-gradient-to-r from-white to-slate-200 bg-clip-text text-transparent">
+                        {{ currentSymbol ? getDisplayTitle() : t('common.loading') }}
+                      </h1>
+
+                      <!-- 收藏按钮 -->
+                      <FavoriteButton
+                        v-if="currentSymbol"
+                        ref="favoriteButtonRef"
+                        :symbol="currentSymbol"
+                        :market-type="currentMarketType"
+                        @favorite-changed="handleFavoriteChanged"
+                        class="scale-90 hover:scale-100 transition-transform duration-300"
+                      />
+                    </div>
+
+                    <!-- 右侧：导航按钮 -->
+                    <div class="flex items-center space-x-1">
+                      <button
+                        @click="togglePanel('favorites')"
+                        class="group/btn relative p-1.5 rounded-lg border transition-all duration-300 hover:scale-105"
+                        :class="{
+                          'bg-yellow-500/20 border-yellow-400/60 text-yellow-300 shadow-md shadow-yellow-500/20': activePanel === 'favorites',
+                          'bg-yellow-500/10 hover:bg-yellow-500/20 border-yellow-500/30 text-yellow-400 hover:border-yellow-400/50': activePanel !== 'favorites'
+                        }"
+                        :title="t('common.my_favorites')"
                       >
-                        <i :class="getTrendIconClass(indicator.support_trend)" class="text-xs"></i>
-                      </div>
-                    </div>
-                    <div class="text-sm font-bold text-white">
-                      {{ typeof indicator.value === 'number' ? indicator.value.toFixed(2) : indicator.value }}
+                        <i class="ri-bookmark-line text-xs transition-transform duration-200 group-hover/btn:scale-110"></i>
+                      </button>
                     </div>
                   </div>
-                </template>
-              </div>
-              <!-- 复杂指标 -->
-              <div class="space-y-3">
-                <template v-for="key in ['MACD','BollingerBands','DMI']" :key="key">
-                  <div v-if="analysisData?.indicators_analysis && (analysisData.indicators_analysis as any)[key]" class="group p-4 rounded-xl bg-slate-800/40 border border-slate-700/50 hover:border-slate-600/60 transition-all duration-300 hover:shadow-md hover:shadow-slate-500/10">
-                    <div class="flex items-center justify-between mb-3">
-                      <div class="flex items-center space-x-2">
-                        <span class="text-sm font-bold text-white">{{ key }}</span>
-                        <el-tooltip :content="getIndicatorExplanation(key)" placement="top">
-                          <i class="ri-question-line text-slate-500 cursor-help text-xs hover:text-slate-400 transition-colors"></i>
-                        </el-tooltip>
-                      </div>
-                      <div
-                        class="w-6 h-6 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform duration-200"
-                        :class="getIndicatorClass((analysisData.indicators_analysis as any)[key].support_trend)"
-                        :style="`background:${getIndicatorBgColor((analysisData.indicators_analysis as any)[key].support_trend)}`"
-                      >
-                        <i :class="getTrendIconClass((analysisData.indicators_analysis as any)[key].support_trend)" class="text-sm"></i>
-                      </div>
+
+                  <!-- 价格区域 -->
+                  <div class="mb-3">
+                    <!-- 快照标签 -->
+                    <div class="flex items-center space-x-1.5 mb-2">
+                      <i class="ri-camera-line text-blue-400 text-xs"></i>
+                      <span class="text-blue-300 text-xs font-medium uppercase tracking-wide">{{ t('analysis.snapshot_price') }}</span>
                     </div>
 
-                    <div :class="key === 'DMI' && currentMarketType === 'stock' ? 'grid grid-cols-2 gap-2' : 'grid grid-cols-3 gap-2'">
-                      <!-- MACD -->
-                      <template v-if="key === 'MACD'">
-                        <div class="group/item text-center p-2 rounded-lg bg-blue-500/10 border border-blue-500/30 hover:border-blue-400/50 transition-all duration-200 hover:scale-105">
-                          <div class="text-xs text-blue-300 font-semibold mb-1">Histogram</div>
-                          <div class="text-sm font-bold text-white">{{ typeof (analysisData.indicators_analysis as any)[key].value === 'object' && (analysisData.indicators_analysis as any)[key].value && 'histogram' in (analysisData.indicators_analysis as any)[key].value && typeof (analysisData.indicators_analysis as any)[key].value.histogram === 'number' ? (analysisData.indicators_analysis as any)[key].value.histogram.toFixed(2) : '--' }}</div>
-                        </div>
-                        <div class="group/item text-center p-2 rounded-lg bg-blue-500/10 border border-blue-500/30 hover:border-blue-400/50 transition-all duration-200 hover:scale-105">
-                          <div class="text-xs text-blue-300 font-semibold mb-1">MACD Line</div>
-                          <div class="text-sm font-bold text-white">{{ typeof (analysisData.indicators_analysis as any)[key].value === 'object' && (analysisData.indicators_analysis as any)[key].value && 'line' in (analysisData.indicators_analysis as any)[key].value && typeof (analysisData.indicators_analysis as any)[key].value.line === 'number' ? (analysisData.indicators_analysis as any)[key].value.line.toFixed(2) : '--' }}</div>
-                        </div>
-                        <div class="group/item text-center p-2 rounded-lg bg-blue-500/10 border border-blue-500/30 hover:border-blue-400/50 transition-all duration-200 hover:scale-105">
-                          <div class="text-xs text-blue-300 font-semibold mb-1">Signal Line</div>
-                          <div class="text-sm font-bold text-white">{{ typeof (analysisData.indicators_analysis as any)[key].value === 'object' && (analysisData.indicators_analysis as any)[key].value && 'signal' in (analysisData.indicators_analysis as any)[key].value && typeof (analysisData.indicators_analysis as any)[key].value.signal === 'number' ? (analysisData.indicators_analysis as any)[key].value.signal.toFixed(2) : '--' }}</div>
-                        </div>
-                      </template>
-                      <!-- Bollinger Bands -->
-                      <template v-else-if="key === 'BollingerBands'">
-                        <div class="group/item text-center p-2 rounded-lg bg-red-500/10 border border-red-500/30 hover:border-red-400/50 transition-all duration-200 hover:scale-105">
-                          <div class="text-xs text-red-300 font-semibold mb-1">Upper Band</div>
-                          <div class="text-sm font-bold text-white">{{ typeof (analysisData.indicators_analysis as any)[key].value === 'object' && (analysisData.indicators_analysis as any)[key].value && 'upper' in (analysisData.indicators_analysis as any)[key].value && typeof (analysisData.indicators_analysis as any)[key].value.upper === 'number' ? (analysisData.indicators_analysis as any)[key].value.upper.toFixed(2) : '--' }}</div>
-                        </div>
-                        <div class="group/item text-center p-2 rounded-lg bg-slate-500/10 border border-slate-500/30 hover:border-slate-400/50 transition-all duration-200 hover:scale-105">
-                          <div class="text-xs text-slate-300 font-semibold mb-1">Middle Band</div>
-                          <div class="text-sm font-bold text-white">{{ typeof (analysisData.indicators_analysis as any)[key].value === 'object' && (analysisData.indicators_analysis as any)[key].value && 'middle' in (analysisData.indicators_analysis as any)[key].value && typeof (analysisData.indicators_analysis as any)[key].value.middle === 'number' ? (analysisData.indicators_analysis as any)[key].value.middle.toFixed(2) : '--' }}</div>
-                        </div>
-                        <div class="group/item text-center p-2 rounded-lg bg-emerald-500/10 border border-emerald-500/30 hover:border-emerald-400/50 transition-all duration-200 hover:scale-105">
-                          <div class="text-xs text-emerald-300 font-semibold mb-1">Lower Band</div>
-                          <div class="text-sm font-bold text-white">{{ typeof (analysisData.indicators_analysis as any)[key].value === 'object' && (analysisData.indicators_analysis as any)[key].value && 'lower' in (analysisData.indicators_analysis as any)[key].value && typeof (analysisData.indicators_analysis as any)[key].value.lower === 'number' ? (analysisData.indicators_analysis as any)[key].value.lower.toFixed(2) : '--' }}</div>
-                        </div>
-                      </template>
-                      <!-- DMI -->
-                      <template v-else-if="key === 'DMI'">
-                        <div class="group/item text-center p-2 rounded-lg bg-emerald-500/10 border border-emerald-500/30 hover:border-emerald-400/50 transition-all duration-200 hover:scale-105">
-                          <div class="text-xs text-emerald-300 font-semibold mb-1">+DI</div>
-                          <div class="text-sm font-bold text-white">{{ typeof (analysisData.indicators_analysis as any)[key].value === 'object' && (analysisData.indicators_analysis as any)[key].value && 'plus_di' in (analysisData.indicators_analysis as any)[key].value && typeof (analysisData.indicators_analysis as any)[key].value.plus_di === 'number' ? (analysisData.indicators_analysis as any)[key].value.plus_di.toFixed(2) : '--' }}</div>
-                        </div>
-                        <div class="group/item text-center p-2 rounded-lg bg-red-500/10 border border-red-500/30 hover:border-red-400/50 transition-all duration-200 hover:scale-105">
-                          <div class="text-xs text-red-300 font-semibold mb-1">-DI</div>
-                          <div class="text-sm font-bold text-white">{{ typeof (analysisData.indicators_analysis as any)[key].value === 'object' && (analysisData.indicators_analysis as any)[key].value && 'minus_di' in (analysisData.indicators_analysis as any)[key].value && typeof (analysisData.indicators_analysis as any)[key].value.minus_di === 'number' ? (analysisData.indicators_analysis as any)[key].value.minus_di.toFixed(2) : '--' }}</div>
-                        </div>
-                        <!-- 只在加密货币市场显示ADX -->
-                        <div v-if="currentMarketType === 'crypto'" class="group/item text-center p-2 rounded-lg bg-blue-500/10 border border-blue-500/30 hover:border-blue-400/50 transition-all duration-200 hover:scale-105">
-                          <div class="text-xs text-blue-300 font-semibold mb-1">ADX</div>
-                          <div class="text-sm font-bold text-white">{{ typeof (analysisData.indicators_analysis as any)[key].value === 'object' && (analysisData.indicators_analysis as any)[key].value && 'adx' in (analysisData.indicators_analysis as any)[key].value && typeof (analysisData.indicators_analysis as any)[key].value.adx === 'number' ? (analysisData.indicators_analysis as any)[key].value.adx.toFixed(2) : '--' }}</div>
-                        </div>
-                      </template>
+                    <!-- 价格显示 -->
+                    <div class="flex items-baseline space-x-3">
+                      <span class="text-3xl font-bold bg-gradient-to-r from-white via-slate-100 to-slate-200 bg-clip-text text-transparent tracking-tight">
+                        <template v-if="formatPriceParts(analysisData?.current_price).value">
+                          <span v-if="formatPriceParts(analysisData?.current_price).prefix" class="text-gray-400">{{ formatPriceParts(analysisData?.current_price).prefix }}</span>
+                          <span v-if="formatPriceParts(analysisData?.current_price).repeat" class="text-gray-400">{{ formatPriceParts(analysisData?.current_price).repeat }}</span>
+                          <span class="text-emerald-400">{{ formatPriceParts(analysisData?.current_price).value }}</span>
+                        </template>
+                        <template v-else>
+                          {{ formatPriceParts(analysisData?.current_price).prefix }}
+                        </template>
+                      </span>
+                      <span class="text-base text-slate-400 uppercase font-medium tracking-wider">{{ getCurrencySymbol() }}</span>
                     </div>
                   </div>
-                </template>
+
+                  <!-- 底部操作区域 -->
+                  <div class="flex items-center justify-between pt-2 pb-1 border-t border-slate-700/30">
+                    <!-- 时间信息 -->
+                    <div class="flex items-center text-xs text-slate-400">
+                      <i class="ri-time-line mr-1.5 text-blue-400/60 text-xs"></i>
+                      <span>{{ formatTime(analysisData?.last_update_time) }}</span>
+                    </div>
+
+                    <!-- 操作按钮组 -->
+                    <div class="flex items-center space-x-1">
+                      <!-- 刷新按钮 -->
+                      <el-tooltip :content="!canRefreshReport ? t('analysis.refresh_report_too_soon') : t('analysis.refresh_report')" placement="top">
+                        <button
+                          @click="canRefreshReport && handleRefreshReport()"
+                          :disabled="!canRefreshReport || isRefreshing"
+                          class="group/refresh relative p-1.5 rounded-lg transition-all duration-300 hover:scale-105"
+                          :class="canRefreshReport
+                            ? 'bg-green-500/15 text-green-400 hover:bg-green-500/25 border border-green-500/40 hover:border-green-400/60 hover:shadow-md hover:shadow-green-500/20'
+                            : 'bg-slate-700/30 text-slate-500 cursor-not-allowed border border-slate-700/30'"
+                        >
+                          <i class="ri-refresh-line text-xs transition-transform duration-300 group-hover/refresh:rotate-180" :class="{ 'animate-spin': isRefreshing }"></i>
+                        </button>
+                      </el-tooltip>
+
+                      <!-- 分享到Twitter -->
+                      <el-tooltip :content="t('analysis.share_to_twitter')" placement="top">
+                        <button
+                          @click="shareToTwitter"
+                          class="group/share relative p-1.5 rounded-lg transition-all duration-300 hover:scale-105 bg-blue-500/15 text-blue-400 hover:bg-blue-500/25 border border-blue-500/40 hover:border-blue-400/60 hover:shadow-md hover:shadow-blue-500/20"
+                        >
+                          <i class="ri-twitter-fill text-xs transition-transform duration-200 group-hover/share:scale-110"></i>
+                        </button>
+                      </el-tooltip>
+
+                      <!-- 保存图片 -->
+                      <el-tooltip :content="t('analysis.save_image')" placement="top">
+                        <button
+                          @click="saveChartImage"
+                          class="group/save relative p-1.5 rounded-lg transition-all duration-300 hover:scale-105 bg-slate-600/15 text-slate-400 hover:bg-slate-600/25 border border-slate-600/40 hover:border-slate-500/60 hover:shadow-md hover:shadow-slate-500/20"
+                        >
+                          <i class="ri-image-line text-xs transition-transform duration-200 group-hover/save:scale-110"></i>
+                        </button>
+                      </el-tooltip>
+
+                      <!-- 分享到微信 -->
+                      <el-tooltip :content="t('analysis.share_to_wechat')" placement="top">
+                        <button
+                          @click="shareToWechat"
+                          class="group/wechat relative p-1.5 rounded-lg transition-all duration-300 hover:scale-105 bg-green-500/15 text-green-400 hover:bg-green-500/25 border border-green-500/40 hover:border-green-400/60 hover:shadow-md hover:shadow-green-500/20"
+                        >
+                          <i class="ri-wechat-fill text-xs transition-transform duration-200 group-hover/wechat:scale-110"></i>
+                        </button>
+                      </el-tooltip>
+                    </div>
+                  </div>
+                </div>
               </div>
-            </div>
 
-            <!-- 交易建议 -->
-            <div v-if="analysisData?.trading_advice">
-              <h3 class="text-base font-bold text-white mb-3 flex items-center">
-                <div class="w-0.5 bg-gradient-to-b from-amber-400 to-orange-400 rounded-full mr-2" style="height: 20px;"></div>
-                {{ t('analysis.trading_advice') }}
-              </h3>
-              <div class="group p-4 rounded-xl bg-gradient-to-br from-slate-800/60 to-slate-900/60 border border-slate-700/50 hover:border-slate-600/60 transition-all duration-300 hover:shadow-md hover:shadow-amber-500/10 space-y-3">
-
-                <!-- 推荐操作 -->
-                <div class="flex items-center justify-between p-3 rounded-lg bg-slate-700/30 hover:bg-slate-700/40 transition-colors duration-200">
-                  <div class="text-sm font-semibold text-slate-300">{{ t('analysis.recommended_action') }}</div>
-                  <div class="px-3 py-1.5 rounded-lg text-sm font-bold transition-all duration-200 hover:scale-105"
-                    :class="analysisData.trading_advice?.action === '买入' ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 hover:bg-emerald-500/30' :
-                            analysisData.trading_advice?.action === '卖出' ? 'bg-red-500/20 text-red-400 border border-red-500/40 hover:bg-red-500/30' :
-                            'bg-slate-500/20 text-slate-400 border border-slate-500/40 hover:bg-slate-500/30'">
-                    {{ getLocalizedAction(analysisData.trading_advice?.action, currentLanguage) }}
+              <!-- Market News 标题和内容 -->
+              <div v-if="currentMarketType !== 'china'">
+                <!-- Market News 标题 -->
+                <div class="flex items-center justify-between mb-3">
+                  <h3 class="text-base font-bold text-white flex items-center">
+                    <div class="w-0.5 bg-gradient-to-b from-orange-400 to-red-400 rounded-full mr-2" style="height: 20px;"></div>
+                    {{ t('news.marketNews') }}
+                  </h3>
+                  <!-- 新闻控制按钮 -->
+                  <div class="flex flex-col space-y-0.5">
+                    <button
+                      @click="previousNews"
+                      :disabled="currentNews.length <= 1"
+                      class="w-4 h-2.5 rounded flex items-center justify-center transition-all duration-200 hover:bg-slate-600/40 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      <i class="ri-arrow-up-s-line text-slate-400 text-xs"></i>
+                    </button>
+                    <button
+                      @click="nextNews"
+                      :disabled="currentNews.length <= 1"
+                      class="w-4 h-2.5 rounded flex items-center justify-center transition-all duration-200 hover:bg-slate-600/40 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      <i class="ri-arrow-down-s-line text-slate-400 text-xs"></i>
+                    </button>
                   </div>
                 </div>
 
-                <!-- 价格信息 -->
+                <!-- 新闻内容卡片 -->
+                <div class="relative overflow-hidden rounded-xl bg-gradient-to-br from-slate-800/60 to-slate-900/60 border border-slate-700/50 hover:border-slate-600/60 transition-all duration-300">
+                  <div class="p-3">
+                    <!-- 新闻内容区域 -->
+                    <div class="overflow-hidden news-scroller" @mouseenter="pauseNewsScroll" @mouseleave="resumeNewsScroll" style="height:48px;">
+                      <!-- 有新闻时显示新闻列表 -->
+                      <ul
+                        v-if="currentNews.length > 0"
+                        class="news-scroll-list"
+                        :style="newsScrollStyle"
+                        ref="newsListRef"
+                      >
+                        <li
+                          v-for="(item, idx) in seamlessNewsList"
+                          :key="`news-${idx}`"
+                          class="news-item flex items-start px-2 py-1 cursor-pointer rounded-lg transition-all duration-500"
+                          @click="openNewsLink(item)"
+                          style="height:48px;line-height:1.4;"
+                        >
+                          <div class="flex-1 min-w-0">
+                            <div class="text-sm text-slate-200 leading-tight line-clamp-2 pr-16">
+                              {{ getTranslatedTitle(item, idx % currentNews.length) }}
+                            </div>
+                          </div>
+                          <div class="absolute top-1 right-0 text-slate-400 text-xs bg-gradient-to-l from-slate-800/60 to-transparent pl-4">
+                            {{ formatNewsTime(item.published_at || item.publishedDate) }}
+                          </div>
+                        </li>
+                      </ul>
+
+                      <!-- 空状态显示 -->
+                      <div v-else-if="!newsLoading" class="flex items-center justify-center h-full">
+                        <div class="text-center">
+                          <i class="ri-newspaper-line text-slate-500 text-lg mb-1"></i>
+                          <div class="text-xs text-slate-500">{{ t('news.no_news_available') }}</div>
+                        </div>
+                      </div>
+
+                      <!-- 加载状态 -->
+                      <div v-else class="flex items-center justify-center h-full">
+                        <div class="text-center">
+                          <i class="ri-loader-4-line text-slate-500 text-lg mb-1 animate-spin"></i>
+                          <div class="text-xs text-slate-500">{{ t('news.loading_news') }}</div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- 趋势分析卡片 -->
+              <div v-if="analysisData?.trend_analysis?.probabilities">
+                <h3 class="text-base font-bold text-white mb-3 flex items-center">
+                  <div class="w-0.5 bg-gradient-to-b from-emerald-400 to-red-400 rounded-full mr-2" style="height: 20px;"></div>
+                  {{ t('analysis.trend_analysis') }}
+                </h3>
                 <div class="grid grid-cols-3 gap-2">
-                  <div class="group/price text-center p-2 rounded-lg bg-blue-500/10 border border-blue-500/30 hover:border-blue-400/50 transition-all duration-200 hover:scale-105">
-                    <div class="text-xs text-blue-300 font-semibold mb-1">{{ t('analysis.entry_price') }}</div>
-                    <div class="text-xs font-bold text-white">
-                      <template v-if="formatPriceParts(analysisData.trading_advice?.entry_price).value">
-                        <span v-if="formatPriceParts(analysisData.trading_advice?.entry_price).prefix" class="text-gray-400">{{ formatPriceParts(analysisData.trading_advice?.entry_price).prefix }}</span>
-                        <span v-if="formatPriceParts(analysisData.trading_advice?.entry_price).repeat" class="text-gray-400">{{ formatPriceParts(analysisData.trading_advice?.entry_price).repeat }}</span>
-                        <span class="text-blue-400">{{ formatPriceParts(analysisData.trading_advice?.entry_price).value }}</span>
-                      </template>
-                      <template v-else>
-                        {{ formatPriceParts(analysisData.trading_advice?.entry_price).prefix }}
-                      </template>
+                  <!-- 上涨趋势 -->
+                  <div class="group p-3 rounded-xl bg-gradient-to-br from-emerald-500/15 to-emerald-600/10 border border-emerald-500/30 hover:border-emerald-400/50 text-center space-y-2 transition-all duration-300 hover:scale-105 hover:shadow-md hover:shadow-emerald-500/20">
+                    <div class="w-6 h-6 mx-auto bg-emerald-500/20 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform duration-200">
+                      <i class="ri-arrow-up-line text-emerald-400 text-sm"></i>
                     </div>
+                    <div class="text-lg font-bold text-emerald-400">{{ formatPercent(analysisData?.trend_analysis?.probabilities?.up) }}</div>
+                    <div class="text-xs text-emerald-300 font-medium">{{ t('analysis.uptrend') }}</div>
                   </div>
-                  <div class="group/price text-center p-2 rounded-lg bg-red-500/10 border border-red-500/30 hover:border-red-400/50 transition-all duration-200 hover:scale-105">
-                    <div class="text-xs text-red-300 font-semibold mb-1">{{ t('analysis.stop_loss') }}</div>
-                    <div class="text-xs font-bold text-red-400">
-                      <template v-if="formatPriceParts(analysisData.trading_advice.stop_loss).value">
-                        <span v-if="formatPriceParts(analysisData.trading_advice.stop_loss).prefix" class="text-gray-400">{{ formatPriceParts(analysisData.trading_advice.stop_loss).prefix }}</span>
-                        <span v-if="formatPriceParts(analysisData.trading_advice.stop_loss).repeat" class="text-gray-400">{{ formatPriceParts(analysisData.trading_advice.stop_loss).repeat }}</span>
-                        <span>{{ formatPriceParts(analysisData.trading_advice.stop_loss).value }}</span>
-                      </template>
-                      <template v-else>
-                        {{ formatPriceParts(analysisData.trading_advice.stop_loss).prefix }}
-                      </template>
+
+                  <!-- 横盘趋势 -->
+                  <div class="group p-3 rounded-xl bg-gradient-to-br from-slate-500/15 to-slate-600/10 border border-slate-500/30 hover:border-slate-400/50 text-center space-y-2 transition-all duration-300 hover:scale-105 hover:shadow-md hover:shadow-slate-500/20">
+                    <div class="w-6 h-6 mx-auto bg-slate-500/20 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform duration-200">
+                      <i class="ri-subtract-line text-slate-400 text-sm"></i>
                     </div>
+                    <div class="text-lg font-bold text-slate-300">{{ formatPercent(analysisData?.trend_analysis?.probabilities?.sideways) }}</div>
+                    <div class="text-xs text-slate-400 font-medium">{{ t('analysis.sideways') }}</div>
                   </div>
-                  <div class="group/price text-center p-2 rounded-lg bg-emerald-500/10 border border-emerald-500/30 hover:border-emerald-400/50 transition-all duration-200 hover:scale-105">
-                    <div class="text-xs text-emerald-300 font-semibold mb-1">{{ t('analysis.take_profit') }}</div>
-                    <div class="text-xs font-bold text-emerald-400">
-                      <template v-if="formatPriceParts(analysisData.trading_advice.take_profit).value">
-                        <span v-if="formatPriceParts(analysisData.trading_advice.take_profit).prefix" class="text-gray-400">{{ formatPriceParts(analysisData.trading_advice.take_profit).prefix }}</span>
-                        <span v-if="formatPriceParts(analysisData.trading_advice.take_profit).repeat" class="text-gray-400">{{ formatPriceParts(analysisData.trading_advice.take_profit).repeat }}</span>
-                        <span>{{ formatPriceParts(analysisData.trading_advice.take_profit).value }}</span>
-                      </template>
-                      <template v-else>
-                        {{ formatPriceParts(analysisData.trading_advice.take_profit).prefix }}
-                      </template>
+
+                  <!-- 下跌趋势 -->
+                  <div class="group p-3 rounded-xl bg-gradient-to-br from-red-500/15 to-red-600/10 border border-red-500/30 hover:border-red-400/50 text-center space-y-2 transition-all duration-300 hover:scale-105 hover:shadow-md hover:shadow-red-500/20">
+                    <div class="w-6 h-6 mx-auto bg-red-500/20 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform duration-200">
+                      <i class="ri-arrow-down-line text-red-400 text-sm"></i>
                     </div>
+                    <div class="text-lg font-bold text-red-400">{{ formatPercent(analysisData?.trend_analysis?.probabilities?.down) }}</div>
+                    <div class="text-xs text-red-300 font-medium">{{ t('analysis.downtrend') }}</div>
                   </div>
                 </div>
+              </div>
 
-                <!-- 理由说明 -->
-                <div class="p-3 rounded-lg bg-slate-700/20 border border-slate-600/30 hover:border-slate-600/40 transition-colors duration-200">
+              <!-- 市场趋势分析 -->
+              <div v-if="analysisData?.trend_analysis?.summary">
+                <h3 class="text-base font-bold text-white mb-3 flex items-center">
+                  <div class="w-0.5 bg-gradient-to-b from-blue-400 to-purple-400 rounded-full mr-2" style="height: 20px;"></div>
+                  {{ t('analysis.market_trend_analysis') }}
+                </h3>
+                <div class="group p-4 rounded-xl bg-gradient-to-br from-slate-800/60 to-slate-900/60 border border-slate-700/50 hover:border-slate-600/60 transition-all duration-300 hover:shadow-md hover:shadow-blue-500/10">
                   <div class="flex items-start space-x-3">
-                    <div class="w-6 h-6 bg-amber-500/20 rounded-lg flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform duration-200">
-                      <i class="ri-lightbulb-line text-amber-400 text-sm"></i>
+                    <div class="w-6 h-6 bg-blue-500/20 rounded-lg flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform duration-200">
+                      <i class="ri-line-chart-line text-blue-400 text-sm"></i>
                     </div>
                     <div class="flex-1">
-                      <div class="text-sm font-semibold text-slate-300 mb-2">{{ t('analysis.reason') }}</div>
-                      <div class="text-sm text-slate-200 leading-relaxed">
-                        <span v-if="loadingReasonTranslation" class="text-slate-400">翻译中...</span>
-                        <span v-else>{{ translatedReason || analysisData.trading_advice.reason }}</span>
+                      <p class="text-sm text-slate-200 leading-relaxed">
+                        <span v-if="loadingTranslation" class="text-slate-400">翻译中...</span>
+                        <span v-else>{{ translatedSummary }}</span>
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- 技术指标分析 -->
+              <div v-if="analysisData?.indicators_analysis">
+                <h3 class="text-base font-bold text-white mb-3 flex items-center">
+                  <div class="w-0.5 bg-gradient-to-b from-cyan-400 to-blue-400 rounded-full mr-2" style="height: 20px;"></div>
+                  {{ t('analysis.technical_indicators') }}
+                </h3>
+
+                <!-- 单参数指标网格 -->
+                <div class="grid grid-cols-2 gap-2 mb-4">
+                  <template v-for="(indicator, key) in analysisData?.indicators_analysis" :key="key">
+                    <div v-if="!['MACD','BollingerBands','DMI'].includes(key) && shouldShowIndicator(key)" class="group p-3 rounded-xl bg-slate-800/40 border border-slate-700/50 hover:border-slate-600/60 transition-all duration-300 hover:scale-105 hover:shadow-md hover:shadow-slate-500/10">
+                      <div class="flex items-center justify-between mb-2">
+                        <div class="flex items-center space-x-1.5 flex-1 min-w-0">
+                          <span class="text-xs font-semibold text-slate-300 truncate">{{ getIndicatorDisplayName(key) }}</span>
+                          <el-tooltip :content="getIndicatorExplanation(key)" placement="top">
+                            <i class="ri-question-line text-slate-500 cursor-help text-xs flex-shrink-0 hover:text-slate-400 transition-colors"></i>
+                          </el-tooltip>
+                        </div>
+                        <div
+                          class="w-5 h-5 rounded-lg flex items-center justify-center flex-shrink-0 ml-1 group-hover:scale-110 transition-transform duration-200"
+                          :class="getIndicatorClass(indicator.support_trend)"
+                          :style="`background:${getIndicatorBgColor(indicator.support_trend)}`"
+                        >
+                          <i :class="getTrendIconClass(indicator.support_trend)" class="text-xs"></i>
+                        </div>
+                      </div>
+                      <div class="text-sm font-bold text-white">
+                        {{ typeof indicator.value === 'number' ? indicator.value.toFixed(2) : indicator.value }}
+                      </div>
+                    </div>
+                  </template>
+                </div>
+                <!-- 复杂指标 -->
+                <div class="space-y-3">
+                  <template v-for="key in ['MACD','BollingerBands','DMI']" :key="key">
+                    <div v-if="analysisData?.indicators_analysis && (analysisData.indicators_analysis as any)[key]" class="group p-4 rounded-xl bg-slate-800/40 border border-slate-700/50 hover:border-slate-600/60 transition-all duration-300 hover:shadow-md hover:shadow-slate-500/10">
+                      <div class="flex items-center justify-between mb-3">
+                        <div class="flex items-center space-x-2">
+                          <span class="text-sm font-bold text-white">{{ key }}</span>
+                          <el-tooltip :content="getIndicatorExplanation(key)" placement="top">
+                            <i class="ri-question-line text-slate-500 cursor-help text-xs hover:text-slate-400 transition-colors"></i>
+                          </el-tooltip>
+                        </div>
+                        <div
+                          class="w-6 h-6 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform duration-200"
+                          :class="getIndicatorClass((analysisData.indicators_analysis as any)[key].support_trend)"
+                          :style="`background:${getIndicatorBgColor((analysisData.indicators_analysis as any)[key].support_trend)}`"
+                        >
+                          <i :class="getTrendIconClass((analysisData.indicators_analysis as any)[key].support_trend)" class="text-sm"></i>
+                        </div>
+                      </div>
+
+                      <div :class="key === 'DMI' && currentMarketType === 'stock' ? 'grid grid-cols-2 gap-2' : 'grid grid-cols-3 gap-2'">
+                        <!-- MACD -->
+                        <template v-if="key === 'MACD'">
+                          <div class="group/item text-center p-2 rounded-lg bg-blue-500/10 border border-blue-500/30 hover:border-blue-400/50 transition-all duration-200 hover:scale-105">
+                            <div class="text-xs text-blue-300 font-semibold mb-1">Histogram</div>
+                            <div class="text-sm font-bold text-white">{{ typeof (analysisData.indicators_analysis as any)[key].value === 'object' && (analysisData.indicators_analysis as any)[key].value && 'histogram' in (analysisData.indicators_analysis as any)[key].value && typeof (analysisData.indicators_analysis as any)[key].value.histogram === 'number' ? (analysisData.indicators_analysis as any)[key].value.histogram.toFixed(2) : '--' }}</div>
+                          </div>
+                          <div class="group/item text-center p-2 rounded-lg bg-blue-500/10 border border-blue-500/30 hover:border-blue-400/50 transition-all duration-200 hover:scale-105">
+                            <div class="text-xs text-blue-300 font-semibold mb-1">MACD Line</div>
+                            <div class="text-sm font-bold text-white">{{ typeof (analysisData.indicators_analysis as any)[key].value === 'object' && (analysisData.indicators_analysis as any)[key].value && 'line' in (analysisData.indicators_analysis as any)[key].value && typeof (analysisData.indicators_analysis as any)[key].value.line === 'number' ? (analysisData.indicators_analysis as any)[key].value.line.toFixed(2) : '--' }}</div>
+                          </div>
+                          <div class="group/item text-center p-2 rounded-lg bg-blue-500/10 border border-blue-500/30 hover:border-blue-400/50 transition-all duration-200 hover:scale-105">
+                            <div class="text-xs text-blue-300 font-semibold mb-1">Signal Line</div>
+                            <div class="text-sm font-bold text-white">{{ typeof (analysisData.indicators_analysis as any)[key].value === 'object' && (analysisData.indicators_analysis as any)[key].value && 'signal' in (analysisData.indicators_analysis as any)[key].value && typeof (analysisData.indicators_analysis as any)[key].value.signal === 'number' ? (analysisData.indicators_analysis as any)[key].value.signal.toFixed(2) : '--' }}</div>
+                          </div>
+                        </template>
+                        <!-- Bollinger Bands -->
+                        <template v-else-if="key === 'BollingerBands'">
+                          <div class="group/item text-center p-2 rounded-lg bg-red-500/10 border border-red-500/30 hover:border-red-400/50 transition-all duration-200 hover:scale-105">
+                            <div class="text-xs text-red-300 font-semibold mb-1">Upper Band</div>
+                            <div class="text-sm font-bold text-white">{{ typeof (analysisData.indicators_analysis as any)[key].value === 'object' && (analysisData.indicators_analysis as any)[key].value && 'upper' in (analysisData.indicators_analysis as any)[key].value && typeof (analysisData.indicators_analysis as any)[key].value.upper === 'number' ? (analysisData.indicators_analysis as any)[key].value.upper.toFixed(2) : '--' }}</div>
+                          </div>
+                          <div class="group/item text-center p-2 rounded-lg bg-slate-500/10 border border-slate-500/30 hover:border-slate-400/50 transition-all duration-200 hover:scale-105">
+                            <div class="text-xs text-slate-300 font-semibold mb-1">Middle Band</div>
+                            <div class="text-sm font-bold text-white">{{ typeof (analysisData.indicators_analysis as any)[key].value === 'object' && (analysisData.indicators_analysis as any)[key].value && 'middle' in (analysisData.indicators_analysis as any)[key].value && typeof (analysisData.indicators_analysis as any)[key].value.middle === 'number' ? (analysisData.indicators_analysis as any)[key].value.middle.toFixed(2) : '--' }}</div>
+                          </div>
+                          <div class="group/item text-center p-2 rounded-lg bg-emerald-500/10 border border-emerald-500/30 hover:border-emerald-400/50 transition-all duration-200 hover:scale-105">
+                            <div class="text-xs text-emerald-300 font-semibold mb-1">Lower Band</div>
+                            <div class="text-sm font-bold text-white">{{ typeof (analysisData.indicators_analysis as any)[key].value === 'object' && (analysisData.indicators_analysis as any)[key].value && 'lower' in (analysisData.indicators_analysis as any)[key].value && typeof (analysisData.indicators_analysis as any)[key].value.lower === 'number' ? (analysisData.indicators_analysis as any)[key].value.lower.toFixed(2) : '--' }}</div>
+                          </div>
+                        </template>
+                        <!-- DMI -->
+                        <template v-else-if="key === 'DMI'">
+                          <div class="group/item text-center p-2 rounded-lg bg-emerald-500/10 border border-emerald-500/30 hover:border-emerald-400/50 transition-all duration-200 hover:scale-105">
+                            <div class="text-xs text-emerald-300 font-semibold mb-1">+DI</div>
+                            <div class="text-sm font-bold text-white">{{ typeof (analysisData.indicators_analysis as any)[key].value === 'object' && (analysisData.indicators_analysis as any)[key].value && 'plus_di' in (analysisData.indicators_analysis as any)[key].value && typeof (analysisData.indicators_analysis as any)[key].value.plus_di === 'number' ? (analysisData.indicators_analysis as any)[key].value.plus_di.toFixed(2) : '--' }}</div>
+                          </div>
+                          <div class="group/item text-center p-2 rounded-lg bg-red-500/10 border border-red-500/30 hover:border-red-400/50 transition-all duration-200 hover:scale-105">
+                            <div class="text-xs text-red-300 font-semibold mb-1">-DI</div>
+                            <div class="text-sm font-bold text-white">{{ typeof (analysisData.indicators_analysis as any)[key].value === 'object' && (analysisData.indicators_analysis as any)[key].value && 'minus_di' in (analysisData.indicators_analysis as any)[key].value && typeof (analysisData.indicators_analysis as any)[key].value.minus_di === 'number' ? (analysisData.indicators_analysis as any)[key].value.minus_di.toFixed(2) : '--' }}</div>
+                          </div>
+                          <!-- 只在加密货币市场显示ADX -->
+                          <div v-if="currentMarketType === 'crypto'" class="group/item text-center p-2 rounded-lg bg-blue-500/10 border border-blue-500/30 hover:border-blue-400/50 transition-all duration-200 hover:scale-105">
+                            <div class="text-xs text-blue-300 font-semibold mb-1">ADX</div>
+                            <div class="text-sm font-bold text-white">{{ typeof (analysisData.indicators_analysis as any)[key].value === 'object' && (analysisData.indicators_analysis as any)[key].value && 'adx' in (analysisData.indicators_analysis as any)[key].value && typeof (analysisData.indicators_analysis as any)[key].value.adx === 'number' ? (analysisData.indicators_analysis as any)[key].value.adx.toFixed(2) : '--' }}</div>
+                          </div>
+                        </template>
+                      </div>
+                    </div>
+                  </template>
+                </div>
+              </div>
+
+              <!-- A股特有指标 - 集成到技术指标中显示 -->
+
+              <!-- 交易建议 -->
+              <div v-if="analysisData?.trading_advice">
+                <h3 class="text-base font-bold text-white mb-3 flex items-center">
+                  <div class="w-0.5 bg-gradient-to-b from-amber-400 to-orange-400 rounded-full mr-2" style="height: 20px;"></div>
+                  {{ t('analysis.trading_advice') }}
+                </h3>
+                <div class="group p-4 rounded-xl bg-gradient-to-br from-slate-800/60 to-slate-900/60 border border-slate-700/50 hover:border-slate-600/60 transition-all duration-300 hover:shadow-md hover:shadow-amber-500/10 space-y-3">
+
+                  <!-- 推荐操作 -->
+                  <div class="flex items-center justify-between p-3 rounded-lg bg-slate-700/30 hover:bg-slate-700/40 transition-colors duration-200">
+                    <div class="text-sm font-semibold text-slate-300">{{ t('analysis.recommended_action') }}</div>
+                    <div class="px-3 py-1.5 rounded-lg text-sm font-bold transition-all duration-200 hover:scale-105"
+                      :class="analysisData.trading_advice?.action === '买入' ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 hover:bg-emerald-500/30' :
+                              analysisData.trading_advice?.action === '卖出' ? 'bg-red-500/20 text-red-400 border border-red-500/40 hover:bg-red-500/30' :
+                              'bg-slate-500/20 text-slate-400 border border-slate-500/40 hover:bg-slate-500/30'">
+                      {{ getLocalizedAction(analysisData.trading_advice?.action, currentLanguage) }}
+                    </div>
+                  </div>
+
+                  <!-- 价格信息 -->
+                  <div class="grid grid-cols-3 gap-2">
+                    <div class="group/price text-center p-2 rounded-lg bg-blue-500/10 border border-blue-500/30 hover:border-blue-400/50 transition-all duration-200 hover:scale-105">
+                      <div class="text-xs text-blue-300 font-semibold mb-1">{{ t('analysis.entry_price') }}</div>
+                      <div class="text-xs font-bold text-white">
+                        <template v-if="formatPriceParts(analysisData.trading_advice?.entry_price).value">
+                          <span v-if="formatPriceParts(analysisData.trading_advice?.entry_price).prefix" class="text-gray-400">{{ formatPriceParts(analysisData.trading_advice?.entry_price).prefix }}</span>
+                          <span v-if="formatPriceParts(analysisData.trading_advice?.entry_price).repeat" class="text-gray-400">{{ formatPriceParts(analysisData.trading_advice?.entry_price).repeat }}</span>
+                          <span class="text-blue-400">{{ formatPriceParts(analysisData.trading_advice?.entry_price).value }}</span>
+                        </template>
+                        <template v-else>
+                          {{ formatPriceParts(analysisData.trading_advice?.entry_price).prefix }}
+                        </template>
+                      </div>
+                    </div>
+                    <div class="group/price text-center p-2 rounded-lg bg-red-500/10 border border-red-500/30 hover:border-red-400/50 transition-all duration-200 hover:scale-105">
+                      <div class="text-xs text-red-300 font-semibold mb-1">{{ t('analysis.stop_loss') }}</div>
+                      <div class="text-xs font-bold text-red-400">
+                        <template v-if="formatPriceParts(analysisData.trading_advice.stop_loss).value">
+                          <span v-if="formatPriceParts(analysisData.trading_advice.stop_loss).prefix" class="text-gray-400">{{ formatPriceParts(analysisData.trading_advice.stop_loss).prefix }}</span>
+                          <span v-if="formatPriceParts(analysisData.trading_advice.stop_loss).repeat" class="text-gray-400">{{ formatPriceParts(analysisData.trading_advice.stop_loss).repeat }}</span>
+                          <span>{{ formatPriceParts(analysisData.trading_advice.stop_loss).value }}</span>
+                        </template>
+                        <template v-else>
+                          {{ formatPriceParts(analysisData.trading_advice.stop_loss).prefix }}
+                        </template>
+                      </div>
+                    </div>
+                    <div class="group/price text-center p-2 rounded-lg bg-emerald-500/10 border border-emerald-500/30 hover:border-emerald-400/50 transition-all duration-200 hover:scale-105">
+                      <div class="text-xs text-emerald-300 font-semibold mb-1">{{ t('analysis.take_profit') }}</div>
+                      <div class="text-xs font-bold text-emerald-400">
+                        <template v-if="formatPriceParts(analysisData.trading_advice.take_profit).value">
+                          <span v-if="formatPriceParts(analysisData.trading_advice.take_profit).prefix" class="text-gray-400">{{ formatPriceParts(analysisData.trading_advice.take_profit).prefix }}</span>
+                          <span v-if="formatPriceParts(analysisData.trading_advice.take_profit).repeat" class="text-gray-400">{{ formatPriceParts(analysisData.trading_advice.take_profit).repeat }}</span>
+                          <span>{{ formatPriceParts(analysisData.trading_advice.take_profit).value }}</span>
+                        </template>
+                        <template v-else>
+                          {{ formatPriceParts(analysisData.trading_advice.take_profit).prefix }}
+                        </template>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- 理由说明 -->
+                  <div class="p-3 rounded-lg bg-slate-700/20 border border-slate-600/30 hover:border-slate-600/40 transition-colors duration-200">
+                    <div class="flex items-start space-x-3">
+                      <div class="w-6 h-6 bg-amber-500/20 rounded-lg flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform duration-200">
+                        <i class="ri-lightbulb-line text-amber-400 text-sm"></i>
+                      </div>
+                      <div class="flex-1">
+                        <div class="text-sm font-semibold text-slate-300 mb-2">{{ t('analysis.reason') }}</div>
+                        <div class="text-sm text-slate-200 leading-relaxed">
+                          <span v-if="loadingReasonTranslation" class="text-slate-400">翻译中...</span>
+                          <span v-else>{{ translatedReason || analysisData.trading_advice.reason }}</span>
+                        </div>
                       </div>
                     </div>
                   </div>
                 </div>
               </div>
-            </div>
 
-            <!-- 风险评估 -->
-            <div v-if="analysisData?.risk_assessment">
-              <h3 class="text-base font-bold text-white mb-3 flex items-center">
-                <div class="w-0.5 bg-gradient-to-b from-red-400 to-orange-400 rounded-full mr-2" style="height: 20px;"></div>
-                {{ t('analysis.risk_assessment') }}
-              </h3>
-              <div class="group p-4 rounded-xl bg-gradient-to-br from-slate-800/60 to-slate-900/60 border border-slate-700/50 hover:border-slate-600/60 transition-all duration-300 hover:shadow-md hover:shadow-red-500/10 space-y-3">
+              <!-- 风险评估 -->
+              <div v-if="analysisData?.risk_assessment">
+                <h3 class="text-base font-bold text-white mb-3 flex items-center">
+                  <div class="w-0.5 bg-gradient-to-b from-red-400 to-orange-400 rounded-full mr-2" style="height: 20px;"></div>
+                  {{ t('analysis.risk_assessment') }}
+                </h3>
+                <div class="group p-4 rounded-xl bg-gradient-to-br from-slate-800/60 to-slate-900/60 border border-slate-700/50 hover:border-slate-600/60 transition-all duration-300 hover:shadow-md hover:shadow-red-500/10 space-y-3">
 
-                <!-- 风险等级 -->
-                <div class="flex items-center justify-between p-3 rounded-lg bg-slate-700/30 hover:bg-slate-700/40 transition-colors duration-200">
-                  <div class="text-sm font-semibold text-slate-300">{{ t('analysis.risk_level') }}</div>
-                  <div class="px-3 py-1.5 rounded-lg text-sm font-bold transition-all duration-200 hover:scale-105"
-                    :class="{
-                      'bg-red-500/20 text-red-400 border border-red-500/40 hover:bg-red-500/30': analysisData.risk_assessment.level === '高',
-                      'bg-amber-500/20 text-amber-400 border border-amber-500/40 hover:bg-amber-500/30': analysisData.risk_assessment.level === '中',
-                      'bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 hover:bg-emerald-500/30': analysisData.risk_assessment.level === '低'
-                    }">
-                    {{ getLocalizedRiskLevel(analysisData.risk_assessment.level, currentLanguage) }}
-                  </div>
-                </div>
-
-                <!-- 风险评分 -->
-                <div class="space-y-2">
-                  <div class="flex items-center justify-between">
-                    <span class="text-sm font-semibold text-slate-300">{{ t('analysis.risk_score') }}</span>
-                    <span class="text-lg font-bold text-white">{{ analysisData.risk_assessment.score }}%</span>
-                  </div>
-                  <div class="w-full bg-slate-700/50 rounded-full h-3 overflow-hidden shadow-inner">
-                    <div class="h-full rounded-full transition-all duration-700 shadow-lg"
+                  <!-- 风险等级 -->
+                  <div class="flex items-center justify-between p-3 rounded-lg bg-slate-700/30 hover:bg-slate-700/40 transition-colors duration-200">
+                    <div class="text-sm font-semibold text-slate-300">{{ t('analysis.risk_level') }}</div>
+                    <div class="px-3 py-1.5 rounded-lg text-sm font-bold transition-all duration-200 hover:scale-105"
                       :class="{
-                        'bg-gradient-to-r from-red-500 to-red-400 shadow-red-500/30': analysisData.risk_assessment.score > 70,
-                        'bg-gradient-to-r from-amber-500 to-amber-400 shadow-amber-500/30': analysisData.risk_assessment.score > 30 && analysisData.risk_assessment.score <= 70,
-                        'bg-gradient-to-r from-emerald-500 to-emerald-400 shadow-emerald-500/30': analysisData.risk_assessment.score <= 30
-                      }"
-                      :style="{ width: `${analysisData.risk_assessment.score}%` }">
+                        'bg-red-500/20 text-red-400 border border-red-500/40 hover:bg-red-500/30': analysisData.risk_assessment.level === '高',
+                        'bg-amber-500/20 text-amber-400 border border-amber-500/40 hover:bg-amber-500/30': analysisData.risk_assessment.level === '中',
+                        'bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 hover:bg-emerald-500/30': analysisData.risk_assessment.level === '低'
+                      }">
+                      {{ getLocalizedRiskLevel(analysisData.risk_assessment.level, currentLanguage) }}
                     </div>
                   </div>
-                </div>
 
-                <!-- 风险因素 -->
-                <div v-if="analysisData.risk_assessment.details && analysisData.risk_assessment.details.length > 0" class="space-y-3">
-                  <div class="flex items-center space-x-2">
-                    <div class="w-6 h-6 bg-orange-500/20 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform duration-200">
-                      <i class="ri-alert-line text-orange-400 text-sm"></i>
+                  <!-- 风险评分 -->
+                  <div class="space-y-2">
+                    <div class="flex items-center justify-between">
+                      <span class="text-sm font-semibold text-slate-300">{{ t('analysis.risk_score') }}</span>
+                      <span class="text-lg font-bold text-white">{{ analysisData.risk_assessment.score }}%</span>
                     </div>
-                    <span class="text-sm font-semibold text-slate-300">{{ t('analysis.risk_factors') }}</span>
+                    <div class="w-full bg-slate-700/50 rounded-full h-3 overflow-hidden shadow-inner">
+                      <div class="h-full rounded-full transition-all duration-700 shadow-lg"
+                        :class="{
+                          'bg-gradient-to-r from-red-500 to-red-400 shadow-red-500/30': analysisData.risk_assessment.score > 70,
+                          'bg-gradient-to-r from-amber-500 to-amber-400 shadow-amber-500/30': analysisData.risk_assessment.score > 30 && analysisData.risk_assessment.score <= 70,
+                          'bg-gradient-to-r from-emerald-500 to-emerald-400 shadow-emerald-500/30': analysisData.risk_assessment.score <= 30
+                        }"
+                        :style="{ width: `${analysisData.risk_assessment.score}%` }">
+                      </div>
+                    </div>
                   </div>
-                  <div class="pl-8 space-y-2">
-                    <div v-if="loadingRiskTranslation" class="text-slate-400 text-sm">翻译中...</div>
-                    <div v-else class="space-y-2">
-                      <div v-for="(detail, index) in (translatedRiskFactors.length > 0 ? translatedRiskFactors : analysisData.risk_assessment.details)"
-                           :key="index"
-                           class="flex items-start space-x-2 text-sm text-slate-200 p-2 rounded-lg bg-slate-700/20 hover:bg-slate-700/30 transition-colors duration-200">
-                        <div class="w-1.5 h-1.5 bg-orange-400 rounded-full mt-1.5 flex-shrink-0"></div>
-                        <span class="leading-relaxed">{{ detail }}</span>
+
+                  <!-- 风险因素 -->
+                  <div v-if="analysisData.risk_assessment.details && analysisData.risk_assessment.details.length > 0" class="space-y-3">
+                    <div class="flex items-center space-x-2">
+                      <div class="w-6 h-6 bg-orange-500/20 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform duration-200">
+                        <i class="ri-alert-line text-orange-400 text-sm"></i>
+                      </div>
+                      <span class="text-sm font-semibold text-slate-300">{{ t('analysis.risk_factors') }}</span>
+                    </div>
+                    <div class="pl-8 space-y-2">
+                      <div v-if="loadingRiskTranslation" class="text-slate-400 text-sm">翻译中...</div>
+                      <div v-else class="space-y-2">
+                        <div v-for="(detail, index) in (translatedRiskFactors.length > 0 ? translatedRiskFactors : analysisData.risk_assessment.details)"
+                             :key="index"
+                             class="flex items-start space-x-2 text-sm text-slate-200 p-2 rounded-lg bg-slate-700/20 hover:bg-slate-700/30 transition-colors duration-200">
+                          <div class="w-1.5 h-1.5 bg-orange-400 rounded-full mt-1.5 flex-shrink-0"></div>
+                          <span class="leading-relaxed">{{ detail }}</span>
+                        </div>
                       </div>
                     </div>
                   </div>
                 </div>
               </div>
             </div>
-
           </div>
 
-          <!-- 默认状态 - 处理所有其他情况 -->
-          <div v-else class="space-y-6 pb-10">
-            <!-- 错误状态 -->
-            <div v-if="error" class="flex items-center justify-center h-64">
-              <div class="text-center space-y-4">
-                <div class="w-16 h-16 mx-auto bg-red-500/20 rounded-full flex items-center justify-center">
-                  <i class="ri-error-warning-line text-2xl text-red-400"></i>
-                </div>
-                <div class="space-y-2">
-                  <h3 class="text-lg font-bold text-white">Error Loading Data</h3>
-                  <p class="text-red-400 text-sm">{{ error }}</p>
-                </div>
-                <button
-                  @click="loadAnalysisData(true, false, true)"
-                  class="px-4 py-2 bg-red-500/20 hover:bg-red-500/30 border border-red-500/40 rounded-lg text-red-400 transition-all duration-200"
-                >
-                  Retry Loading
-                </button>
-              </div>
-            </div>
-
-            <!-- 默认提示内容 -->
-            <div v-else class="flex items-center justify-center h-64">
-              <div class="text-center space-y-4">
-                <div class="w-16 h-16 mx-auto bg-slate-500/20 rounded-full flex items-center justify-center">
-                  <i class="ri-information-line text-2xl text-slate-400"></i>
-                </div>
-                <div class="space-y-2">
-                  <h3 class="text-lg font-bold text-white">No Data Available</h3>
-                  <p class="text-slate-400 text-sm">Please try refreshing or selecting a different asset</p>
-                </div>
-                <button
-                  @click="loadAnalysisData(true, false, true)"
-                  class="px-4 py-2 bg-blue-500/20 hover:bg-blue-500/30 border border-blue-500/40 rounded-lg text-blue-400 transition-all duration-200"
-                >
-                  Retry Loading
-                </button>
-              </div>
-            </div>
-          </div>
-
-        </div>
-      </main>
-
-        <!-- 错误状态 -->
-        <template v-else-if="error && !loading && !analysisLoading">
-          <main class="flex-1 pt-16 pb-16 overflow-y-auto max-w-[375px] w-full mx-auto">
+          <!-- 错误状态 -->
+          <div v-else-if="error && !loading && !analysisLoading">
             <!-- 错误状态卡片 -->
             <div class="relative overflow-hidden rounded-2xl bg-gradient-to-br from-red-600/10 via-pink-600/10 to-rose-600/10 p-6 backdrop-blur-sm border border-red-500/20">
               <div class="absolute inset-0 bg-gradient-to-br from-red-500/5 via-pink-500/5 to-rose-500/5"></div>
@@ -910,27 +818,11 @@
                 <span>{{ t('common.retry') }}</span>
               </button>
             </div>
-          </main>
-        </template>
+          </div>
 
-        <!-- Token未找到状态 -->
-        <template v-else-if="isTokenNotFound && !loading && !analysisLoading">
-          <main class="flex-1 pt-16 pb-16 overflow-y-auto max-w-[375px] w-full mx-auto">
+          <!-- 空状态 -->
+          <div v-else-if="!analysisData && !loading && !analysisLoading && !error && !isTokenNotFound">
             <div class="px-4 w-full">
-              <TokenNotFoundView
-                :symbol="currentSymbol"
-                :marketType="currentMarketType"
-                @refresh-success="handleRefreshSuccess"
-                @refresh-error="handleRefreshError"
-                @cancel="handleTokenNotFoundCancel"
-              />
-            </div>
-          </main>
-        </template>
-
-        <!-- 空状态 -->
-        <template v-else-if="!analysisData && !loading && !analysisLoading && !error">
-          <main class="flex-1 pt-16 pb-16 overflow-y-auto max-w-[375px] w-full mx-auto">
             <!-- 空状态卡片 -->
             <div class="relative overflow-hidden rounded-2xl bg-gradient-to-br from-slate-600/10 via-gray-600/10 to-zinc-600/10 p-6 backdrop-blur-sm border border-slate-500/20">
               <div class="absolute inset-0 bg-gradient-to-br from-slate-500/5 via-gray-500/5 to-zinc-500/5"></div>
@@ -958,14 +850,19 @@
                 <span>{{ t('common.load_data') }}</span>
               </button>
             </div>
-          </main>
-        </template>
+            </div>
+          </div>
 
-        <template v-else>
-          <main class="flex-1 pt-16 pb-16 overflow-y-auto max-w-[375px] w-full mx-auto">
-            <!-- 正常内容 ... -->
-          </main>
-        </template>
+          <!-- 加载状态 -->
+          <div v-else-if="loading || analysisLoading">
+            <div class="space-y-6 pb-10">
+              <!-- 加载骨架屏 -->
+              <ChartSkeleton />
+            </div>
+          </div>
+
+        </div>
+      </main>
 
       <!-- 底部导航栏 -->
       <nav class="fixed bottom-0 w-full z-20 bg-slate-900/95 backdrop-blur-md border-t border-slate-700/50 max-w-[375px] mx-auto">
@@ -1009,7 +906,7 @@ import { useEnhancedI18n } from '@/utils/i18n-helper'
 import { useI18n } from 'vue-i18n'
 
 const { t } = useEnhancedI18n()
-const { t: i18nT } = useI18n()
+const { t: i18nT, locale } = useI18n()
 
 import { getTechnicalAnalysis, getLatestTechnicalAnalysis, favorites, search } from '@/api'
 import { parseSymbolFromUrl } from '@/utils/trading'
@@ -1025,6 +922,7 @@ import ChartSkeleton from '@/components/ChartSkeleton.vue'
 import MarketHeader from '@/components/MarketHeader.vue'
 import FavoriteButton from '@/components/FavoriteButton.vue'
 import LoadingModal from '@/components/LoadingModal.vue'
+import ChinaStockIndicators from '@/components/ChinaStockIndicators.vue'
 // @ts-ignore
 import { googleTranslate } from '@/utils/translate'
 import BottomTabBar from '@/components/BottomTabBar.vue'
@@ -1056,7 +954,14 @@ const currentMarketType = ref<'crypto' | 'stock' | 'china'>(
 
 // 从localStorage恢复当前资产，根据市场类型设置默认值
 const getDefaultSymbol = (marketType: 'crypto' | 'stock' | 'china') => {
-  return marketType === 'crypto' ? 'BTCUSDT' : 'AAPL'
+  if (marketType === 'crypto') {
+    return 'BTCUSDT'
+  } else if (marketType === 'stock') {
+    return 'AAPL'
+  } else if (marketType === 'china') {
+    return '000001.SZ'  // 平安银行，A股的默认股票
+  }
+  return 'BTCUSDT'  // 默认返回加密货币
 }
 
 // 为每个市场分别保存当前选中的资产
@@ -1068,7 +973,9 @@ const getCurrentSymbolForMarket = (marketType: 'crypto' | 'stock' | 'china') => 
 const initialSymbol = getCurrentSymbolForMarket(currentMarketType.value)
 const currentSymbol = ref<string>(initialSymbol)
 const isTokenNotFound = ref(false) // 用于标记代币是否未找到（404错误）
-const activePanel = ref<'search' | 'favorites' | 'popular' | null>(null)
+const refreshAttempts = ref(0) // 记录刷新尝试次数，防止无限循环
+const maxRefreshAttempts = 2 // 最大刷新尝试次数
+const activePanel = ref<'search' | 'favorites' | null>(null)
 const searchQuery = ref('')
 const searchResults = ref<any[]>([])
 const searchLoading = ref(false)
@@ -1183,15 +1090,24 @@ const loadPopularAssets = async () => {
 
 // 验证symbol是否适合指定的市场类型
 const isValidSymbolForMarket = (symbol: string, marketType: 'crypto' | 'stock' | 'china'): boolean => {
+  console.log(`[DEBUG] 验证symbol ${symbol} 是否适合市场类型 ${marketType}`)
+
   if (String(marketType) === 'crypto') {
     // 加密货币应该包含USDT、BTC、ETH等
-    return symbol.includes('USDT') || symbol.includes('BTC') || symbol.includes('ETH') || symbol.endsWith('USD')
+    const isValid = symbol.includes('USDT') || symbol.includes('BTC') || symbol.includes('ETH') || symbol.endsWith('USD')
+    console.log(`[DEBUG] 加密货币验证结果: ${isValid}`)
+    return isValid
   } else if (String(marketType) === 'stock') {
-    // 股票不应该包含USDT等加密货币标识
-    return !symbol.includes('USDT') && !symbol.includes('BTC') && !symbol.includes('ETH') && !symbol.endsWith('USD')
+    // 股票不应该包含USDT等加密货币标识，也不应该是A股格式
+    const isValid = !symbol.includes('USDT') && !symbol.includes('BTC') && !symbol.includes('ETH') &&
+                   !symbol.endsWith('USD') && !symbol.includes('.SZ') && !symbol.includes('.SH')
+    console.log(`[DEBUG] 美股验证结果: ${isValid}`)
+    return isValid
   } else if (String(marketType) === 'china') {
-    // A股暂时全部允许
-    return true
+    // A股应该包含.SZ或.SH后缀，或者是6位数字开头
+    const isValid = symbol.includes('.SZ') || symbol.includes('.SH') || /^\d{6}/.test(symbol)
+    console.log(`[DEBUG] A股验证结果: ${isValid}`)
+    return isValid
   }
   return true
 }
@@ -1199,13 +1115,6 @@ const isValidSymbolForMarket = (symbol: string, marketType: 'crypto' | 'stock' |
 // 市场类型切换处理函数
 const handleMarketTypeChange = (marketType: 'crypto' | 'stock' | 'china') => {
   console.log(`切换市场类型从 ${currentMarketType.value} 到 ${marketType}`)
-
-  // 如果是A股市场，显示开发中提示
-  if (marketType === 'china') {
-    // 这里可以添加提示信息，暂时不切换
-    console.log('A股市场正在开发中')
-    return
-  }
 
   currentMarketType.value = marketType
   // 保存市场类型到localStorage
@@ -1221,6 +1130,7 @@ const handleMarketTypeChange = (marketType: 'crypto' | 'stock' | 'china') => {
 
   // 恢复该市场之前选中的资产，如果没有则使用默认资产
   let savedSymbol = getCurrentSymbolForMarket(marketType)
+  console.log(`[DEBUG] 市场类型 ${marketType} 的保存symbol: ${savedSymbol}`)
 
   // 验证保存的symbol是否适合当前市场类型
   if (!isValidSymbolForMarket(savedSymbol, marketType)) {
@@ -1229,8 +1139,18 @@ const handleMarketTypeChange = (marketType: 'crypto' | 'stock' | 'china') => {
     // 清理错误的localStorage数据
     const storageKey = `currentSymbol_${marketType}`
     localStorage.setItem(storageKey, savedSymbol)
+    console.log(`[DEBUG] 重置为默认symbol: ${savedSymbol}`)
   }
 
+  // 特别处理A股市场类型，强制使用正确的默认值
+  if (marketType === 'china') {
+    const defaultChinaSymbol = '000001.SZ'
+    console.log(`[DEBUG] A股市场强制使用默认symbol: ${defaultChinaSymbol}`)
+    savedSymbol = defaultChinaSymbol
+    localStorage.setItem('currentSymbol_china', savedSymbol)
+  }
+
+  console.log(`[DEBUG] 最终切换到symbol: ${savedSymbol}`)
   switchToAsset(savedSymbol, marketType)
 }
 
@@ -1252,6 +1172,7 @@ const switchToAsset = async (symbol: string, marketType: 'crypto' | 'stock' | 'c
   analysisData.value = null
   error.value = null
   isTokenNotFound.value = false
+  refreshAttempts.value = 0 // 重置刷新计数器
 
   // 更新市场类型和资产符号
   currentMarketType.value = marketType
@@ -1497,6 +1418,22 @@ const getBaseSymbol = (symbol: string | null | undefined) => {
   return symbol.replace('USDT', '')
 }
 
+// 获取货币符号
+const getCurrencySymbol = () => {
+  switch (currentMarketType.value) {
+    case 'china':
+      return 'CNY'  // 人民币
+    case 'crypto':
+      return 'USD'  // 美元
+    case 'stock':
+      return 'USD'  // 美元
+    default:
+      return 'USD'
+  }
+}
+
+
+
 // 获取显示标题
 const getDisplayTitle = () => {
   if (!currentSymbol.value) return t('common.loading')
@@ -1512,7 +1449,7 @@ const getDisplayTitle = () => {
 }
 
 // 面板切换函数
-const togglePanel = (panelType: 'search' | 'favorites' | 'popular') => {
+const togglePanel = (panelType: 'search' | 'favorites') => {
   if (activePanel.value === panelType) {
     activePanel.value = null
   } else {
@@ -1840,7 +1777,7 @@ const doActualLoadAnalysisData = async (showLoading = true, noCache = false) => 
   }
 
   // 创建新的请求Promise - 直接调用 getTechnicalAnalysis 读取本地数据
-  const marketType = currentMarketType.value === 'china' ? 'stock' : currentMarketType.value as 'crypto' | 'stock'
+  const marketType = currentMarketType.value as 'crypto' | 'stock' | 'china'
   loadingPromise = getTechnicalAnalysis(currentSymbol.value, noCache, marketType)
     .then(data => {
       if (data && (data as any).status !== 'not_found') {
@@ -1854,11 +1791,17 @@ const doActualLoadAnalysisData = async (showLoading = true, noCache = false) => 
         // 先设置loading状态为false，再设置isTokenNotFound，确保条件能正确匹配
         loading.value = false
         analysisLoading.value = false
-        // 使用nextTick确保loading状态更新后再设置isTokenNotFound
-        nextTick(() => {
+        // 立即设置isTokenNotFound并停止loading
+        loading.value = false
+        analysisLoading.value = false
+        if (refreshAttempts.value < maxRefreshAttempts) {
           isTokenNotFound.value = true
           console.log('设置 isTokenNotFound = true, loading =', loading.value, 'analysisLoading =', analysisLoading.value)
-        })
+        } else {
+          console.log('已达到最大刷新次数，不再设置isTokenNotFound')
+          // 显示最终错误状态
+          error.value = '该资产暂时无法加载'
+        }
       }
       return data;
     })
@@ -1870,8 +1813,16 @@ const doActualLoadAnalysisData = async (showLoading = true, noCache = false) => 
         // 这是正常的未找到状态，不是错误
         error.value = null
         analysisData.value = null
-        isTokenNotFound.value = true
-        console.log('设置 isTokenNotFound = true (from catch), loading =', loading.value)
+        // 立即设置isTokenNotFound并停止loading
+        loading.value = false
+        analysisLoading.value = false
+        if (refreshAttempts.value < maxRefreshAttempts) {
+          isTokenNotFound.value = true
+          console.log('设置 isTokenNotFound = true (from catch), loading =', loading.value)
+        } else {
+          console.log('已达到最大刷新次数，不再设置isTokenNotFound (from catch)')
+          error.value = '该资产暂时无法加载'
+        }
       } else {
         // 这是真正的错误
         error.value = err instanceof Error ? err.message : '加载数据失败'
@@ -2233,7 +2184,7 @@ const testUrlParsing = async () => {
 
 
 // 分享到推特
-const shareToTwitter = () => {
+const shareToTwitter = async () => {
   try {
     // 获取当前语言
     const lang = (localStorage.getItem('language') || 'en-US').toLowerCase()
@@ -2249,28 +2200,73 @@ const shareToTwitter = () => {
     downProb = typeof downProb === 'number' && downProb >= 0 && downProb <= 1 ? downProb : 0.33
 
     // 获取趋势分析摘要
-    const trendSummary = analysisData.value?.trend_analysis?.summary || ''
+    let trendSummary = analysisData.value?.trend_analysis?.summary || ''
     // 获取交易建议
-    const tradingAction = analysisData.value?.trading_advice?.action || ''
+    let tradingAction = analysisData.value?.trading_advice?.action || ''
     const tradingReason = analysisData.value?.trading_advice?.reason || ''
     const entryPrice = formatPrice(analysisData.value?.trading_advice?.entry_price)
     const stopLoss = formatPrice(analysisData.value?.trading_advice?.stop_loss)
     const takeProfit = formatPrice(analysisData.value?.trading_advice?.take_profit)
     // 获取风险评估
-    const riskLevel = analysisData.value?.risk_assessment?.level || ''
+    let riskLevel = analysisData.value?.risk_assessment?.level || ''
     const riskScore = analysisData.value?.risk_assessment?.score || 50
-    const riskDetails = analysisData.value?.risk_assessment?.details || []
+    let riskDetails = analysisData.value?.risk_assessment?.details || []
+
+    // 如果是中文分享，需要翻译英文内容
+    if (lang === 'zh-cn') {
+      try {
+        // 翻译趋势分析摘要
+        if (trendSummary) {
+          trendSummary = await googleTranslate(trendSummary, 'zh-CN')
+        }
+
+        // 翻译交易建议动作
+        if (tradingAction) {
+          const actionTranslations: Record<string, string> = {
+            'buy': '买入',
+            'sell': '卖出',
+            'hold': '持有',
+            'wait': '等待'
+          }
+          tradingAction = actionTranslations[tradingAction.toLowerCase()] || await googleTranslate(tradingAction, 'zh-CN')
+        }
+
+        // 翻译风险等级
+        if (riskLevel) {
+          const riskTranslations: Record<string, string> = {
+            'low': '低',
+            'medium': '中等',
+            'high': '高',
+            'very high': '很高'
+          }
+          riskLevel = riskTranslations[riskLevel.toLowerCase()] || await googleTranslate(riskLevel, 'zh-CN')
+        }
+
+        // 翻译风险因素
+        if (riskDetails.length > 0) {
+          riskDetails = await Promise.all(
+            riskDetails.map(detail => googleTranslate(detail, 'zh-CN'))
+          )
+        }
+      } catch (error) {
+        console.error('翻译失败:', error)
+        // 翻译失败时使用原文
+      }
+    }
+
+    // 获取当前货币符号
+    const currency = getCurrencySymbol()
 
     // 多语言分享文本
     let shareText = ''
     if (lang === 'zh-cn') {
-      shareText = `${symbol}市场分析报告 - 当前价格: ${price} USD\n\n市场趋势:\n${trendSummary.substring(0, 50)}${trendSummary.length > 50 ? '...' : ''}\n\n交易建议:\n操作: ${tradingAction}\n入场价: ${entryPrice}\n止损价: ${stopLoss}\n目标价: ${takeProfit}\n\n风险评估:\n风险等级: ${riskLevel}\n风险评分: ${riskScore}/100\n${riskDetails.length > 0 ? '主要风险因素:\n' + riskDetails.slice(0, 2).map(detail => `- ${detail}`).join('\n') : ''}\n\n#加密货币 #技术分析 #交易建议`
+      shareText = `${symbol}市场分析报告 - 当前价格: ${price} ${currency}\n\n市场趋势:\n${trendSummary.substring(0, 50)}${trendSummary.length > 50 ? '...' : ''}\n\n交易建议:\n操作: ${tradingAction}\n入场价: ${entryPrice}\n止损价: ${stopLoss}\n目标价: ${takeProfit}\n\n风险评估:\n风险等级: ${riskLevel}\n风险评分: ${riskScore}/100\n${riskDetails.length > 0 ? '主要风险因素:\n' + riskDetails.slice(0, 2).map(detail => `- ${detail}`).join('\n') : ''}\n\n#${currentMarketType.value === 'china' ? 'A股' : currentMarketType.value === 'crypto' ? '加密货币' : '美股'} #技术分析 #交易建议\n\n📱 本分析报告来自 Cooltrade.xyz`
     } else if (lang === 'ja-jp') {
-      shareText = `${symbol}市場分析レポート - 現在価格: ${price} USD\n\n市場トレンド:\n${trendSummary.substring(0, 50)}${trendSummary.length > 50 ? '...' : ''}\n\n取引アドバイス:\nアクション: ${tradingAction}\nエントリー価格: ${entryPrice}\nストップロス: ${stopLoss}\n利益確定: ${takeProfit}\n\nリスク評価:\nリスクレベル: ${riskLevel}\nリスクスコア: ${riskScore}/100\n${riskDetails.length > 0 ? '主なリスク要因:\n' + riskDetails.slice(0, 2).map(detail => `- ${detail}`).join('\n') : ''}\n\n#暗号資産 #テクニカル分析 #取引アドバイス`
+      shareText = `${symbol}市場分析レポート - 現在価格: ${price} ${currency}\n\n市場トレンド:\n${trendSummary.substring(0, 50)}${trendSummary.length > 50 ? '...' : ''}\n\n取引アドバイス:\nアクション: ${tradingAction}\nエントリー価格: ${entryPrice}\nストップロス: ${stopLoss}\n利益確定: ${takeProfit}\n\nリスク評価:\nリスクレベル: ${riskLevel}\nリスクスコア: ${riskScore}/100\n${riskDetails.length > 0 ? '主なリスク要因:\n' + riskDetails.slice(0, 2).map(detail => `- ${detail}`).join('\n') : ''}\n\n#${currentMarketType.value === 'china' ? 'A株' : currentMarketType.value === 'crypto' ? '暗号資産' : '米国株'} #テクニカル分析 #取引アドバイス\n\n📱 分析レポート提供: Cooltrade.xyz`
     } else if (lang === 'ko-kr') {
-      shareText = `${symbol} 시장 분석 리포트 - 현재 가격: ${price} USD\n\n시장 트렌드:\n${trendSummary.substring(0, 50)}${trendSummary.length > 50 ? '...' : ''}\n\n거래 조언:\n행동: ${tradingAction}\n진입 가격: ${entryPrice}\n손절가: ${stopLoss}\n이익실현가: ${takeProfit}\n\n위험 평가:\n위험 수준: ${riskLevel}\n위험 점수: ${riskScore}/100\n${riskDetails.length > 0 ? '주요 위험 요소:\n' + riskDetails.slice(0, 2).map(detail => `- ${detail}`).join('\n') : ''}\n\n#암호화폐 #기술분석 #거래조언`
+      shareText = `${symbol} 시장 분석 리포트 - 현재 가격: ${price} ${currency}\n\n시장 트렌드:\n${trendSummary.substring(0, 50)}${trendSummary.length > 50 ? '...' : ''}\n\n거래 조언:\n행동: ${tradingAction}\n진입 가격: ${entryPrice}\n손절가: ${stopLoss}\n이익실현가: ${takeProfit}\n\n위험 평가:\n위험 수준: ${riskLevel}\n위험 점수: ${riskScore}/100\n${riskDetails.length > 0 ? '주요 위험 요소:\n' + riskDetails.slice(0, 2).map(detail => `- ${detail}`).join('\n') : ''}\n\n#${currentMarketType.value === 'china' ? 'A주' : currentMarketType.value === 'crypto' ? '암호화폐' : '미국주식'} #기술분석 #거래조언\n\n📱 분석 리포트 제공: Cooltrade.xyz`
     } else {
-      shareText = `${symbol} Market Analysis Report - Current Price: ${price} USD\n\nMarket Trend:\n${trendSummary.substring(0, 50)}${trendSummary.length > 50 ? '...' : ''}\n\nTrading Advice:\nAction: ${tradingAction}\nEntry Price: ${entryPrice}\nStop Loss: ${stopLoss}\nTake Profit: ${takeProfit}\n\nRisk Assessment:\nRisk Level: ${riskLevel}\nRisk Score: ${riskScore}/100\n${riskDetails.length > 0 ? 'Main Risk Factors:\n' + riskDetails.slice(0, 2).map(detail => `- ${detail}`).join('\n') : ''}\n\n#crypto #technicalanalysis #tradingadvice`
+      shareText = `${symbol} Market Analysis Report - Current Price: ${price} ${currency}\n\nMarket Trend:\n${trendSummary.substring(0, 50)}${trendSummary.length > 50 ? '...' : ''}\n\nTrading Advice:\nAction: ${tradingAction}\nEntry Price: ${entryPrice}\nStop Loss: ${stopLoss}\nTake Profit: ${takeProfit}\n\nRisk Assessment:\nRisk Level: ${riskLevel}\nRisk Score: ${riskScore}/100\n${riskDetails.length > 0 ? 'Main Risk Factors:\n' + riskDetails.slice(0, 2).map(detail => `- ${detail}`).join('\n') : ''}\n\n#${currentMarketType.value === 'china' ? 'AShares' : currentMarketType.value === 'crypto' ? 'crypto' : 'stocks'} #technicalanalysis #tradingadvice\n\n📱 Analysis from Cooltrade.xyz`
     }
 
     // 检查字符长度，如果超过270个字符，则进行裁剪
@@ -2285,6 +2281,102 @@ const shareToTwitter = () => {
     window.open(twitterUrl, '_blank')
   } catch (error) {
     // 分享失败处理
+  }
+}
+
+// 分享到微信
+const shareToWechat = async () => {
+  try {
+    // 获取当前语言
+    const lang = (localStorage.getItem('language') || 'zh-CN').toLowerCase()
+
+    // 构建分享文本
+    const symbol = currentSymbol.value || 'STOCK'
+    const price = formatPrice(analysisData.value?.current_price)
+    const currency = getCurrencySymbol()
+
+    // 获取趋势分析摘要
+    let trendSummary = analysisData.value?.trend_analysis?.summary || '暂无趋势分析'
+
+    // 获取交易建议
+    const tradingAdvice = analysisData.value?.trading_advice
+    let tradingAction = tradingAdvice?.action || '暂无建议'
+    let tradingReason = tradingAdvice?.reason || ''
+    const entryPrice = tradingAdvice?.entry_price ? formatPrice(tradingAdvice.entry_price) : '--'
+    const stopLoss = tradingAdvice?.stop_loss ? formatPrice(tradingAdvice.stop_loss) : '--'
+    const takeProfit = tradingAdvice?.take_profit ? formatPrice(tradingAdvice.take_profit) : '--'
+
+    // 获取风险评估
+    const riskAssessment = analysisData.value?.risk_assessment
+    let riskLevel = riskAssessment?.level || '未知'
+    const riskScore = riskAssessment?.score || 0
+
+    // 如果是中文分享，需要翻译英文内容
+    if (lang === 'zh-cn') {
+      try {
+        // 翻译趋势分析摘要
+        if (trendSummary && trendSummary !== '暂无趋势分析') {
+          trendSummary = await googleTranslate(trendSummary, 'zh-CN')
+        }
+
+        // 翻译交易建议动作
+        if (tradingAction && tradingAction !== '暂无建议') {
+          const actionTranslations: Record<string, string> = {
+            'buy': '买入',
+            'sell': '卖出',
+            'hold': '持有',
+            'wait': '等待'
+          }
+          tradingAction = actionTranslations[tradingAction.toLowerCase()] || await googleTranslate(tradingAction, 'zh-CN')
+        }
+
+        // 翻译风险等级
+        if (riskLevel && riskLevel !== '未知') {
+          const riskTranslations: Record<string, string> = {
+            'low': '低',
+            'medium': '中等',
+            'high': '高',
+            'very high': '很高'
+          }
+          riskLevel = riskTranslations[riskLevel.toLowerCase()] || await googleTranslate(riskLevel, 'zh-CN')
+        }
+      } catch (error) {
+        console.error('翻译失败:', error)
+        // 翻译失败时使用原文
+      }
+    }
+
+    // 多语言分享文本
+    let shareText = ''
+    if (lang === 'zh-cn') {
+      const marketName = currentMarketType.value === 'china' ? 'A股' : currentMarketType.value === 'crypto' ? '加密货币' : '美股'
+      shareText = `📊 ${symbol} ${marketName}分析报告\n\n💰 当前价格: ${price} ${currency}\n\n📈 市场趋势:\n${trendSummary.substring(0, 50)}${trendSummary.length > 50 ? '...' : ''}\n\n🎯 交易建议:\n操作: ${tradingAction}\n入场价: ${entryPrice}\n止损价: ${stopLoss}\n目标价: ${takeProfit}\n\n⚠️ 风险评估:\n风险等级: ${riskLevel}\n风险评分: ${riskScore}/100\n\n#${marketName} #技术分析 #投资建议\n\n📱 本分析报告来自 Cooltrade.xyz`
+    } else {
+      const marketName = currentMarketType.value === 'china' ? 'A-Shares' : currentMarketType.value === 'crypto' ? 'Crypto' : 'US Stocks'
+      shareText = `📊 ${symbol} ${marketName} Analysis Report\n\n💰 Current Price: ${price} ${currency}\n\n📈 Market Trend:\n${trendSummary.substring(0, 50)}${trendSummary.length > 50 ? '...' : ''}\n\n🎯 Trading Advice:\nAction: ${tradingAction}\nEntry: ${entryPrice}\nStop Loss: ${stopLoss}\nTake Profit: ${takeProfit}\n\n⚠️ Risk Assessment:\nRisk Level: ${riskLevel}\nRisk Score: ${riskScore}/100\n\n#${marketName} #TechnicalAnalysis #Investment\n\n📱 Analysis from Cooltrade.xyz`
+    }
+
+    // 检查字符长度，微信分享建议控制在250字符以内
+    if (shareText.length > 250) {
+      shareText = shareText.substring(0, 240) + '...\n\n📱 本分析报告来自 Cooltrade.xyz'
+    }
+
+    // 复制到剪贴板
+    await navigator.clipboard.writeText(shareText)
+
+    // 显示成功提示
+    ElMessage.success({
+      message: lang === 'zh-cn' ? '分享内容已复制到剪贴板，请粘贴到微信分享' : 'Share content copied to clipboard, paste to WeChat',
+      duration: 3000
+    })
+
+  } catch (error) {
+    // 如果复制失败，显示分享内容让用户手动复制
+    console.error('复制失败:', error)
+    ElMessage.warning({
+      message: locale.value === 'zh-CN' ? '请手动复制分享内容' : 'Please copy the share content manually',
+      duration: 3000
+    })
   }
 }
 
@@ -2316,7 +2408,7 @@ const saveChartImage = async () => {
     titleSection.innerHTML = `
       <h2 style="font-size: 22px; margin-bottom: 10px; font-weight: 600; letter-spacing: 1px;">${safeSymbol} ${t('analysis.market_report', { symbol: safeBaseSymbol }).replace('analysis.market_report', '市场分析报告')}</h2>
       <div style="font-size: 32px; font-weight: bold; margin-bottom: 4px;">
-        ${formatPrice(analysisData.value?.current_price)} <span style='font-size:16px;color:#9ca3af'>USD</span>
+        ${formatPrice(analysisData.value?.current_price)} <span style='font-size:16px;color:#9ca3af'>${getCurrencySymbol()}</span>
       </div>
     `
     container.appendChild(titleSection)
@@ -2551,6 +2643,7 @@ const currentLanguage = ref<LangType>((localStorage.getItem('language') as LangT
 // 处理 TokenNotFoundView 刷新成功事件
 const handleRefreshSuccess = async () => {
   console.log('TokenNotFoundView 刷新成功，重新加载本地报告数据...')
+  refreshAttempts.value++
   isTokenNotFound.value = false
   error.value = null
   // 只重新加载本地报告数据，不自动请求 get_report
@@ -2561,6 +2654,16 @@ const handleRefreshSuccess = async () => {
 // 处理 TokenNotFoundView 刷新错误事件
 const handleRefreshError = async (error: any) => {
   console.error('TokenNotFoundView 刷新失败:', error)
+  refreshAttempts.value++
+
+  // 如果刷新次数超过限制，停止尝试
+  if (refreshAttempts.value >= maxRefreshAttempts) {
+    console.log(`已达到最大刷新次数 (${maxRefreshAttempts})，停止尝试`)
+    isTokenNotFound.value = true
+    ElMessage.error('该资产暂时无法加载，请尝试其他资产')
+    return
+  }
+
   // 尝试重新加载一次本地数据，防止报告其实已经生成
   try {
     await loadAnalysisData(true)
@@ -2581,16 +2684,71 @@ const handleRefreshError = async (error: any) => {
   // ElMessage.error(error?.message || '刷新失败')
 }
 
-// 获取指标显示名称（简写版本）
+// 获取指标显示名称（根据语言显示）
 const getIndicatorDisplayName = (key: string) => {
-  const shortNames: Record<string, string> = {
+  const currentLang = locale.value
+
+  // 中文显示名称
+  const chineseNames: Record<string, string> = {
+    ExchangeNetflow: '交易所净流入',
+    MayerMultiple: '梅耶倍数',
+    FundingRate: '资金费率',
+    BollingerBands: '布林带',
+    // A股特有指标
+    TurnoverRate: '换手率',
+    VolumeRatio: '量比',
+    PE: '市盈率',
+    PB: '市净率',
+    PS: '市销率',
+    DividendYield: '股息率',
+    TotalMarketValue: '总市值',
+    CircMarketValue: '流通市值',
+  }
+
+  // 英文显示名称
+  const englishNames: Record<string, string> = {
     ExchangeNetflow: 'Exchange Flow',
     MayerMultiple: 'Mayer Multi',
     FundingRate: 'Funding Rate',
     BollingerBands: 'Bollinger',
-    // 其他指标保持原名
+    // A股特有指标
+    TurnoverRate: 'Turnover Rate',
+    VolumeRatio: 'Volume Ratio',
+    PE: 'P/E Ratio',
+    PB: 'P/B Ratio',
+    PS: 'P/S Ratio',
+    DividendYield: 'Dividend Yield',
+    TotalMarketValue: 'Total Market Cap',
+    CircMarketValue: 'Circ Market Cap',
   }
-  return shortNames[key] || key
+
+  // 根据当前语言返回对应名称
+  if (currentLang === 'zh-CN') {
+    return chineseNames[key] || key
+  } else {
+    return englishNames[key] || key
+  }
+}
+
+// 提取A股特有指标
+const extractChinaIndicators = (indicators: any) => {
+  if (!indicators) return {}
+
+  return {
+    TurnoverRate: indicators.TurnoverRate?.value,
+    VolumeRatio: indicators.VolumeRatio?.value,
+    PE: indicators.PE?.value,
+    PE_TTM: indicators.PE_TTM?.value,
+    PB: indicators.PB?.value,
+    PS: indicators.PS?.value,
+    PS_TTM: indicators.PS_TTM?.value,
+    DividendYield: indicators.DividendYield?.value,
+    DividendYield_TTM: indicators.DividendYield_TTM?.value,
+    TotalMarketValue: indicators.TotalMarketValue?.value,
+    CircMarketValue: indicators.CircMarketValue?.value,
+    TotalShare: indicators.TotalShare?.value,
+    FloatShare: indicators.FloatShare?.value,
+  }
 }
 
 const getIndicatorExplanation = (key: string) => {
@@ -2611,7 +2769,16 @@ const getIndicatorExplanation = (key: string) => {
       MayerMultiple: '梅耶倍数，当前价格与200日均线的比值。',
       MACD: '移动平均线收敛散度，用于判断趋势强弱和转折点。',
       BollingerBands: '布林带，用于衡量价格波动性和支撑阻力位。',
-      DMI: '动向指标，用于判断趋势方向和强度。'
+      DMI: '动向指标，用于判断趋势方向和强度。',
+      // A股特有指标说明
+      TurnoverRate: '换手率，表示股票在一定时期内的成交量与流通股本的比率，反映股票的活跃程度。',
+      VolumeRatio: '量比，当日成交量与过去5日平均成交量的比值，反映成交量的相对变化。',
+      PE: '市盈率（P/E），股价与每股收益的比值，用于评估股票估值水平。',
+      PB: '市净率（P/B），股价与每股净资产的比值，反映股票相对于净资产的估值。',
+      PS: '市销率（P/S），股价与每股销售收入的比值，用于评估公司相对于销售收入的估值。',
+      DividendYield: '股息率，每股分红与股价的比值，反映股票的分红收益率。',
+      TotalMarketValue: '总市值，公司所有股份的市场价值总和，反映公司规模。',
+      CircMarketValue: '流通市值，可自由交易股份的市场价值，反映实际可交易的市值规模。'
     }
     return defaultExplanations[key] || key
   }
@@ -2621,13 +2788,25 @@ const getIndicatorExplanation = (key: string) => {
 
 // 判断是否应该显示某个指标（根据市场类型）
 const shouldShowIndicator = (key: string) => {
-  // 对于股票市场，隐藏不适用的指标
+  // 对于A股市场，隐藏加密货币特有指标，显示A股特有指标
+  if (currentMarketType.value === 'china') {
+    const chinaHiddenIndicators = ['FundingRate', 'ExchangeNetflow', 'NUPL', 'MayerMultiple']
+    return !chinaHiddenIndicators.includes(key)
+  }
+
+  // 对于美股市场，隐藏不适用的指标
   if (currentMarketType.value === 'stock') {
-    const stockHiddenIndicators = ['PSY', 'VWAP', 'FundingRate', 'ExchangeNetflow', 'NUPL']
+    const stockHiddenIndicators = ['PSY', 'VWAP', 'FundingRate', 'ExchangeNetflow', 'NUPL', 'TurnoverRate', 'VolumeRatio']
     return !stockHiddenIndicators.includes(key)
   }
 
-  // 对于加密货币市场，显示所有指标
+  // 对于加密货币市场，隐藏A股特有指标
+  if (currentMarketType.value === 'crypto') {
+    const cryptoHiddenIndicators = ['TurnoverRate', 'VolumeRatio', 'PE', 'PB', 'PS', 'DividendYield', 'TotalMarketValue', 'CircMarketValue']
+    return !cryptoHiddenIndicators.includes(key)
+  }
+
+  // 默认显示所有指标
   return true
 }
 
@@ -2672,7 +2851,7 @@ const handleRefreshReport = async () => {
       try {
         // 1. 调用 getLatestTechnicalAnalysis 生成新报告
         console.log('HomeView: Calling getLatestTechnicalAnalysis to generate new report')
-        const marketType = currentMarketType.value === 'china' ? 'stock' : currentMarketType.value as 'crypto' | 'stock'
+        const marketType = currentMarketType.value as 'crypto' | 'stock' | 'china'
 
         await getLatestTechnicalAnalysis(currentSymbol.value, marketType)
 
@@ -2689,8 +2868,8 @@ const handleRefreshReport = async () => {
 
             // 尝试读取最新报告
             console.log(`HomeView: Attempt ${retryCount + 1} to read latest report...`)
-        const marketType = currentMarketType.value === 'china' ? 'stock' : currentMarketType.value as 'crypto' | 'stock'
-        const result = await getTechnicalAnalysis(currentSymbol.value, true, marketType)
+            const marketType = currentMarketType.value as 'crypto' | 'stock' | 'china'
+            const result = await getTechnicalAnalysis(currentSymbol.value, true, marketType)
 
             // 如果返回了有效数据
         if (result && (result as any).status !== 'not_found') {
@@ -2758,8 +2937,8 @@ const canRefreshReport = computed(() => {
   if (!analysisData.value?.last_update_time) return true
   const lastUpdate = new Date(analysisData.value.last_update_time).getTime()
   const now = Date.now()
-  // 12小时（12*60*60*1000）
-  return now - lastUpdate > 12 * 60 * 60 * 1000
+  // 6小时（6*60*60*1000）
+  return now - lastUpdate > 6 * 60 * 60 * 1000
 })
 
 const translatedSummary = ref('')
@@ -3165,7 +3344,9 @@ const handleTokenNotFoundCancel = () => {
   if (prevSymbol && prevSymbol !== currentSymbol.value && prevMarketType) {
     switchToAsset(prevSymbol, prevMarketType)
   } else {
-    switchToAsset('BTCUSDT', 'crypto')
+    // 根据当前市场类型选择默认值
+    const defaultSymbol = getDefaultSymbol(currentMarketType.value)
+    switchToAsset(defaultSymbol, currentMarketType.value)
   }
   isTokenNotFound.value = false
   error.value = null
@@ -3219,6 +3400,10 @@ const formatPriceParts = (price?: number | string | null) => {
   }
   const numPrice = Number(price)
   if (isNaN(numPrice)) return { prefix: '--', repeat: '', value: '' }
+
+  // 如果价格为0，显示为--（通常表示无交易建议）
+  if (numPrice === 0) return { prefix: '--', repeat: '', value: '' }
+
   if (numPrice < 0.0001 && numPrice > 0) {
     // 8位小数
     let fixed = numPrice.toFixed(8)

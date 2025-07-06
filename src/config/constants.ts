@@ -1,6 +1,6 @@
 // API URLs and other constants
-export const API_BASE_URL = 'https://www.cooltrade.xyz/api';
-export const WEBSITE_URL = 'https://www.cooltrade.xyz';
+export const API_BASE_URL = 'http://localhost:8000/api';
+export const WEBSITE_URL = 'http://localhost:8000';
 
 // Environment specific configurations
 export const getApiBaseUrl = () => {

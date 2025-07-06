@@ -68,7 +68,18 @@ export function formatTechnicalAnalysisData(
         throw new Error('API响应中data为空')
       }
 
-      response = response.data
+      // 检查是否是新的reports数组格式
+      if (typeof response.data === 'object' && 'reports' in response.data && Array.isArray((response.data as any).reports)) {
+        const reports = (response.data as any).reports
+        if (reports.length > 0) {
+          // 使用第一个报告（通常是最新的）
+          response = reports[0]
+        } else {
+          throw new Error('reports数组为空')
+        }
+      } else {
+        response = response.data
+      }
     }
 
     // 处理强制刷新数据
@@ -123,7 +134,97 @@ export function formatTechnicalAnalysisData(
         }
 
         // 创建格式化后的数据对象，添加默认值和类型检查
-        const price = typeof (response as any).price === 'number' ? (response as any).price : 0;
+        const price = typeof (response as any).price === 'number' ? (response as any).price :
+                     (typeof response.current_price === 'number' ? response.current_price : 0);
+
+        // 处理indicators_analysis，确保兼容新旧格式
+        let indicators_analysis = response.indicators_analysis || {};
+
+        // 添加调试信息
+        if (process.env.NODE_ENV === 'development') {
+          console.log('原始indicators_analysis:', indicators_analysis);
+        }
+
+        // 如果indicators_analysis中的指标没有value字段，需要添加默认值
+        const processedIndicators: any = {};
+        for (const [key, indicator] of Object.entries(indicators_analysis)) {
+          if (indicator && typeof indicator === 'object') {
+            const indicatorObj = indicator as any;
+
+            // 为没有value字段的指标添加默认value
+            if (!('value' in indicatorObj)) {
+              // 尝试从原始数据中提取value
+              let extractedValue: any = null;
+              
+              // 检查是否有原始技术指标数据
+              if ((response as any).indicators) {
+                const rawIndicators = (response as any).indicators;
+                
+                // 根据指标类型提取对应的值
+                if (key.toLowerCase() === 'rsi') {
+                  extractedValue = rawIndicators.rsi || 0;
+                } else if (key.toLowerCase() === 'macd') {
+                  extractedValue = {
+                    line: rawIndicators.macd_line || 0,
+                    signal: rawIndicators.macd_signal || 0,
+                    histogram: rawIndicators.macd_histogram || 0
+                  };
+                } else if (key.toLowerCase() === 'bollingerbands') {
+                  extractedValue = {
+                    upper: rawIndicators.bollinger_upper || 0,
+                    middle: rawIndicators.bollinger_middle || 0,
+                    lower: rawIndicators.bollinger_lower || 0
+                  };
+                } else if (key.toLowerCase() === 'bias') {
+                  extractedValue = rawIndicators.bias || 0;
+                } else if (key.toLowerCase() === 'psy') {
+                  extractedValue = rawIndicators.psy || 0;
+                } else if (key.toLowerCase() === 'dmi') {
+                  extractedValue = {
+                    plus_di: rawIndicators.dmi_plus || 0,
+                    minus_di: rawIndicators.dmi_minus || 0,
+                    adx: rawIndicators.dmi_adx || 0
+                  };
+                } else if (key.toLowerCase() === 'vwap') {
+                  extractedValue = rawIndicators.vwap || 0;
+                } else if (key.toLowerCase() === 'fundingrate') {
+                  extractedValue = rawIndicators.funding_rate || 0;
+                } else if (key.toLowerCase() === 'exchangenetflow') {
+                  extractedValue = rawIndicators.exchange_netflow || 0;
+                } else if (key.toLowerCase() === 'nupl') {
+                  extractedValue = rawIndicators.nupl || 0;
+                } else if (key.toLowerCase() === 'mayermultiple') {
+                  extractedValue = rawIndicators.mayer_multiple || 0;
+                }
+              }
+              
+              // 如果无法从原始数据中提取，则使用默认值
+              if (extractedValue === null) {
+                if (key.toLowerCase() === 'macd') {
+                  extractedValue = { line: 0, signal: 0, histogram: 0 };
+                } else if (key.toLowerCase() === 'bollingerbands') {
+                  extractedValue = { upper: 0, middle: 0, lower: 0 };
+                } else if (key.toLowerCase() === 'dmi') {
+                  extractedValue = { plus_di: 0, minus_di: 0, adx: 0 };
+                } else {
+                  extractedValue = 0;
+                }
+              }
+              
+              processedIndicators[key] = {
+                ...indicatorObj,
+                value: extractedValue
+              };
+            } else {
+              processedIndicators[key] = indicatorObj;
+            }
+          }
+        }
+
+        if (process.env.NODE_ENV === 'development') {
+          console.log('处理后的indicators_analysis:', processedIndicators);
+        }
+
         // 兼容：如果 risk_assessment 字段不存在，则从 trading_advice 拷贝风险字段
         let risk_assessment = (response as any).risk_assessment;
         if (!risk_assessment && response.trading_advice) {
@@ -144,7 +245,7 @@ export function formatTechnicalAnalysisData(
             },
             summary: typeof response.trend_analysis?.summary === 'string' ? response.trend_analysis.summary : '无数据'
           },
-          indicators_analysis: response.indicators_analysis || {},
+          indicators_analysis: processedIndicators,
           trading_advice: {
             action: typeof response.trading_advice?.action === 'string' ? response.trading_advice.action : '无建议',
             reason: typeof response.trading_advice?.reason === 'string' ? response.trading_advice.reason : '无数据',

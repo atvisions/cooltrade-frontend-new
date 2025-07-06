@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "CoolTrade - Crypto Analysis",
-  "version": "1.0.5",
+  "version": "1.0.6",
   "description": "Professional cryptocurrency market analysis tool with real-time data and technical indicators",
   "permissions": [
     "storage",

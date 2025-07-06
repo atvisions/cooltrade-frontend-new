@@ -30,7 +30,7 @@ const { t } = useEnhancedI18n()
 
 interface Props {
   symbol: string
-  marketType: 'crypto' | 'stock'
+  marketType: 'crypto' | 'stock' | 'china'
   name?: string
   exchange?: string
   sector?: string

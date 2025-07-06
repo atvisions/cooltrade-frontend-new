@@ -562,14 +562,14 @@ const getCurrentLanguage = (): string => {
 export const getTechnicalAnalysis = async (
   symbol: string,
   noCache: boolean = false,
-  marketType: 'crypto' | 'stock' = 'crypto'
+  marketType: 'crypto' | 'stock' | 'china' = 'crypto'
 ): Promise<FormattedTechnicalAnalysisData> => {
   try {
     // 构建完整的symbol
     const fullSymbol = symbol.toUpperCase()
 
     // 构建请求URL
-    const endpoint = marketType === 'crypto' ? 'crypto' : 'stock'
+    const endpoint = marketType === 'crypto' ? 'crypto' : marketType === 'china' ? 'china' : 'stock'
     const url = `/${endpoint}/technical-indicators/${fullSymbol}/`
 
     // 构建请求参数
@@ -618,7 +618,7 @@ export const getTechnicalAnalysis = async (
     }
 
     // 检查响应状态
-    if (response && response.status === 'not_found') {
+    if (response && response.data && response.data.status === 'not_found') {
       throw new Error('not_found')
     }
 
@@ -639,14 +639,14 @@ let pendingRequests: Record<string, boolean> = {};
 // Get latest technical analysis report - refresh or get new token analysis report
 export const getLatestTechnicalAnalysis = async (
   symbol: string,
-  marketType: 'crypto' | 'stock' = 'crypto'
+  marketType: 'crypto' | 'stock' | 'china' = 'crypto'
 ): Promise<FormattedTechnicalAnalysisData> => {
   try {
     // 构建完整的symbol
     const fullSymbol = symbol.toUpperCase()
-    
+
     // 构建请求URL
-    const endpoint = marketType === 'crypto' ? 'crypto' : 'stock'
+    const endpoint = marketType === 'crypto' ? 'crypto' : marketType === 'china' ? 'china' : 'stock'
     const url = `/${endpoint}/get_report/${fullSymbol}/`
     
     // 验证token
@@ -688,7 +688,7 @@ export const getLatestTechnicalAnalysis = async (
     }
 
     // 检查响应状态
-    if (response && response.status === 'not_found') {
+    if (response && response.data && response.data.status === 'not_found') {
       throw new Error('not_found')
     }
 
@@ -904,7 +904,7 @@ export interface FavoriteResponse {
 // Search and favorites API
 export const search = {
   // Search assets
-  searchAssets: async (query: string, marketType: 'crypto' | 'stock', limit: number = 10): Promise<SearchResponse> => {
+  searchAssets: async (query: string, marketType: 'crypto' | 'stock' | 'china', limit: number = 10): Promise<SearchResponse> => {
     try {
       const token = localStorage.getItem('token')
       if (!token) {
@@ -912,7 +912,7 @@ export const search = {
       }
 
       // 根据市场类型构建正确的URL路径
-      const endpoint = marketType === 'crypto' ? 'crypto' : 'stock'
+      const endpoint = marketType === 'crypto' ? 'crypto' : marketType === 'china' ? 'china' : 'stock'
       const searchUrl = `/${endpoint}/search/`
 
       // 检查是否在扩展环境中
@@ -950,7 +950,7 @@ export const search = {
   },
 
   // Get popular assets
-  getPopularAssets: async (marketType: 'crypto' | 'stock'): Promise<SearchResponse> => {
+  getPopularAssets: async (marketType: 'crypto' | 'stock' | 'china'): Promise<SearchResponse> => {
     try {
       const token = localStorage.getItem('token')
       if (!token) {
@@ -958,7 +958,7 @@ export const search = {
       }
 
       // 根据市场类型构建正确的URL路径
-      const endpoint = marketType === 'crypto' ? 'crypto' : 'stock'
+      const endpoint = marketType === 'crypto' ? 'crypto' : marketType === 'china' ? 'china' : 'stock'
       const popularUrl = `/${endpoint}/popular-assets/`
 
       // 检查是否在扩展环境中
@@ -1067,7 +1067,7 @@ export const favorites = {
   },
 
   // Remove from favorites
-  removeFavorite: async (symbol: string, marketType: 'crypto' | 'stock'): Promise<FavoriteResponse> => {
+  removeFavorite: async (symbol: string, marketType: 'crypto' | 'stock' | 'china'): Promise<FavoriteResponse> => {
     try {
       const token = localStorage.getItem('token')
       if (!token) {
@@ -1123,7 +1123,7 @@ export const favorites = {
   },
 
   // Check favorite status
-  checkFavoriteStatus: async (symbol: string, marketType: 'crypto' | 'stock'): Promise<{ status: 'success'; data: { symbol: string; market_type: string; is_favorite: boolean } }> => {
+  checkFavoriteStatus: async (symbol: string, marketType: 'crypto' | 'stock' | 'china'): Promise<{ status: 'success'; data: { symbol: string; market_type: string; is_favorite: boolean } }> => {
     try {
       const token = localStorage.getItem('token')
       if (!token) {
@@ -1180,7 +1180,7 @@ export const favorites = {
 }
 
 // 新闻API - 通过后端代理调用，支持按符号获取新闻
-export const fetchNews = async (symbol: string, limit: number = 10, skipCache: boolean = false) => {
+export const fetchNews = async (symbol: string, limit: number = 10, skipCache: boolean = false, marketType: 'crypto' | 'stock' | 'china' = 'crypto') => {
   const token = localStorage.getItem('token')
   if (!token) {
     throw new Error('No authentication token')
@@ -1202,11 +1202,14 @@ export const fetchNews = async (symbol: string, limit: number = 10, skipCache: b
   try {
     let response;
 
+    // 根据市场类型构建正确的URL路径
+    const endpoint = marketType === 'crypto' ? 'crypto' : marketType === 'china' ? 'china' : 'stock'
+
     if (isExtension()) {
       // 在扩展环境中使用代理
       const url = skipCache
-        ? `/crypto/news/${encodeURIComponent(symbol)}/?limit=${limit}&skip_cache=true`
-        : `/crypto/news/${encodeURIComponent(symbol)}/?limit=${limit}`
+        ? `/${endpoint}/news/${encodeURIComponent(symbol)}/?limit=${limit}&skip_cache=true`
+        : `/${endpoint}/news/${encodeURIComponent(symbol)}/?limit=${limit}`
       response = await proxyRequest({
         url,
         method: 'GET',
@@ -1218,7 +1221,7 @@ export const fetchNews = async (symbol: string, limit: number = 10, skipCache: b
       if (skipCache) {
         params.skip_cache = 'true'
       }
-      response = await axios.get(`${getBaseUrl()}/crypto/news/${encodeURIComponent(symbol)}/`, {
+      response = await axios.get(`${getBaseUrl()}/${endpoint}/news/${encodeURIComponent(symbol)}/`, {
         params,
         headers
       })

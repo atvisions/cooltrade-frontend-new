@@ -74,19 +74,11 @@ const marketTypes: MarketType[] = [
   {
     value: 'china',
     label: 'market.china',
-    icon: 'ri-bank-line',
-    disabled: true,
-    comingSoon: true
+    icon: 'ri-bank-line'
   }
 ]
 
 const selectMarket = (market: 'crypto' | 'stock' | 'china') => {
-  // 如果是A股市场，显示开发中提示
-  if (market === 'china') {
-    // 可以在这里添加提示信息
-    return
-  }
-
   if (selectedMarket.value === market) return
 
   selectedMarket.value = market

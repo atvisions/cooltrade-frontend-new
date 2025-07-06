@@ -153,7 +153,9 @@ export default {
     please_wait: '请耐心等待，这可能需要一些时间',
     timeout_error: '请求超时，服务器正在处理中，请稍后重试',
     refresh_report: '刷新报告',
-    refresh_report_too_soon: '报告未超过12小时，暂不可刷新'
+    refresh_report_too_soon: '报告未超过6小时，暂不可刷新',
+    china_fundamentals: 'A股基本面指标',
+    share_to_wechat: '分享到微信'
   },
   indicators: {
     rsi: 'RSI',
@@ -262,7 +264,16 @@ export default {
     MayerMultiple: '梅耶倍数，当前价格与200日均线的比值。',
     MACD: '移动平均线收敛散度，用于判断趋势强弱和转折点。',
     BollingerBands: '布林带，用于衡量价格波动性和支撑阻力位。',
-    DMI: '动向指标，用于判断趋势方向和强度。'
+    DMI: '动向指标，用于判断趋势方向和强度。',
+    // A股特有指标
+    TurnoverRate: '换手率，表示股票在一定时期内的成交量与流通股本的比率，反映股票的活跃程度。',
+    VolumeRatio: '量比，当日成交量与过去5日平均成交量的比值，反映成交量的相对变化。',
+    PE: '市盈率（P/E），股价与每股收益的比值，用于评估股票估值水平。',
+    PB: '市净率（P/B），股价与每股净资产的比值，反映股票相对于净资产的估值。',
+    PS: '市销率（P/S），股价与每股销售收入的比值，用于评估公司相对于销售收入的估值。',
+    DividendYield: '股息率，每股分红与股价的比值，反映股票的分红收益率。',
+    TotalMarketValue: '总市值，公司所有股份的市场价值总和，反映公司规模。',
+    CircMarketValue: '流通市值，可自由交易股份的市场价值，反映实际可交易的市值规模。'
   },
   search: {
     title: '搜索资产',

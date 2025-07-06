@@ -1,7 +1,6 @@
 import { defineConfig } from 'vite'
 import vue from '@vitejs/plugin-vue'
 import { fileURLToPath, URL } from 'node:url'
-import { WEBSITE_URL } from './src/config/constants'
 
 // https://vitejs.dev/config/
 export default defineConfig({
@@ -16,7 +15,7 @@ export default defineConfig({
     host: true,
     proxy: {
       '/api': {
-        target: WEBSITE_URL,
+        target: 'http://localhost:8000',
         changeOrigin: true,
         secure: false,
         rewrite: (path) => path.replace(/^\/api/, '/api'),

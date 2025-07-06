@@ -66,9 +66,7 @@ const marketTypes: MarketType[] = [
   {
     value: 'china',
     label: 'market.china',
-    icon: 'ri-bank-line',
-    disabled: true,
-    comingSoon: true
+    icon: 'ri-bank-line'
   }
 ]
 

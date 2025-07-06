@@ -57,8 +57,17 @@
             class="w-full p-4 text-left hover:bg-gray-800 transition-colors flex items-center justify-between"
           >
             <div class="flex items-center space-x-3">
-              <div class="w-8 h-8 rounded-full bg-gradient-to-r from-blue-500 to-purple-600 flex items-center justify-center">
-                <i :class="asset.market_type === 'crypto' ? 'ri-currency-line' : 'ri-line-chart-line'" class="text-white text-sm"></i>
+              <div class="w-8 h-8 rounded-full flex items-center justify-center"
+                   :class="{
+                     'bg-gradient-to-r from-blue-500 to-purple-600': asset.market_type === 'crypto',
+                     'bg-gradient-to-r from-green-500 to-emerald-600': asset.market_type === 'stock',
+                     'bg-gradient-to-r from-red-500 to-rose-600': asset.market_type === 'china'
+                   }">
+                <i :class="{
+                     'ri-currency-line': asset.market_type === 'crypto',
+                     'ri-line-chart-line': asset.market_type === 'stock',
+                     'ri-building-line': asset.market_type === 'china'
+                   }" class="text-white text-sm"></i>
               </div>
               <div>
                 <div class="font-medium text-white">{{ asset.symbol }}</div>
@@ -82,8 +91,17 @@
               class="w-full p-3 text-left hover:bg-gray-800 rounded-lg transition-colors flex items-center justify-between"
             >
               <div class="flex items-center space-x-3">
-                <div class="w-6 h-6 rounded-full bg-gradient-to-r from-blue-500 to-purple-600 flex items-center justify-center">
-                  <i :class="asset.market_type === 'crypto' ? 'ri-currency-line' : 'ri-line-chart-line'" class="text-white text-xs"></i>
+                <div class="w-6 h-6 rounded-full flex items-center justify-center"
+                     :class="{
+                       'bg-gradient-to-r from-blue-500 to-purple-600': asset.market_type === 'crypto',
+                       'bg-gradient-to-r from-green-500 to-emerald-600': asset.market_type === 'stock',
+                       'bg-gradient-to-r from-red-500 to-rose-600': asset.market_type === 'china'
+                     }">
+                  <i :class="{
+                       'ri-currency-line': asset.market_type === 'crypto',
+                       'ri-line-chart-line': asset.market_type === 'stock',
+                       'ri-building-line': asset.market_type === 'china'
+                     }" class="text-white text-xs"></i>
                 </div>
                 <div>
                   <div class="font-medium text-white text-sm">{{ asset.symbol }}</div>
@@ -109,7 +127,7 @@ const { t } = useEnhancedI18n()
 export interface Asset {
   symbol: string
   name: string
-  market_type: 'crypto' | 'stock'
+  market_type: 'crypto' | 'stock' | 'china'
   exchange?: string
   sector?: string
 }
@@ -127,7 +145,7 @@ const props = defineProps<Props>()
 const emit = defineEmits<Emits>()
 
 const searchQuery = ref('')
-const selectedMarketType = ref<'crypto' | 'stock'>('crypto')
+const selectedMarketType = ref<'crypto' | 'stock' | 'china'>('crypto')
 const searchResults = ref<Asset[]>([])
 const loading = ref(false)
 const searchInput = ref<HTMLInputElement>()
@@ -170,7 +188,7 @@ const selectAsset = (asset: Asset) => {
   closeModal()
 }
 
-const handleMarketTypeChange = (marketType: 'crypto' | 'stock') => {
+const handleMarketTypeChange = (marketType: 'crypto' | 'stock' | 'china') => {
   selectedMarketType.value = marketType
   if (searchQuery.value) {
     handleSearch()
