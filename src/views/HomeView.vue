@@ -289,7 +289,7 @@
 
                       <!-- 标题 -->
                       <h1 class="text-base font-bold bg-gradient-to-r from-white to-slate-200 bg-clip-text text-transparent">
-                        {{ currentSymbol ? getDisplayTitle() : t('common.loading') }}
+                        {{ displayTitle }}
                       </h1>
 
                       <!-- 收藏按钮 -->
@@ -1184,6 +1184,16 @@ const switchToAsset = async (symbol: string, marketType: 'crypto' | 'stock' | 'c
   const storageKey = `currentSymbol_${marketType}`
   localStorage.setItem(storageKey, symbol)
 
+  // 如果是A股，预加载股票名称
+  if (marketType === 'china') {
+    console.log(`[switchToAsset] 开始预加载A股股票名称: ${symbol}`)
+    getStockName(symbol, marketType).then(name => {
+      console.log(`[switchToAsset] 预加载成功: ${symbol} -> ${name}`)
+    }).catch(error => {
+      console.error('[switchToAsset] 预加载股票名称失败:', error)
+    })
+  }
+
   // 加载新资产的数据
   await loadAnalysisData(true, false)
 }
@@ -1434,8 +1444,68 @@ const getCurrencySymbol = () => {
 
 
 
-// 获取显示标题
-const getDisplayTitle = () => {
+// 股票名称缓存
+const stockNameCache = ref<Record<string, string>>({})
+
+// 获取股票名称
+const getStockName = async (symbol: string, marketType: 'crypto' | 'stock' | 'china'): Promise<string> => {
+  console.log(`[getStockName] 开始获取股票名称: ${symbol}, 市场类型: ${marketType}`)
+
+  // 只有A股需要获取股票名称
+  if (marketType !== 'china') {
+    console.log(`[getStockName] 非A股市场，跳过: ${marketType}`)
+    return ''
+  }
+
+  // 检查缓存
+  if (stockNameCache.value[symbol]) {
+    console.log(`[getStockName] 从缓存获取: ${symbol} -> ${stockNameCache.value[symbol]}`)
+    return stockNameCache.value[symbol]
+  }
+
+  try {
+    const url = `/api/crypto/search/?q=${encodeURIComponent(symbol)}&market_type=china&limit=1`
+    const token = localStorage.getItem('token')
+    console.log(`[getStockName] 发起API请求: ${url}`)
+    console.log(`[getStockName] 使用的token: ${token ? token.substring(0, 10) + '...' : 'null'}`)
+
+    const response = await fetch(url, {
+      headers: {
+        'Authorization': token?.startsWith('Token ') ? token : `Token ${token}`,
+        'Content-Type': 'application/json'
+      }
+    })
+
+    console.log(`[getStockName] API响应状态: ${response.status}`)
+
+    if (response.ok) {
+      const data = await response.json()
+      console.log(`[getStockName] API响应数据:`, data)
+
+      if (data.status === 'success' && data.data && data.data.length > 0) {
+        const stockInfo = data.data.find((item: any) => item.symbol === symbol)
+        console.log(`[getStockName] 找到的股票信息:`, stockInfo)
+
+        if (stockInfo && stockInfo.name) {
+          console.log(`[getStockName] 成功获取股票名称: ${symbol} -> ${stockInfo.name}`)
+          // 缓存股票名称
+          stockNameCache.value[symbol] = stockInfo.name
+          return stockInfo.name
+        }
+      }
+    } else {
+      console.error(`[getStockName] API请求失败: ${response.status} ${response.statusText}`)
+    }
+  } catch (error) {
+    console.error('[getStockName] 获取股票名称异常:', error)
+  }
+
+  console.log(`[getStockName] 未能获取到股票名称: ${symbol}`)
+  return ''
+}
+
+// 获取显示标题 - 使用计算属性确保响应式更新
+const displayTitle = computed(() => {
   if (!currentSymbol.value) return t('common.loading')
 
   if (currentMarketType.value === 'crypto') {
@@ -1443,8 +1513,48 @@ const getDisplayTitle = () => {
     return baseSymbol
   } else if (currentMarketType.value === 'stock') {
     return currentSymbol.value
+  } else if (currentMarketType.value === 'china') {
+    // A股显示：代码（名称）
+    const stockName = stockNameCache.value[currentSymbol.value]
+    if (stockName) {
+      return `${currentSymbol.value}（${stockName}）`
+    } else {
+      // 异步获取股票名称
+      getStockName(currentSymbol.value, currentMarketType.value).then(name => {
+        if (name) {
+          // 触发响应式更新
+          stockNameCache.value = { ...stockNameCache.value, [currentSymbol.value]: name }
+        }
+      }).catch(error => {
+        console.error('异步获取股票名称失败:', error)
+      })
+      return currentSymbol.value
+    }
   } else {
     return currentSymbol.value
+  }
+})
+
+// 保持向后兼容的函数
+const getDisplayTitle = () => displayTitle.value
+
+// 测试股票名称获取
+const testStockName = async () => {
+  console.log('=== 测试股票名称获取 ===')
+  console.log(`当前symbol: ${currentSymbol.value}`)
+  console.log(`当前市场类型: ${currentMarketType.value}`)
+  console.log(`当前缓存:`, stockNameCache.value)
+
+  try {
+    const name = await getStockName(currentSymbol.value, currentMarketType.value)
+    console.log(`获取到的股票名称: ${name}`)
+    console.log(`更新后的缓存:`, stockNameCache.value)
+
+    // 手动触发标题更新
+    const title = getDisplayTitle()
+    console.log(`当前标题: ${title}`)
+  } catch (error) {
+    console.error('测试失败:', error)
   }
 }
 
@@ -1639,13 +1749,31 @@ const loadFavorites = async () => {
 
 
 
-// 格式化显示符号，移除USDT后缀
+// 格式化显示符号，移除USDT后缀，A股显示名称
 const formatDisplaySymbol = (symbol: string, marketType: string) => {
   try {
     if (!symbol || typeof symbol !== 'string') return symbol || ''
+
     if (marketType === 'crypto' && symbol.endsWith('USDT')) {
       return symbol.replace('USDT', '')
+    } else if (marketType === 'china') {
+      // A股显示股票名称，如果没有名称则显示代码
+      const stockName = stockNameCache.value[symbol]
+      if (stockName) {
+        return stockName
+      } else {
+        // 异步获取股票名称
+        getStockName(symbol, 'china').then(name => {
+          if (name) {
+            stockNameCache.value = { ...stockNameCache.value, [symbol]: name }
+          }
+        }).catch(error => {
+          console.error('获取收藏股票名称失败:', error)
+        })
+        return symbol // 暂时显示代码，等待名称加载
+      }
     }
+
     return symbol
   } catch (error) {
     console.error('formatDisplaySymbol error:', error)
@@ -2123,23 +2251,31 @@ const getTrendIconClass = (trend?: string) => {
 
 // 趋势图标渲染函数已移至其他地方使用
 
-// 保存图片时的趋势图标渲染（与页面一致，Remix Icon + 圆形底色，垂直居中，微调）
+// 保存图片时的趋势图标渲染（使用Unicode符号和负边距实现完美居中）
 const getIndicatorIconForImage = (trend?: string) => {
   const baseStyle = "display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;border-radius:50%;";
-  const iconStyle = "font-size:14px;line-height:1;height:14px;vertical-align:middle;display:block;margin-top:-14px;";
-  if (trend === 'bullish' || trend === '看涨' || trend === '支持当前趋势') {
+  const iconStyle = "font-size:12px;line-height:1;font-weight:bold;margin-top:-12px;";
+
+  console.log(`[getIndicatorIconForImage] 趋势值: "${trend}"`);
+
+  // 看涨趋势
+  if (trend === 'up' || trend === 'bullish' || trend === '看涨' || trend === '支持当前趋势') {
+    console.log(`[getIndicatorIconForImage] 匹配看涨趋势`);
     return `<span style="${baseStyle}background:rgba(16,185,129,0.12);">
-      <i class='ri-arrow-up-line' style='${iconStyle}color:#22c55e;'></i>
+      <span style='${iconStyle}color:#22c55e;'>↗</span>
     </span>`;
   }
-  if (trend === 'bearish' || trend === '看跌' || trend === '反对当前趋势') {
+  // 看跌趋势
+  if (trend === 'down' || trend === 'bearish' || trend === '看跌' || trend === '反对当前趋势') {
+    console.log(`[getIndicatorIconForImage] 匹配看跌趋势`);
     return `<span style="${baseStyle}background:rgba(239,68,68,0.12);">
-      <i class='ri-arrow-down-line' style='${iconStyle}color:#ef4444;'></i>
+      <span style='${iconStyle}color:#ef4444;'>↘</span>
     </span>`;
   }
-  // 中性
+  // 中性/横盘
+  console.log(`[getIndicatorIconForImage] 匹配中性趋势`);
   return `<span style="${baseStyle}background:rgba(156,163,175,0.12);">
-    <i class='ri-subtract-line' style='${iconStyle}color:#9ca3af;'></i>
+    <span style='${iconStyle}color:#9ca3af;'>→</span>
   </span>`;
 }
 
@@ -2380,9 +2516,89 @@ const shareToWechat = async () => {
   }
 }
 
+// 翻译分析数据用于保存图片
+const translateAnalysisData = async (data: any, targetLang: string) => {
+  try {
+    const langMap: Record<string, string> = {
+      'zh-cn': 'zh-CN',
+      'ja-jp': 'ja',
+      'ko-kr': 'ko',
+      'en-us': 'en'
+    }
+
+    const googleLang = langMap[targetLang] || 'zh-CN'
+    const translatedData = JSON.parse(JSON.stringify(data)) // 深拷贝
+
+    // 翻译趋势分析摘要
+    if (translatedData.trend_analysis?.summary) {
+      translatedData.trend_analysis.summary = await googleTranslate(translatedData.trend_analysis.summary, googleLang)
+    }
+
+    // 翻译交易建议
+    if (translatedData.trading_advice) {
+      const advice = translatedData.trading_advice
+
+      // 翻译动作
+      if (advice.action) {
+        const actionTranslations: Record<string, Record<string, string>> = {
+          'zh-CN': { 'buy': '买入', 'sell': '卖出', 'hold': '持有', 'wait': '等待' },
+          'ja': { 'buy': '買い', 'sell': '売り', 'hold': 'ホールド', 'wait': '待機' },
+          'ko': { 'buy': '매수', 'sell': '매도', 'hold': '보유', 'wait': '대기' }
+        }
+        const translations = actionTranslations[googleLang]
+        advice.action = translations?.[advice.action.toLowerCase()] || await googleTranslate(advice.action, googleLang)
+      }
+
+      // 翻译理由
+      if (advice.reason) {
+        advice.reason = await googleTranslate(advice.reason, googleLang)
+      }
+    }
+
+    // 翻译风险评估
+    if (translatedData.risk_assessment) {
+      const risk = translatedData.risk_assessment
+
+      // 翻译风险等级
+      if (risk.level) {
+        const riskTranslations: Record<string, Record<string, string>> = {
+          'zh-CN': { 'low': '低', 'medium': '中等', 'high': '高', 'very high': '很高' },
+          'ja': { 'low': '低', 'medium': '中', 'high': '高', 'very high': '非常に高い' },
+          'ko': { 'low': '낮음', 'medium': '보통', 'high': '높음', 'very high': '매우 높음' }
+        }
+        const translations = riskTranslations[googleLang]
+        risk.level = translations?.[risk.level.toLowerCase()] || await googleTranslate(risk.level, googleLang)
+      }
+
+      // 翻译风险因素
+      if (risk.details && Array.isArray(risk.details)) {
+        risk.details = await Promise.all(
+          risk.details.map((detail: string) => googleTranslate(detail, googleLang))
+        )
+      }
+    }
+
+    return translatedData
+  } catch (error) {
+    console.error('翻译分析数据失败:', error)
+    return data // 翻译失败时返回原数据
+  }
+}
+
 // 保存图表为图片
 const saveChartImage = async () => {
   try {
+    // 获取当前语言
+    const imageLang = (localStorage.getItem('language') || 'en-US').toLowerCase()
+    console.log(`[saveChartImage] 开始保存图片，当前语言: ${imageLang}`)
+
+    // 如果不是英文，需要先翻译内容
+    let translatedData = analysisData.value
+    if (imageLang !== 'en-us' && imageLang !== 'en' && analysisData.value) {
+      console.log(`[saveChartImage] 开始翻译内容到: ${imageLang}`)
+      translatedData = await translateAnalysisData(analysisData.value, imageLang)
+      console.log(`[saveChartImage] 翻译完成`)
+    }
     // 创建一个容器用于生成图片
     const container = document.createElement('div')
     container.style.width = '375px'
@@ -2405,16 +2621,29 @@ const saveChartImage = async () => {
     titleSection.style.boxShadow = '0 2px 8px 0 #0002'
     const safeSymbol = currentSymbol.value || 'BTCUSDT'
     const safeBaseSymbol = getBaseSymbol(safeSymbol)
+
+    // 获取显示标题（包含股票名称）
+    let displayTitleForImage = ''
+    if (currentMarketType.value === 'china') {
+      const stockName = stockNameCache.value[safeSymbol]
+      displayTitleForImage = stockName ? `${safeSymbol}（${stockName}）` : safeSymbol
+    } else if (currentMarketType.value === 'crypto') {
+      displayTitleForImage = safeBaseSymbol
+    } else {
+      displayTitleForImage = safeSymbol
+    }
+
     titleSection.innerHTML = `
-      <h2 style="font-size: 22px; margin-bottom: 10px; font-weight: 600; letter-spacing: 1px;">${safeSymbol} ${t('analysis.market_report', { symbol: safeBaseSymbol }).replace('analysis.market_report', '市场分析报告')}</h2>
+      <h2 style="font-size: 20px; margin-bottom: 10px; font-weight: 600; letter-spacing: 1px; line-height: 1.2;">${displayTitleForImage}</h2>
+      <h3 style="font-size: 16px; margin-bottom: 15px; font-weight: 500; color: #9ca3af;">${t('analysis.market_report', { symbol: safeBaseSymbol }).replace('analysis.market_report', '市场分析报告')}</h3>
       <div style="font-size: 32px; font-weight: bold; margin-bottom: 4px;">
-        ${formatPrice(analysisData.value?.current_price)} <span style='font-size:16px;color:#9ca3af'>${getCurrencySymbol()}</span>
+        ${formatPrice(translatedData?.current_price)} <span style='font-size:16px;color:#9ca3af'>${getCurrencySymbol()}</span>
       </div>
     `
     container.appendChild(titleSection)
 
     // 市场趋势分析卡片
-    if (analysisData.value?.trend_analysis?.summary) {
+    if (translatedData?.trend_analysis?.summary) {
       const trendSection = document.createElement('div')
       trendSection.style.margin = '20px 0 0 0'
       trendSection.style.padding = '16px'
@@ -2424,18 +2653,18 @@ const saveChartImage = async () => {
       trendSection.style.boxShadow = '0 1px 4px 0 #0001'
       trendSection.innerHTML = `
         <div style="font-size: 16px; font-weight: 500; margin-bottom: 8px;">${t('analysis.market_trend_analysis').replace('analysis.market_trend_analysis', '市场趋势分析')}</div>
-        <div style="font-size: 14px; color: #d1d5db; line-height: 1.6; margin-bottom: 12px;">${analysisData.value.trend_analysis.summary}</div>
+        <div style="font-size: 14px; color: #d1d5db; line-height: 1.6; margin-bottom: 12px;">${translatedData.trend_analysis.summary}</div>
         <div style="display: flex; justify-content: center; gap: 8px;">
           <div style="flex:1; text-align:center; background:rgba(16,185,129,0.12); border-radius:8px; padding:8px 0; border:1px solid #10b98133;">
-            <div style="color:#4ade80; font-size:18px; font-weight:600;">${formatPercent(analysisData.value.trend_analysis.probabilities.up)}</div>
+            <div style="color:#4ade80; font-size:18px; font-weight:600;">${formatPercent(translatedData.trend_analysis.probabilities.up)}</div>
             <div style="color:#4ade80; font-size:12px;">${t('analysis.uptrend').replace('analysis.uptrend', '上涨')}</div>
           </div>
           <div style="flex:1; text-align:center; background:rgba(156,163,175,0.12); border-radius:8px; padding:8px 0; border:1px solid #9ca3af33;">
-            <div style="color:#9ca3af; font-size:18px; font-weight:600;">${formatPercent(analysisData.value.trend_analysis.probabilities.sideways)}</div>
+            <div style="color:#9ca3af; font-size:18px; font-weight:600;">${formatPercent(translatedData.trend_analysis.probabilities.sideways)}</div>
             <div style="color:#9ca3af; font-size:12px;">${t('analysis.sideways').replace('analysis.sideways', '盘整')}</div>
           </div>
           <div style="flex:1; text-align:center; background:rgba(239,68,68,0.12); border-radius:8px; padding:8px 0; border:1px solid #ef444433;">
-            <div style="color:#ef4444; font-size:18px; font-weight:600;">${formatPercent(analysisData.value.trend_analysis.probabilities.down)}</div>
+            <div style="color:#ef4444; font-size:18px; font-weight:600;">${formatPercent(translatedData.trend_analysis.probabilities.down)}</div>
             <div style="color:#ef4444; font-size:12px;">${t('analysis.downtrend').replace('analysis.downtrend', '下跌')}</div>
           </div>
         </div>
@@ -2444,7 +2673,9 @@ const saveChartImage = async () => {
     }
 
     // 技术指标卡片
-    if (analysisData.value?.indicators_analysis) {
+    if (translatedData?.indicators_analysis) {
+      console.log(`[saveChartImage] 技术指标数据:`, translatedData.indicators_analysis);
+
       const indicatorsSection = document.createElement('div')
       indicatorsSection.style.margin = '20px 0 0 0'
       indicatorsSection.style.padding = '16px'
@@ -2452,12 +2683,20 @@ const saveChartImage = async () => {
       indicatorsSection.style.border = '1px solid #374151'
       indicatorsSection.style.borderRadius = '12px'
       indicatorsSection.style.boxShadow = '0 1px 4px 0 #0001'
+
+      const indicatorEntries = Object.entries(translatedData.indicators_analysis)
+        .filter(([key]) => !['MACD', 'BollingerBands', 'DMI'].includes(key))
+
+      console.log(`[saveChartImage] 过滤后的指标:`, indicatorEntries);
+
       indicatorsSection.innerHTML = `
         <div style="font-size: 16px; font-weight: 500; margin-bottom: 10px;">${t('analysis.technical_indicators').replace('analysis.technical_indicators', '技术指标')}</div>
         <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px;">
-          ${Object.entries(analysisData.value.indicators_analysis)
-            .filter(([key]) => !['MACD', 'BollingerBands', 'DMI'].includes(key))
-            .map(([key, indicator]) => `
+          ${indicatorEntries
+            .map(([key, indicator]) => {
+              console.log(`[saveChartImage] 指标 ${key}:`, indicator);
+              console.log(`[saveChartImage] 指标 ${key} 趋势:`, indicator.support_trend);
+              return `
               <div style="padding: 10px; background: rgba(17,24,39,0.5); border: 1px solid #334155; border-radius: 8px;">
                 <div style="font-size: 12px; color: #9ca3af; margin-bottom: 5px;">${key}</div>
                 <div style="display: flex; justify-content: space-between; align-items: center;">
@@ -2465,15 +2704,15 @@ const saveChartImage = async () => {
                   <span style="font-size: 12px;">${getIndicatorIconForImage(indicator.support_trend)}</span>
                 </div>
               </div>
-            `).join('')}
+            `}).join('')}
         </div>
       `
       container.appendChild(indicatorsSection)
     }
 
     // 交易建议卡片 - 确保始终创建并保留该部分
-    if (analysisData.value?.trading_advice) {
-      const advice = analysisData.value.trading_advice
+    if (translatedData?.trading_advice) {
+      const advice = translatedData.trading_advice
       const adviceSection = document.createElement('div')
       adviceSection.style.margin = '20px 0 0 0'
       adviceSection.style.padding = '16px'
@@ -2481,22 +2720,68 @@ const saveChartImage = async () => {
       adviceSection.style.border = '1px solid #374151'
       adviceSection.style.borderRadius = '12px'
       adviceSection.style.boxShadow = '0 1px 4px 0 #0001'
+
+      // 根据语言显示标题
+      let adviceTitle = 'Trading Advice'
+      if (imageLang.includes('zh') || imageLang.includes('cn')) {
+        adviceTitle = '交易建议'
+      } else if (imageLang.includes('ja')) {
+        adviceTitle = '取引アドバイス'
+      } else if (imageLang.includes('ko')) {
+        adviceTitle = '거래 조언'
+      }
+
+      // 根据语言显示字段标签
+      let labels = {
+        action: 'Action:',
+        entryPrice: 'Entry Price:',
+        stopLoss: 'Stop Loss:',
+        takeProfit: 'Take Profit:',
+        reason: 'Reason:'
+      }
+
+      if (imageLang.includes('zh') || imageLang.includes('cn')) {
+        labels = {
+          action: '操作:',
+          entryPrice: '入场价格:',
+          stopLoss: '止损:',
+          takeProfit: '止盈:',
+          reason: '理由:'
+        }
+      } else if (imageLang.includes('ja')) {
+        labels = {
+          action: 'アクション:',
+          entryPrice: 'エントリー価格:',
+          stopLoss: 'ストップロス:',
+          takeProfit: 'テイクプロフィット:',
+          reason: '理由:'
+        }
+      } else if (imageLang.includes('ko')) {
+        labels = {
+          action: '액션:',
+          entryPrice: '진입 가격:',
+          stopLoss: '손절:',
+          takeProfit: '익절:',
+          reason: '이유:'
+        }
+      }
+
       adviceSection.innerHTML = `
-        <div style="font-size: 16px; font-weight: 500; margin-bottom: 10px;">Trading Advice</div>
+        <div style="font-size: 16px; font-weight: 500; margin-bottom: 10px;">${adviceTitle}</div>
         <div style="display: flex; flex-direction: column; gap: 6px; font-size: 14px;">
-          <div><span style='color:#9ca3af'>Action:</span> <span style='font-weight:500;'>${advice.action}</span></div>
-          <div><span style='color:#9ca3af'>Entry Price:</span> ${formatPrice(advice.entry_price)}</div>
-          <div><span style='color:#9ca3af'>Stop Loss:</span> <span style='color:#ef4444'>${formatPrice(advice.stop_loss)}</span></div>
-          <div><span style='color:#9ca3af'>Take Profit:</span> <span style='color:#4ade80'>${formatPrice(advice.take_profit)}</span></div>
-          <div><span style='color:#9ca3af'>Reason:</span> ${advice.reason}</div>
+          <div><span style='color:#9ca3af'>${labels.action}</span> <span style='font-weight:500;'>${advice.action}</span></div>
+          <div><span style='color:#9ca3af'>${labels.entryPrice}</span> ${formatPrice(advice.entry_price)}</div>
+          <div><span style='color:#9ca3af'>${labels.stopLoss}</span> <span style='color:#ef4444'>${formatPrice(advice.stop_loss)}</span></div>
+          <div><span style='color:#9ca3af'>${labels.takeProfit}</span> <span style='color:#4ade80'>${formatPrice(advice.take_profit)}</span></div>
+          <div><span style='color:#9ca3af'>${labels.reason}</span> ${advice.reason}</div>
         </div>
       `
       container.appendChild(adviceSection)
     }
 
     // 风险评估卡片 - 确保始终创建并保留该部分
-    if (analysisData.value?.risk_assessment) {
-      const risk = analysisData.value.risk_assessment
+    if (translatedData?.risk_assessment) {
+      const risk = translatedData.risk_assessment
       const riskSection = document.createElement('div')
       riskSection.style.margin = '20px 0 0 0'
       riskSection.style.padding = '16px'
@@ -2504,12 +2789,36 @@ const saveChartImage = async () => {
       riskSection.style.border = '1px solid #374151'
       riskSection.style.borderRadius = '12px'
       riskSection.style.boxShadow = '0 1px 4px 0 #0001'
+
+      // 根据语言显示标题和标签
+      let riskTitle = '风险评估'
+      let riskLevelLabel = '风险等级:'
+      let riskScoreLabel = '风险分数:'
+      let riskFactorsLabel = '风险因素:'
+
+      if (imageLang.includes('ja')) {
+        riskTitle = 'リスク評価'
+        riskLevelLabel = 'リスクレベル:'
+        riskScoreLabel = 'リスクスコア:'
+        riskFactorsLabel = 'リスク要因:'
+      } else if (imageLang.includes('ko')) {
+        riskTitle = '위험 평가'
+        riskLevelLabel = '위험 수준:'
+        riskScoreLabel = '위험 점수:'
+        riskFactorsLabel = '위험 요소:'
+      } else if (imageLang.includes('en')) {
+        riskTitle = 'Risk Assessment'
+        riskLevelLabel = 'Risk Level:'
+        riskScoreLabel = 'Risk Score:'
+        riskFactorsLabel = 'Risk Factors:'
+      }
+
       riskSection.innerHTML = `
-        <div style="font-size: 16px; font-weight: 500; margin-bottom: 10px;">${t('analysis.risk_assessment').replace('analysis.risk_assessment', '风险评估')}</div>
+        <div style="font-size: 16px; font-weight: 500; margin-bottom: 10px;">${riskTitle}</div>
         <div style="display: flex; flex-direction: column; gap: 6px; font-size: 14px;">
-          <div><span style='color:#9ca3af'>${t('analysis.risk_level').replace('analysis.risk_level', '风险等级')}:</span> <span style='font-weight:500;'>${risk.level}</span></div>
-          <div><span style='color:#9ca3af'>${t('analysis.risk_score').replace('analysis.risk_score', '风险分数')}:</span> ${risk.score}/100</div>
-          ${risk.details && risk.details.length > 0 ? `<div><span style='color:#9ca3af'>${t('analysis.risk_factors').replace('analysis.risk_factors', '风险因素')}:</span><ul style='margin:0 0 0 18px;padding:0;color:#d1d5db;'>${risk.details.map((d:any) => `<li>${d}</li>`).join('')}</ul></div>` : ''}
+          <div><span style='color:#9ca3af'>${riskLevelLabel}</span> <span style='font-weight:500;'>${risk.level}</span></div>
+          <div><span style='color:#9ca3af'>${riskScoreLabel}</span> ${risk.score}/100</div>
+          ${risk.details && risk.details.length > 0 ? `<div><span style='color:#9ca3af'>${riskFactorsLabel}</span><ul style='margin:0 0 0 18px;padding:0;color:#d1d5db;'>${risk.details.map((d:any) => `<li>${d}</li>`).join('')}</ul></div>` : ''}
         </div>
       `
       container.appendChild(riskSection)
@@ -2527,21 +2836,43 @@ const saveChartImage = async () => {
     // Get current language, default to English
     const lang = (localStorage.getItem('language') || 'en-US').toLowerCase()
     let appDesc = ''
+    let inviteText = ''
+
+    // 获取用户邀请码
+    let invitationCode = ''
+    try {
+      const userInfo = JSON.parse(localStorage.getItem('userInfo') || '{}')
+      invitationCode = userInfo.invitation_code || ''
+      console.log(`[saveChartImage] 用户邀请码:`, invitationCode)
+    } catch (e) {
+      console.log(`[saveChartImage] 获取用户邀请码失败:`, e)
+    }
+
     switch (lang) {
+      case 'zh-cn':
+        appDesc = '智能加密货币、美股、A股综合分析平台。高效洞察市场趋势，制定科学投资策略。'
+        inviteText = invitationCode ? `邀请码: ${invitationCode} | 注册即送积分奖励` : '专业量化分析，助力投资决策'
+        break
       case 'ja-jp':
-        appDesc = 'スマートな暗号資産分析と取引意思決定プラットフォーム。市場トレンドを効率的に洞察し、科学的な取引戦略をサポートします。'
+        appDesc = 'スマートな暗号資産・米国株・A株総合分析プラットフォーム。市場トレンドを効率的に洞察し、科学的な投資戦略をサポートします。'
+        inviteText = invitationCode ? `招待コード: ${invitationCode} | 登録でポイント獲得` : 'プロフェッショナル分析で投資をサポート'
         break
       case 'ko-kr':
-        appDesc = '스마트 암호화폐 분석 및 트레이딩 의사결정 플랫폼, 시장 트렌드를 효율적으로 파악하고 과학적인 전략 수립을 지원합니다.'
+        appDesc = '스마트 암호화폐, 미국주식, A주 종합 분석 플랫폼. 시장 트렌드를 효율적으로 파악하고 과학적인 투자 전략을 지원합니다.'
+        inviteText = invitationCode ? `초대 코드: ${invitationCode} | 가입 시 포인트 지급` : '전문 분석으로 투자 결정을 지원'
         break
       default:
-        appDesc = 'Smart crypto market analysis and trading decision platform. Efficiently gain market insights and make scientific trading strategies.'
+        appDesc = 'Smart crypto, US stocks & A-shares comprehensive analysis platform. Efficiently gain market insights and make scientific investment strategies.'
+        inviteText = invitationCode ? `Invitation Code: ${invitationCode} | Sign up for bonus points` : 'Professional quantitative analysis for smart investing'
     }
 
     qrDiv.innerHTML = `
       <div style="margin-bottom: 8px; font-size: 15px; color: #38bdf8; font-weight: 600;">Cooltrade</div>
-      <div style="margin-bottom: 10px; font-size: 13px; color: #9ca3af; max-width: 320px;">
+      <div style="margin-bottom: 8px; font-size: 13px; color: #9ca3af; max-width: 320px; line-height: 1.4;">
         ${appDesc}
+      </div>
+      <div style="margin-bottom: 10px; font-size: 11px; color: #60a5fa; max-width: 320px; line-height: 1.3; font-weight: 500;">
+        ${inviteText}
       </div>
     `
     const qrCanvas = document.createElement('canvas')
@@ -2583,8 +2914,73 @@ const saveChartImage = async () => {
 
     // 5. 下载图片
     const link = document.createElement('a')
-    const safeSymbolForFilename = currentSymbol.value || 'CRYPTO'
-    link.download = `${safeSymbolForFilename}_market_analysis.png`
+
+    // 根据当前语言和市场类型生成文件名
+    const currentLang = (localStorage.getItem('language') || 'en-US').toLowerCase()
+    const symbolForFile = currentSymbol.value || 'CRYPTO'
+    console.log(`[saveChartImage] 当前语言: ${currentLang}`)
+    console.log(`[saveChartImage] 当前市场类型: ${currentMarketType.value}`)
+    console.log(`[saveChartImage] 当前符号: ${symbolForFile}`)
+    let filename = ''
+
+    if (currentMarketType.value === 'china') {
+      // A股：使用股票名称（如果有）+ 代码
+      const stockName = stockNameCache.value[symbolForFile]
+      if (stockName) {
+        if (currentLang.includes('zh') || currentLang.includes('cn')) {
+          filename = `${stockName}_${symbolForFile}_市场分析.png`
+          console.log(`[saveChartImage] A股中文文件名: ${filename}`)
+        } else if (currentLang.includes('ja')) {
+          filename = `${stockName}_${symbolForFile}_市場分析.png`
+          console.log(`[saveChartImage] A股日文文件名: ${filename}`)
+        } else if (currentLang.includes('ko')) {
+          filename = `${stockName}_${symbolForFile}_시장분석.png`
+          console.log(`[saveChartImage] A股韩文文件名: ${filename}`)
+        } else {
+          filename = `${stockName}_${symbolForFile}_market_analysis.png`
+          console.log(`[saveChartImage] A股英文文件名: ${filename}`)
+        }
+      } else {
+        if (currentLang.includes('zh') || currentLang.includes('cn')) {
+          filename = `${symbolForFile}_市场分析.png`
+          console.log(`[saveChartImage] A股中文文件名(无名称): ${filename}`)
+        } else if (currentLang.includes('ja')) {
+          filename = `${symbolForFile}_市場分析.png`
+          console.log(`[saveChartImage] A股日文文件名(无名称): ${filename}`)
+        } else if (currentLang.includes('ko')) {
+          filename = `${symbolForFile}_시장분석.png`
+          console.log(`[saveChartImage] A股韩文文件名(无名称): ${filename}`)
+        } else {
+          filename = `${symbolForFile}_market_analysis.png`
+          console.log(`[saveChartImage] A股英文文件名(无名称): ${filename}`)
+        }
+      }
+    } else if (currentMarketType.value === 'crypto') {
+      // 加密货币：使用基础符号
+      const baseSymbol = getBaseSymbol(symbolForFile)
+      if (currentLang.includes('zh') || currentLang.includes('cn')) {
+        filename = `${baseSymbol}_加密货币分析.png`
+      } else if (currentLang.includes('ja')) {
+        filename = `${baseSymbol}_暗号資産分析.png`
+      } else if (currentLang.includes('ko')) {
+        filename = `${baseSymbol}_암호화폐분석.png`
+      } else {
+        filename = `${baseSymbol}_crypto_analysis.png`
+      }
+    } else {
+      // 美股
+      if (currentLang.includes('zh') || currentLang.includes('cn')) {
+        filename = `${symbolForFile}_股票分析.png`
+      } else if (currentLang.includes('ja')) {
+        filename = `${symbolForFile}_株式分析.png`
+      } else if (currentLang.includes('ko')) {
+        filename = `${symbolForFile}_주식분석.png`
+      } else {
+        filename = `${symbolForFile}_stock_analysis.png`
+      }
+    }
+
+    link.download = filename
     link.href = canvas.toDataURL('image/png')
     link.click()
   } catch (error) {
