@@ -168,7 +168,16 @@ export default {
     funding_rate: '资金费率',
     exchange_netflow: '交易所净流入',
     nupl: 'NUPL',
-    mayer_multiple: '梅耶倍数'
+    mayer_multiple: '梅耶倍数',
+    // A股特有指标
+    turnover_rate: '换手率',
+    volume_ratio: '量比',
+    pe_ratio: '市盈率',
+    pb_ratio: '市净率',
+    ps_ratio: '市销率',
+    dividend_yield: '股息率',
+    total_market_value: '总市值',
+    circ_market_value: '流通市值'
   },
   errors: {
     network_error: '网络错误',

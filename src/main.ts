@@ -16,11 +16,35 @@ import 'remixicon/fonts/remixicon.css'
 import i18n from './i18n'
 import { i18nDirectPlugin } from './i18n/direct-loader'
 
-// 强制重置语言为英文
-const currentLang = localStorage.getItem('language')
-if (currentLang === 'zh-CN' || !currentLang) {
-  localStorage.setItem('language', 'en-US')
+// 初始化语言设置
+const initializeLanguage = async () => {
+  const currentLang = localStorage.getItem('language')
+  const token = localStorage.getItem('token')
+
+  // 如果用户已登录，尝试从数据库获取语言设置
+  if (token) {
+    try {
+      const userInfo = localStorage.getItem('userInfo')
+      if (userInfo) {
+        const parsedUserInfo = JSON.parse(userInfo)
+        if (parsedUserInfo.language && parsedUserInfo.language !== currentLang) {
+          localStorage.setItem('language', parsedUserInfo.language)
+          console.log(`[main.ts] 从用户信息恢复语言设置: ${parsedUserInfo.language}`)
+        }
+      }
+    } catch (e) {
+      console.warn('[main.ts] 解析用户信息失败:', e)
+    }
+  }
+
+  // 如果没有语言设置，默认为英文
+  if (!localStorage.getItem('language')) {
+    localStorage.setItem('language', 'en-US')
+  }
 }
+
+// 初始化语言
+initializeLanguage()
 
 const app = createApp(App)
 

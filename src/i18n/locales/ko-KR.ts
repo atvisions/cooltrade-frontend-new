@@ -187,7 +187,14 @@ export default {
     funding_rate: '자금 조달 비율',
     exchange_netflow: '거래소 순유입',
     nupl: 'NUPL',
-    mayer_multiple: '메이어 배수'
+    mayer_multiple: '메이어 배수',
+    // A주 전용 지표
+    turnover_rate: '회전율',
+    volume_ratio: '거래량 비율',
+    pe_ratio: 'PER',
+    pb_ratio: 'PBR',
+    ps_ratio: 'PSR',
+    dividend_yield: '배당 수익률'
   },
   errors: {
     network_error: '네트워크 오류',
@@ -250,7 +257,16 @@ export default {
     MayerMultiple: '마이어 배수, 현재 가격과 200일 이동평균선의 비율입니다.',
     MACD: '이동평균 수렴확산(MACD), 추세의 강도와 전환점을 판단합니다.',
     BollingerBands: '볼린저 밴드, 가격 변동성과 지지/저항 구간을 측정합니다.',
-    DMI: '방향성 지표(DMI), 추세 방향과 강도를 판단합니다.'
+    DMI: '방향성 지표(DMI), 추세 방향과 강도를 판단합니다.',
+    // A주 전용 지표 설명
+    TurnoverRate: '회전율, 일정 기간 내 거래량과 유통주식수의 비율로 주식의 활발도를 나타냅니다.',
+    VolumeRatio: '거래량 비율, 당일 거래량과 과거 5일 평균 거래량의 비율로 거래량의 상대적 변화를 나타냅니다.',
+    PE: '주가수익비율(PER), 주가와 주당순이익의 비율로 주식의 평가 수준을 나타냅니다.',
+    PB: '주가순자산비율(PBR), 주가와 주당순자산의 비율로 순자산 대비 주식의 평가를 나타냅니다.',
+    PS: '주가매출비율(PSR), 주가와 주당매출의 비율로 매출 대비 기업의 평가를 나타냅니다.',
+    DividendYield: '배당 수익률, 주당 배당과 주가의 비율로 주식의 배당 수익률을 나타냅니다.',
+    TotalMarketValue: '시가총액, 기업의 모든 주식의 시장 가치 합계로 기업 규모를 나타냅니다.',
+    CircMarketValue: '유통시가총액, 자유롭게 거래 가능한 주식의 시장 가치로 실제 거래 가능한 시가총액 규모를 나타냅니다.'
   },
   market: {
     crypto: '암호화폐',

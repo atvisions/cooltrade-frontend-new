@@ -1464,37 +1464,32 @@ const getStockName = async (symbol: string, marketType: 'crypto' | 'stock' | 'ch
   }
 
   try {
-    const url = `/api/crypto/search/?q=${encodeURIComponent(symbol)}&market_type=china&limit=1`
+    console.log(`[getStockName] 发起API请求: searchAssets(${symbol}, china, 1)`)
     const token = localStorage.getItem('token')
-    console.log(`[getStockName] 发起API请求: ${url}`)
     console.log(`[getStockName] 使用的token: ${token ? token.substring(0, 10) + '...' : 'null'}`)
 
-    const response = await fetch(url, {
-      headers: {
-        'Authorization': token?.startsWith('Token ') ? token : `Token ${token}`,
-        'Content-Type': 'application/json'
+    // 使用API封装而不是直接fetch，这样可以正确处理扩展环境
+    const data = await search.searchAssets(symbol, 'china', 1)
+    console.log(`[getStockName] API响应数据:`, data)
+
+    // 处理API响应数据
+    let searchResults = []
+    if (data.status === 'success' && data.data) {
+      searchResults = data.data
+    } else if (Array.isArray(data)) {
+      searchResults = data
+    }
+
+    if (searchResults.length > 0) {
+      const stockInfo = searchResults.find((item: any) => item.symbol === symbol)
+      console.log(`[getStockName] 找到的股票信息:`, stockInfo)
+
+      if (stockInfo && stockInfo.name) {
+        console.log(`[getStockName] 成功获取股票名称: ${symbol} -> ${stockInfo.name}`)
+        // 缓存股票名称
+        stockNameCache.value[symbol] = stockInfo.name
+        return stockInfo.name
       }
-    })
-
-    console.log(`[getStockName] API响应状态: ${response.status}`)
-
-    if (response.ok) {
-      const data = await response.json()
-      console.log(`[getStockName] API响应数据:`, data)
-
-      if (data.status === 'success' && data.data && data.data.length > 0) {
-        const stockInfo = data.data.find((item: any) => item.symbol === symbol)
-        console.log(`[getStockName] 找到的股票信息:`, stockInfo)
-
-        if (stockInfo && stockInfo.name) {
-          console.log(`[getStockName] 成功获取股票名称: ${symbol} -> ${stockInfo.name}`)
-          // 缓存股票名称
-          stockNameCache.value[symbol] = stockInfo.name
-          return stockInfo.name
-        }
-      }
-    } else {
-      console.error(`[getStockName] API请求失败: ${response.status} ${response.statusText}`)
     }
   } catch (error) {
     console.error('[getStockName] 获取股票名称异常:', error)
@@ -3080,50 +3075,47 @@ const handleRefreshError = async (error: any) => {
   // ElMessage.error(error?.message || '刷新失败')
 }
 
-// 获取指标显示名称（根据语言显示）
+// 获取指标显示名称（使用i18n翻译系统）
 const getIndicatorDisplayName = (key: string) => {
-  const currentLang = locale.value
-
-  // 中文显示名称
-  const chineseNames: Record<string, string> = {
-    ExchangeNetflow: '交易所净流入',
-    MayerMultiple: '梅耶倍数',
-    FundingRate: '资金费率',
-    BollingerBands: '布林带',
+  // 创建指标键名映射
+  const indicatorKeyMap: Record<string, string> = {
+    RSI: 'rsi',
+    MACD: 'macd',
+    PSY: 'psy',
+    BIAS: 'bias',
+    VWAP: 'vwap',
+    DMI: 'dmi',
+    NUPL: 'nupl',
+    ExchangeNetflow: 'exchange_netflow',
+    MayerMultiple: 'mayer_multiple',
+    FundingRate: 'funding_rate',
+    BollingerBands: 'bollinger_bands',
     // A股特有指标
-    TurnoverRate: '换手率',
-    VolumeRatio: '量比',
-    PE: '市盈率',
-    PB: '市净率',
-    PS: '市销率',
-    DividendYield: '股息率',
-    TotalMarketValue: '总市值',
-    CircMarketValue: '流通市值',
+    TurnoverRate: 'turnover_rate',
+    VolumeRatio: 'volume_ratio',
+    PE: 'pe_ratio',
+    PB: 'pb_ratio',
+    PS: 'ps_ratio',
+    DividendYield: 'dividend_yield',
+    TotalMarketValue: 'total_market_value',
+    CircMarketValue: 'circ_market_value',
   }
 
-  // 英文显示名称
-  const englishNames: Record<string, string> = {
-    ExchangeNetflow: 'Exchange Flow',
-    MayerMultiple: 'Mayer Multi',
-    FundingRate: 'Funding Rate',
-    BollingerBands: 'Bollinger',
-    // A股特有指标
-    TurnoverRate: 'Turnover Rate',
-    VolumeRatio: 'Volume Ratio',
-    PE: 'P/E Ratio',
-    PB: 'P/B Ratio',
-    PS: 'P/S Ratio',
-    DividendYield: 'Dividend Yield',
-    TotalMarketValue: 'Total Market Cap',
-    CircMarketValue: 'Circ Market Cap',
+  // 获取对应的翻译键
+  const translationKey = indicatorKeyMap[key]
+
+  if (translationKey) {
+    // 使用i18n翻译系统
+    try {
+      return t(`indicators.${translationKey}`)
+    } catch (e) {
+      console.warn(`[getIndicatorDisplayName] 翻译键不存在: indicators.${translationKey}`)
+      return key
+    }
   }
 
-  // 根据当前语言返回对应名称
-  if (currentLang === 'zh-CN') {
-    return chineseNames[key] || key
-  } else {
-    return englishNames[key] || key
-  }
+  // 如果没有找到映射，返回原始键名
+  return key
 }
 
 // 提取A股特有指标

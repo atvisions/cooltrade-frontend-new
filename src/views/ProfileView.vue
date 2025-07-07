@@ -260,7 +260,6 @@ const fetchUserInfo = async () => {
   if (!isLoggedIn.value) return;
 
   try {
-
     // 先尝试从本地存储获取用户信息
     const savedUserInfo = localStorage.getItem('userInfo');
     if (savedUserInfo) {
@@ -268,50 +267,93 @@ const fetchUserInfo = async () => {
         const parsedInfo = JSON.parse(savedUserInfo);
         userInfo.value = parsedInfo;
       } catch (e) {
+        console.warn('[fetchUserInfo] 解析本地用户信息失败:', e);
       }
     }
 
     // 检查是否在扩展环境中
     const isExtension = window.location.protocol === 'chrome-extension:';
+
+    let response;
     if (isExtension) {
-      return;
+      // 在扩展环境中，通过代理请求获取用户信息
+      try {
+        const { proxyRequest } = await import('@/api/proxy');
+        response = await proxyRequest({
+          url: '/auth/profile/',
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json'
+          }
+        });
+        console.log('[fetchUserInfo] 扩展环境下获取用户信息成功');
+      } catch (proxyError) {
+        console.warn('[fetchUserInfo] 扩展环境下获取用户信息失败:', proxyError);
+        return; // 使用本地缓存的信息
+      }
+    } else {
+      // 在网页环境中，使用普通API请求
+      response = await api.get('/auth/profile/');
     }
-
-    // 然后从服务器获取最新信息，使用统一的 API 实例
-    const response = await api.get('/auth/profile/');
-
 
     const data = response.data;
     if (data?.status === 'success' && data?.data) {
       userInfo.value = data.data;
       // 更新本地存储
       localStorage.setItem('userInfo', JSON.stringify(data.data));
+
+      // 同步语言设置到localStorage
+      if (data.data.language) {
+        localStorage.setItem('language', data.data.language);
+        console.log(`[fetchUserInfo] 从数据库同步语言设置: ${data.data.language}`);
+      }
     }
   } catch (error) {
-    // 获取用户信息失败，使用本地存储的信息
+    console.warn('[fetchUserInfo] 获取用户信息失败，使用本地存储的信息:', error);
   }
 }
 
 // 更新用户语言设置
 const updateUserLanguage = async (lang: string) => {
   try {
-    // 在扩展环境中，只更新本地存储，不发送 API 请求
+    // 检查是否在扩展环境中
     const isExtension = window.location.protocol === 'chrome-extension:';
-
-    if (!isExtension) {
-      // 在网页环境中，发送 API 请求，使用统一的 API 实例
-      await api.put('/auth/profile/', { language: lang });
-    } else {
-    }
 
     // 更新本地用户信息
     userInfo.value.language = lang;
     localStorage.setItem('userInfo', JSON.stringify(userInfo.value));
-  } catch (error) {
 
-    // 即使 API 请求失败，也更新本地存储
+    // 同时更新language localStorage项，确保一致性
+    localStorage.setItem('language', lang);
+
+    if (!isExtension) {
+      // 在网页环境中，发送 API 请求保存到数据库
+      await api.put('/auth/profile/', { language: lang });
+      console.log(`[updateUserLanguage] 语言设置已保存到数据库: ${lang}`);
+    } else {
+      // 在扩展环境中，通过代理请求保存到数据库
+      try {
+        const { proxyRequest } = await import('@/api/proxy');
+        await proxyRequest({
+          url: '/auth/profile/',
+          method: 'PUT',
+          data: { language: lang },
+          headers: {
+            'Content-Type': 'application/json'
+          }
+        });
+        console.log(`[updateUserLanguage] 扩展环境下语言设置已保存到数据库: ${lang}`);
+      } catch (proxyError) {
+        console.warn(`[updateUserLanguage] 扩展环境下保存语言设置失败:`, proxyError);
+        // 即使API请求失败，本地设置已经更新
+      }
+    }
+  } catch (error) {
+    console.error(`[updateUserLanguage] 更新语言设置失败:`, error);
+    // 即使 API 请求失败，也确保本地存储已更新
     userInfo.value.language = lang;
     localStorage.setItem('userInfo', JSON.stringify(userInfo.value));
+    localStorage.setItem('language', lang);
   }
 }
 
@@ -361,23 +403,28 @@ const setupLanguageChangeListener = () => {
 }
 
 onMounted(async () => {
-  // 先获取用户信息
+  // 先获取用户信息（包括从数据库获取语言设置）
   await fetchUserInfo();
 
-  // 确保当前语言与存储的语言一致
+  // 获取最新的语言设置（fetchUserInfo可能已经更新了localStorage中的language）
   const storedLang = localStorage.getItem('language') || 'en-US';
 
-  // 如果用户已登录，优先使用用户的语言设置
+  // 如果用户已登录，优先使用数据库中的语言设置
   if (isLoggedIn.value && userInfo.value.language) {
-    // 只有当用户语言与当前语言不同时才设置
+    console.log(`[ProfileView] 用户已登录，数据库语言设置: ${userInfo.value.language}, 本地语言设置: ${storedLang}`);
+
+    // 确保数据库中的语言设置与本地设置一致
     if (userInfo.value.language !== storedLang) {
+      console.log(`[ProfileView] 应用数据库中的语言设置: ${userInfo.value.language}`);
       setLanguage(userInfo.value.language);
+      currentLanguage.value = userInfo.value.language;
     } else {
-      // 确保当前组件的语言与存储的语言一致
-      currentLanguage.value = storedLang;
+      // 确保当前组件的语言与数据库设置一致
+      currentLanguage.value = userInfo.value.language;
     }
   } else {
-    // 确保当前组件的语言与存储的语言一致
+    // 用户未登录或没有语言设置，使用本地存储的语言
+    console.log(`[ProfileView] 使用本地语言设置: ${storedLang}`);
     currentLanguage.value = storedLang;
   }
 

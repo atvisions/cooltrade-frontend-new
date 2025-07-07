@@ -187,7 +187,14 @@ export default {
     funding_rate: '資金調達率',
     exchange_netflow: '取引所ネットフロー',
     nupl: 'NUPL',
-    mayer_multiple: 'メイヤー倍数'
+    mayer_multiple: 'メイヤー倍数',
+    // A股特有指標
+    turnover_rate: '回転率',
+    volume_ratio: '出来高比率',
+    pe_ratio: 'PER',
+    pb_ratio: 'PBR',
+    ps_ratio: 'PSR',
+    dividend_yield: '配当利回り'
   },
   errors: {
     network_error: 'ネットワークエラー',
@@ -250,7 +257,16 @@ export default {
     MayerMultiple: 'メイヤー・マルチプル、現在価格と200日移動平均線の比率です。',
     MACD: '移動平均収束拡散法（MACD）、トレンドの強さや転換点を判断します。',
     BollingerBands: 'ボリンジャーバンド、価格の変動性やサポート・レジスタンスを測定します。',
-    DMI: '方向性指数（DMI）、トレンドの方向や強さを判断します。'
+    DMI: '方向性指数（DMI）、トレンドの方向や強さを判断します。',
+    // A株特有指標の説明
+    TurnoverRate: '回転率、一定期間内の出来高と流通株式数の比率で、株式の活発度を示します。',
+    VolumeRatio: '出来高比率、当日の出来高と過去5日間の平均出来高の比率で、出来高の相対的変化を示します。',
+    PE: '株価収益率（PER）、株価と1株当たり利益の比率で、株式の評価水準を示します。',
+    PB: '株価純資産倍率（PBR）、株価と1株当たり純資産の比率で、純資産に対する株式の評価を示します。',
+    PS: '株価売上高倍率（PSR）、株価と1株当たり売上高の比率で、売上高に対する企業の評価を示します。',
+    DividendYield: '配当利回り、1株当たり配当と株価の比率で、株式の配当収益率を示します。',
+    TotalMarketValue: '時価総額、企業の全株式の市場価値の合計で、企業規模を示します。',
+    CircMarketValue: '流通時価総額、自由に取引可能な株式の市場価値で、実際に取引可能な時価総額規模を示します。'
   },
   market: {
     crypto: '暗号通貨',

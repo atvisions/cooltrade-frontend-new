@@ -862,7 +862,8 @@ export const points = {
       }
 
       // 非扩展环境使用普通请求
-      const response = await api.post('/auth/claim-temporary-invitation/', {
+      const fullUrl = `${getBaseUrl()}/auth/claim-temporary-invitation/`
+      const response = await axios.post(fullUrl, {
         temporary_invitation_uuid: uuid
       });
       return response as unknown as ApiResponse<null>;

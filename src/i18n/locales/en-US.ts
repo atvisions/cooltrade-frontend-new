@@ -173,7 +173,16 @@ export default {
     funding_rate: 'Funding Rate',
     exchange_netflow: 'Exchange Netflow',
     nupl: 'NUPL',
-    mayer_multiple: 'Mayer Multiple'
+    mayer_multiple: 'Mayer Multiple',
+    // A-share specific indicators
+    turnover_rate: 'Turnover Rate',
+    volume_ratio: 'Volume Ratio',
+    pe_ratio: 'P/E Ratio',
+    pb_ratio: 'P/B Ratio',
+    ps_ratio: 'P/S Ratio',
+    dividend_yield: 'Dividend Yield',
+    total_market_value: 'Total Market Cap',
+    circ_market_value: 'Circ Market Cap'
   },
   errors: {
     network_error: 'Network Error',
