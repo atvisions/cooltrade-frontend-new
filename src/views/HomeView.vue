@@ -3,6 +3,8 @@
     <!-- 主容器 -->
     <div class="relative max-w-[375px] w-full mx-auto bg-slate-900/95 backdrop-blur-sm h-full shadow-2xl flex flex-col">
 
+
+
       <!-- 新的顶部导航 -->
       <MarketHeader
         v-model="currentMarketType"
@@ -380,7 +382,7 @@
                       <!-- 保存图片 -->
                       <el-tooltip :content="t('analysis.save_image')" placement="top">
                         <button
-                          @click="saveChartImage"
+                          @click="handleSaveImageClick"
                           class="group/save relative p-1.5 rounded-lg transition-all duration-300 hover:scale-105 bg-slate-600/15 text-slate-400 hover:bg-slate-600/25 border border-slate-600/40 hover:border-slate-500/60 hover:shadow-md hover:shadow-slate-500/20"
                         >
                           <i class="ri-image-line text-xs transition-transform duration-200 group-hover/save:scale-110"></i>
@@ -514,36 +516,69 @@
                 </div>
               </div>
 
-              <!-- 市场趋势分析 -->
-              <div v-if="analysisData?.trend_analysis?.summary">
-                <h3 class="text-base font-bold text-white mb-3 flex items-center">
-                  <div class="w-0.5 bg-gradient-to-b from-blue-400 to-purple-400 rounded-full mr-2" style="height: 20px;"></div>
-                  {{ t('analysis.market_trend_analysis') }}
-                </h3>
-                <div class="group p-4 rounded-xl bg-gradient-to-br from-slate-800/60 to-slate-900/60 border border-slate-700/50 hover:border-slate-600/60 transition-all duration-300 hover:shadow-md hover:shadow-blue-500/10">
-                  <div class="flex items-start space-x-3">
-                    <div class="w-6 h-6 bg-blue-500/20 rounded-lg flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform duration-200">
-                      <i class="ri-line-chart-line text-blue-400 text-sm"></i>
+              <!-- 高级分析报告区域 -->
+              <div v-if="analysisData?.trend_analysis?.summary || analysisData?.indicators_analysis || analysisData?.risk_assessment">
+                <!-- 折叠/展开按钮 -->
+                <div class="mb-4">
+                  <button
+                    @click="showDetailedAnalysis ? (showDetailedAnalysis = false) : handleViewDetailsClick()"
+                    class="w-full p-4 rounded-xl bg-gradient-to-br from-slate-800/60 to-slate-900/60 border border-slate-700/50 hover:border-slate-600/60 transition-all duration-300 hover:shadow-md hover:shadow-blue-500/10"
+                  >
+                    <div class="flex items-center justify-between">
+                      <div class="flex items-center space-x-3">
+                        <div class="w-8 h-8 bg-gradient-to-r from-blue-500 to-purple-500 rounded-lg flex items-center justify-center">
+                          <i class="ri-bar-chart-line text-white text-lg"></i>
+                        </div>
+                        <div class="text-left">
+                          <h3 class="text-base font-bold text-white">{{ t('analysis.detailed_analysis_report') }}</h3>
+                          <p class="text-xs text-slate-400">
+                            {{ t('analysis.expand_view_market_trend_technical_risk') }}
+
+                          </p>
+                        </div>
+                      </div>
+                      <div class="flex items-center space-x-2">
+                        <i
+                          class="text-slate-400 text-lg transition-transform duration-300"
+                          :class="showDetailedAnalysis ? 'ri-arrow-up-s-line' : 'ri-arrow-down-s-line'"
+                        ></i>
+                      </div>
                     </div>
-                    <div class="flex-1">
-                      <p class="text-sm text-slate-200 leading-relaxed">
-                        <span v-if="loadingTranslation" class="text-slate-400">翻译中...</span>
-                        <span v-else>{{ translatedSummary }}</span>
-                      </p>
+                  </button>
+                </div>
+
+                <!-- 详细分析内容 -->
+                <div v-if="showDetailedAnalysis" class="space-y-6">
+                  <!-- 市场趋势分析 -->
+                  <div v-if="analysisData?.trend_analysis?.summary">
+                    <h3 class="text-base font-bold text-white mb-3 flex items-center">
+                      <div class="w-0.5 bg-gradient-to-b from-blue-400 to-purple-400 rounded-full mr-2" style="height: 20px;"></div>
+                      {{ t('analysis.market_trend_analysis') }}
+                    </h3>
+                    <div class="group p-4 rounded-xl bg-gradient-to-br from-slate-800/60 to-slate-900/60 border border-slate-700/50 hover:border-slate-600/60 transition-all duration-300 hover:shadow-md hover:shadow-blue-500/10">
+                      <div class="flex items-start space-x-3">
+                        <div class="w-6 h-6 bg-blue-500/20 rounded-lg flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform duration-200">
+                          <i class="ri-line-chart-line text-blue-400 text-sm"></i>
+                        </div>
+                        <div class="flex-1">
+                          <p class="text-sm text-slate-200 leading-relaxed">
+                            <span v-if="loadingTranslation" class="text-slate-400">翻译中...</span>
+                            <span v-else>{{ translatedSummary }}</span>
+                          </p>
+                        </div>
+                      </div>
                     </div>
                   </div>
-                </div>
-              </div>
 
-              <!-- 技术指标分析 -->
-              <div v-if="analysisData?.indicators_analysis">
-                <h3 class="text-base font-bold text-white mb-3 flex items-center">
-                  <div class="w-0.5 bg-gradient-to-b from-cyan-400 to-blue-400 rounded-full mr-2" style="height: 20px;"></div>
-                  {{ t('analysis.technical_indicators') }}
-                </h3>
+                  <!-- 技术指标分析 -->
+                  <div v-if="analysisData?.indicators_analysis">
+                    <h3 class="text-base font-bold text-white mb-3 flex items-center">
+                      <div class="w-0.5 bg-gradient-to-b from-cyan-400 to-blue-400 rounded-full mr-2" style="height: 20px;"></div>
+                      {{ t('analysis.technical_indicators') }}
+                    </h3>
 
-                <!-- 单参数指标网格 -->
-                <div class="grid grid-cols-2 gap-2 mb-4">
+                    <!-- 单参数指标网格 -->
+                    <div class="grid grid-cols-2 gap-2 mb-4">
                   <template v-for="(indicator, key) in analysisData?.indicators_analysis" :key="key">
                     <div v-if="!['MACD','BollingerBands','DMI'].includes(key) && shouldShowIndicator(key)" class="group p-3 rounded-xl bg-slate-800/40 border border-slate-700/50 hover:border-slate-600/60 transition-all duration-300 hover:scale-105 hover:shadow-md hover:shadow-slate-500/10">
                       <div class="flex items-center justify-between mb-2">
@@ -638,7 +673,7 @@
                     </div>
                   </template>
                 </div>
-              </div>
+                  </div>
 
               <!-- A股特有指标 - 集成到技术指标中显示 -->
 
@@ -722,12 +757,12 @@
                 </div>
               </div>
 
-              <!-- 风险评估 -->
-              <div v-if="analysisData?.risk_assessment">
-                <h3 class="text-base font-bold text-white mb-3 flex items-center">
-                  <div class="w-0.5 bg-gradient-to-b from-red-400 to-orange-400 rounded-full mr-2" style="height: 20px;"></div>
-                  {{ t('analysis.risk_assessment') }}
-                </h3>
+                  <!-- 风险评估 -->
+                  <div v-if="analysisData?.risk_assessment">
+                    <h3 class="text-base font-bold text-white mb-3 flex items-center">
+                      <div class="w-0.5 bg-gradient-to-b from-red-400 to-orange-400 rounded-full mr-2" style="height: 20px;"></div>
+                      {{ t('analysis.risk_assessment') }}
+                    </h3>
                 <div class="group p-4 rounded-xl bg-gradient-to-br from-slate-800/60 to-slate-900/60 border border-slate-700/50 hover:border-slate-600/60 transition-all duration-300 hover:shadow-md hover:shadow-red-500/10 space-y-3">
 
                   <!-- 风险等级 -->
@@ -782,6 +817,8 @@
                     </div>
                   </div>
                 </div>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -820,38 +857,7 @@
             </div>
           </div>
 
-          <!-- 空状态 -->
-          <div v-else-if="!analysisData && !loading && !analysisLoading && !error && !isTokenNotFound">
-            <div class="px-4 w-full">
-            <!-- 空状态卡片 -->
-            <div class="relative overflow-hidden rounded-2xl bg-gradient-to-br from-slate-600/10 via-gray-600/10 to-zinc-600/10 p-6 backdrop-blur-sm border border-slate-500/20">
-              <div class="absolute inset-0 bg-gradient-to-br from-slate-500/5 via-gray-500/5 to-zinc-500/5"></div>
-              <div class="relative text-center space-y-4">
-                <!-- 图标 -->
-                <div class="w-16 h-16 mx-auto bg-slate-500/20 rounded-full flex items-center justify-center">
-                  <i class="ri-database-line text-3xl text-slate-400"></i>
-                </div>
 
-                <!-- 标题 -->
-                <h3 class="text-xl font-bold text-white">暂无数据</h3>
-
-                <!-- 描述 -->
-                <p class="text-slate-300 text-sm">{{ t('common.no_data') }}</p>
-              </div>
-            </div>
-
-            <!-- 加载数据按钮卡片 -->
-            <div class="p-4 rounded-2xl bg-slate-800/40 border border-slate-700/50">
-              <button
-                @click="() => loadAnalysisData()"
-                class="w-full px-6 py-3 bg-blue-500/15 hover:bg-blue-500/25 text-blue-400 rounded-xl font-medium transition-all duration-200 hover:scale-[1.02] border border-blue-500/30 flex items-center justify-center space-x-2"
-              >
-                <i class="ri-download-line text-lg"></i>
-                <span>{{ t('common.load_data') }}</span>
-              </button>
-            </div>
-            </div>
-          </div>
 
           <!-- 加载状态 -->
           <div v-else-if="loading || analysisLoading">
@@ -890,6 +896,116 @@
         :visible="isRefreshing"
         type="refresh"
       />
+
+      <!-- 会员升级弹窗 -->
+      <MembershipUpgradeModal
+        :visible="showMembershipModal"
+        :is-premium="userMembershipStatus.is_premium_active"
+        @close="showMembershipModal = false"
+        @success="handleMembershipSuccess"
+      />
+
+      <!-- 积分确认弹窗 -->
+      <div v-if="showPointsConfirmModal" class="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4">
+        <div class="bg-gray-900 rounded-lg w-full max-w-sm overflow-hidden">
+          <div class="p-4 border-b border-gray-800">
+            <h3 class="text-lg font-medium text-white">{{ t('membership.confirm_points_usage') }}</h3>
+          </div>
+          <div class="p-4">
+            <div class="mb-4">
+              <div class="flex items-center space-x-3 mb-3">
+                <div class="w-10 h-10 bg-yellow-500/20 rounded-lg flex items-center justify-center">
+                  <i class="ri-coin-line text-yellow-400 text-lg"></i>
+                </div>
+                <div>
+                  <p class="text-white font-medium">{{ t('membership.view_detailed_report') }}</p>
+                  <p class="text-gray-400 text-sm">
+                    {{ t('membership.points_required_description_dynamic', {
+                      points: pointsConfig?.required_points || 10,
+                      duration: currentLanguage === 'zh-CN' ? (pointsConfig?.duration_text || '24小时') : (pointsConfig?.duration_text_en || '24 hours')
+                    }) }}
+                  </p>
+                </div>
+              </div>
+
+              <div class="bg-gray-800 rounded-lg p-3 mb-4">
+                <div class="flex justify-between items-center mb-2">
+                  <span class="text-gray-400 text-sm">{{ t('membership.current_points') }}:</span>
+                  <span class="text-white font-bold">{{ userMembershipStatus.points }}</span>
+                </div>
+                <div class="flex justify-between items-center mb-2">
+                  <span class="text-gray-400 text-sm">{{ t('membership.points_to_spend') }}:</span>
+                  <span class="text-yellow-400 font-bold">-10</span>
+                </div>
+                <div class="border-t border-gray-700 pt-2">
+                  <div class="flex justify-between items-center">
+                    <span class="text-gray-400 text-sm">{{ t('membership.remaining_points') }}:</span>
+                    <span class="text-white font-bold">{{ userMembershipStatus.points - 10 }}</span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="bg-blue-500/10 border border-blue-500/30 rounded-lg p-3">
+                <p class="text-blue-400 text-sm">
+                  <i class="ri-information-line mr-1"></i>
+                  {{ t('membership.upgrade_tip') }}
+                </p>
+              </div>
+            </div>
+          </div>
+          <div class="p-4 border-t border-gray-800 flex space-x-3">
+            <button
+              @click="showPointsConfirmModal = false"
+              class="flex-1 py-2 px-4 bg-gray-700 text-white rounded-lg font-medium hover:bg-gray-600 transition-colors"
+            >
+              {{ t('common.cancel') }}
+            </button>
+            <button
+              @click="confirmSpendPoints"
+              class="flex-1 py-2 px-4 bg-gradient-to-r from-yellow-500 to-orange-500 text-white rounded-lg font-medium hover:from-yellow-600 hover:to-orange-600 transition-all"
+            >
+              {{ t('common.confirm') }}
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 保存图片积分确认弹窗 -->
+      <div v-if="showSaveImageConfirmModal" class="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4">
+        <div class="bg-gray-900 rounded-lg w-full max-w-sm overflow-hidden">
+          <div class="p-4 border-b border-gray-800">
+            <h3 class="text-lg font-medium text-white">{{ t('membership.confirm_points_usage') }}</h3>
+          </div>
+          <div class="p-4">
+            <div class="text-center mb-4">
+              <div class="w-16 h-16 bg-blue-500/20 rounded-full flex items-center justify-center mx-auto mb-3">
+                <i class="ri-image-line text-2xl text-blue-400"></i>
+              </div>
+              <p class="text-gray-300 text-sm mb-2">{{ t('analysis.save_image_confirm') }}</p>
+              <p class="text-gray-400 text-xs">
+                {{ t('membership.points_usage_desc', {
+                  points: pointsConfig?.required_points || 10,
+                  duration: pointsConfig?.duration_text || '24小时'
+                }) }}
+              </p>
+            </div>
+            <div class="flex space-x-3">
+              <button
+                @click="showSaveImageConfirmModal = false"
+                class="flex-1 py-2 px-4 bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition-colors text-sm"
+              >
+                {{ t('common.cancel') }}
+              </button>
+              <button
+                @click="confirmSpendPointsForSaveImage"
+                class="flex-1 py-2 px-4 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors text-sm"
+              >
+                {{ t('membership.confirm_spend') }}
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 </template>
@@ -908,7 +1024,7 @@ import { useI18n } from 'vue-i18n'
 const { t } = useEnhancedI18n()
 const { t: i18nT, locale } = useI18n()
 
-import { getTechnicalAnalysis, getLatestTechnicalAnalysis, favorites, search } from '@/api'
+import { getTechnicalAnalysis, getLatestTechnicalAnalysis, favorites, search, membership, pointsApi, points } from '@/api'
 import { parseSymbolFromUrl } from '@/utils/trading'
 import type {
   FormattedTechnicalAnalysisData
@@ -926,6 +1042,7 @@ import ChinaStockIndicators from '@/components/ChinaStockIndicators.vue'
 // @ts-ignore
 import { googleTranslate } from '@/utils/translate'
 import BottomTabBar from '@/components/BottomTabBar.vue'
+import MembershipUpgradeModal from '@/components/MembershipUpgradeModal.vue'
 import axios from 'axios'
 
 // Asset interface for search
@@ -975,6 +1092,19 @@ const currentSymbol = ref<string>(initialSymbol)
 const isTokenNotFound = ref(false) // 用于标记代币是否未找到（404错误）
 const refreshAttempts = ref(0) // 记录刷新尝试次数，防止无限循环
 const maxRefreshAttempts = 2 // 最大刷新尝试次数
+
+// 会员相关状态
+const userMembershipStatus = ref({
+  is_premium_active: false,
+  points: 0,
+  membership_status: 'regular'
+})
+const showMembershipModal = ref(false)
+const showPremiumFeatureModal = ref(false)
+const showDetailedAnalysis = ref(false)
+const showPointsConfirmModal = ref(false)
+const showSaveImageConfirmModal = ref(false)
+const pointsConfig = ref<any>(null)
 const activePanel = ref<'search' | 'favorites' | null>(null)
 const searchQuery = ref('')
 const searchResults = ref<any[]>([])
@@ -1040,11 +1170,208 @@ const getPopularSearches = () => {
   return popularAssets.value.slice(0, 8) // 取前8个
 }
 
+// 获取用户会员状态
+const fetchUserMembershipStatus = async () => {
+  try {
+    const token = localStorage.getItem('token')
+    if (!token) {
+      return
+    }
+
+    const response = await membership.getStatus()
+
+    if (response.status === 'success' && response.data) {
+      userMembershipStatus.value = {
+        is_premium_active: response.data.is_premium_active || response.data.is_premium,
+        points: response.data.points || 0,
+        membership_status: response.data.membership_status || 'regular'
+      }
+      // 总是尝试从积分API获取最新数据以确保数据同步
+      try {
+        const pointsResponse = await points.getInvitationInfo()
+        if (pointsResponse.status === 'success' && pointsResponse.data) {
+          // 使用积分API的数据，因为它通常更准确
+          userMembershipStatus.value.points = pointsResponse.data.points
+          // 强制触发响应式更新
+          userMembershipStatus.value = { ...userMembershipStatus.value }
+        }
+      } catch (pointsError) {
+        console.warn('从积分API获取数据失败:', pointsError)
+      }
+    }
+  } catch (error) {
+    console.warn('获取会员状态失败:', error)
+  }
+}
+
+// 检查是否可以查看高级功能
+const canViewPremiumFeature = () => {
+  return userMembershipStatus.value.is_premium_active || userMembershipStatus.value.points >= 10
+}
+
+// 处理查看详情点击
+const handleViewDetails = async () => {
+  if (userMembershipStatus.value.is_premium_active) {
+    // 会员用户直接显示详情
+    return true
+  }
+
+  if (userMembershipStatus.value.points >= 10) {
+    // 积分足够，扣除积分
+    try {
+      const response = await pointsApi.spendPoints()
+      if (response.status === 'success') {
+        // 更新积分 - 根据后端实际响应结构访问
+        userMembershipStatus.value.points = (response as any).remaining_points
+        return true
+      }
+    } catch (error) {
+      console.error('扣除积分失败:', error)
+    }
+  }
+
+  // 积分不足或非会员，显示升级提示
+  showPremiumFeatureModal.value = true
+  return false
+}
+
+// 处理会员升级成功
+const handleMembershipSuccess = async () => {
+  await fetchUserMembershipStatus()
+  showMembershipModal.value = false
+}
+
+// 获取积分配置
+const loadPointsConfig = async () => {
+  try {
+    const response = await pointsApi.getPointsConfig()
+    pointsConfig.value = response
+  } catch (error) {
+    console.error('获取积分配置失败:', error)
+    // 使用默认配置
+    pointsConfig.value = {
+      duration_minutes: 1440,
+      duration_text: '24小时',
+      duration_text_en: '24 hours',
+      required_points: 10
+    }
+  }
+}
+
+// 处理查看详情按钮点击
+const handleViewDetailsClick = async () => {
+  // 先刷新用户状态，确保获取最新数据
+  await fetchUserMembershipStatus()
+
+  if (userMembershipStatus.value.is_premium_active) {
+    // 会员用户直接展开
+    showDetailedAnalysis.value = true
+  } else {
+    // 检查是否有24小时内的积分访问权限
+    try {
+      const accessResponse = await pointsApi.checkPremiumAccess()
+
+      if ((accessResponse as any).has_access) {
+        // 有访问权限，直接展开
+        showDetailedAnalysis.value = true
+      } else if (userMembershipStatus.value.points >= 10) {
+        // 积分足够，先加载配置，然后显示确认弹窗
+        await loadPointsConfig()
+        showPointsConfirmModal.value = true
+      } else {
+        // 积分不足，显示升级会员弹窗
+        console.log('❌ 积分不足，显示升级会员弹窗')
+        showMembershipModal.value = true
+      }
+    } catch (error) {
+      console.error('检查访问权限失败:', error)
+      // 如果检查失败，按原逻辑处理
+      if (userMembershipStatus.value.points >= 10) {
+        console.log('💰 检查失败但积分足够，显示积分确认弹窗')
+        await loadPointsConfig()
+        showPointsConfirmModal.value = true
+      } else {
+        console.log('❌ 检查失败且积分不足，显示升级会员弹窗')
+        showMembershipModal.value = true
+      }
+    }
+  }
+}
+
+// 确认消费积分
+const confirmSpendPoints = async () => {
+  try {
+    const response = await pointsApi.spendPoints()
+    if (response.status === 'success') {
+      // 更新积分 - 根据后端实际响应结构访问
+      userMembershipStatus.value.points = (response as any).remaining_points
+      // 展开详细分析
+      showDetailedAnalysis.value = true
+      // 关闭确认弹窗
+      showPointsConfirmModal.value = false
+    }
+  } catch (error) {
+    console.error('消费积分失败:', error)
+    // 可以显示错误提示
+  }
+}
+
+// 处理保存图片按钮点击
+const handleSaveImageClick = async () => {
+  if (userMembershipStatus.value.is_premium_active) {
+    // 会员用户直接保存图片
+    await saveChartImage()
+  } else {
+    // 检查是否有24小时内的积分访问权限
+    try {
+      const accessResponse = await pointsApi.checkPremiumAccess()
+      if ((accessResponse as any).has_access) {
+        // 有访问权限，直接保存图片
+        await saveChartImage()
+      } else if (userMembershipStatus.value.points >= 10) {
+        // 积分足够，先加载配置，然后显示确认弹窗
+        await loadPointsConfig()
+        showSaveImageConfirmModal.value = true
+      } else {
+        // 积分不足，显示升级会员弹窗
+        showMembershipModal.value = true
+      }
+    } catch (error) {
+      console.error('检查访问权限失败:', error)
+      // 如果检查失败，按原逻辑处理
+      if (userMembershipStatus.value.points >= 10) {
+        await loadPointsConfig()
+        showSaveImageConfirmModal.value = true
+      } else {
+        showMembershipModal.value = true
+      }
+    }
+  }
+}
+
+// 确认消费积分保存图片
+const confirmSpendPointsForSaveImage = async () => {
+  try {
+    const response = await pointsApi.spendPointsForImage()
+    if (response.status === 'success') {
+      // 更新积分 - 根据后端实际响应结构访问
+      userMembershipStatus.value.points = (response as any).remaining_points
+      // 保存图片
+      await saveChartImage()
+      // 关闭确认弹窗
+      showSaveImageConfirmModal.value = false
+    }
+  } catch (error) {
+    console.error('消费积分失败:', error)
+    // 可以显示错误提示
+  }
+}
+
 // 加载热门资产数据
 const loadPopularAssets = async () => {
   try {
     const response = await search.getPopularAssets(currentMarketType.value as 'crypto' | 'stock')
-    
+
     if (response.status === 'success' && response.data) {
       // 过滤并格式化热门资产数据
       const filteredAssets = response.data
@@ -1090,23 +1417,18 @@ const loadPopularAssets = async () => {
 
 // 验证symbol是否适合指定的市场类型
 const isValidSymbolForMarket = (symbol: string, marketType: 'crypto' | 'stock' | 'china'): boolean => {
-  console.log(`[DEBUG] 验证symbol ${symbol} 是否适合市场类型 ${marketType}`)
-
   if (String(marketType) === 'crypto') {
     // 加密货币应该包含USDT、BTC、ETH等
     const isValid = symbol.includes('USDT') || symbol.includes('BTC') || symbol.includes('ETH') || symbol.endsWith('USD')
-    console.log(`[DEBUG] 加密货币验证结果: ${isValid}`)
     return isValid
   } else if (String(marketType) === 'stock') {
     // 股票不应该包含USDT等加密货币标识，也不应该是A股格式
     const isValid = !symbol.includes('USDT') && !symbol.includes('BTC') && !symbol.includes('ETH') &&
                    !symbol.endsWith('USD') && !symbol.includes('.SZ') && !symbol.includes('.SH')
-    console.log(`[DEBUG] 美股验证结果: ${isValid}`)
     return isValid
   } else if (String(marketType) === 'china') {
     // A股应该包含.SZ或.SH后缀，或者是6位数字开头
     const isValid = symbol.includes('.SZ') || symbol.includes('.SH') || /^\d{6}/.test(symbol)
-    console.log(`[DEBUG] A股验证结果: ${isValid}`)
     return isValid
   }
   return true
@@ -1130,7 +1452,6 @@ const handleMarketTypeChange = (marketType: 'crypto' | 'stock' | 'china') => {
 
   // 恢复该市场之前选中的资产，如果没有则使用默认资产
   let savedSymbol = getCurrentSymbolForMarket(marketType)
-  console.log(`[DEBUG] 市场类型 ${marketType} 的保存symbol: ${savedSymbol}`)
 
   // 验证保存的symbol是否适合当前市场类型
   if (!isValidSymbolForMarket(savedSymbol, marketType)) {
@@ -1139,18 +1460,15 @@ const handleMarketTypeChange = (marketType: 'crypto' | 'stock' | 'china') => {
     // 清理错误的localStorage数据
     const storageKey = `currentSymbol_${marketType}`
     localStorage.setItem(storageKey, savedSymbol)
-    console.log(`[DEBUG] 重置为默认symbol: ${savedSymbol}`)
   }
 
   // 特别处理A股市场类型，强制使用正确的默认值
   if (marketType === 'china') {
     const defaultChinaSymbol = '000001.SZ'
-    console.log(`[DEBUG] A股市场强制使用默认symbol: ${defaultChinaSymbol}`)
     savedSymbol = defaultChinaSymbol
     localStorage.setItem('currentSymbol_china', savedSymbol)
   }
 
-  console.log(`[DEBUG] 最终切换到symbol: ${savedSymbol}`)
   switchToAsset(savedSymbol, marketType)
 }
 
@@ -2087,6 +2405,9 @@ onMounted(async () => {
     window.location.href = '/login';
     return;
   }
+
+  // 获取用户会员状态
+  await fetchUserMembershipStatus()
 
   // 设置loading状态
   loading.value = true;
@@ -3219,10 +3540,7 @@ if (typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.onMessage)
 const isRefreshing = ref(false)
 let refreshPromise: Promise<any> | null = null
 
-// 调试：监控 isRefreshing 状态变化
-watch(isRefreshing, (newVal) => {
-  console.log('isRefreshing changed to:', newVal)
-}, { immediate: true })
+
 
 // 刷新报告处理函数 - 直接使用生成的报告数据
 const handleRefreshReport = async () => {

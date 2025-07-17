@@ -437,6 +437,49 @@ export interface ApiResponse<T> {
   data: T;
 }
 
+// 会员相关接口
+export interface MembershipPlan {
+  id: number;
+  name: string;
+  plan_type: 'monthly' | 'yearly';
+  price: string;
+  duration_days: number;
+  is_active: boolean;
+}
+
+export interface MembershipOrder {
+  id: number;
+  order_id: string;
+  plan: number;
+  plan_name: string;
+  plan_type: string;
+  amount: string;
+  status: 'pending' | 'paid' | 'expired' | 'cancelled';
+  payment_method: string;
+  created_at: string;
+  paid_at?: string;
+  expires_at?: string;
+}
+
+export interface UserMembershipStatus {
+  id: number;
+  email: string;
+  is_premium: boolean;
+  premium_expires_at?: string;
+  membership_status: 'regular' | 'premium';
+  is_premium_active: boolean;
+  points: number;
+}
+
+export interface PointsTransaction {
+  id: number;
+  transaction_type: 'earn' | 'spend';
+  amount: number;
+  reason: 'invitation' | 'premium_analysis' | 'admin_adjust';
+  description: string;
+  created_at: string;
+}
+
 // Technical analysis interface return type
 export interface TechnicalAnalysisData {
   trend_analysis: {
@@ -729,48 +772,27 @@ export const points = {
   // Get invitation info and points
   getInvitationInfo: async (): Promise<ApiResponse<InvitationInfo>> => {
     try {
-      // 在扩展环境中使用代理请求
-      if (isExtension()) {
-        const response = await new Promise((resolve, reject) => {
-          chrome.runtime.sendMessage({
-            type: 'PROXY_API_REQUEST',
-            data: {
-              url: '/auth/invitation-info/',
-              method: 'GET',
-              headers: {
-                'Authorization': (() => {
-                  const token = localStorage.getItem('token');
-                  if (!token) return null;
-                  return token.startsWith('Token ') || token.startsWith('Bearer ') ? token : `Token ${token}`;
-                })(),
-                'Accept': 'application/json'
-              }
-            }
-          }, (response) => {
-            if (chrome.runtime.lastError) {
-              reject(new Error(chrome.runtime.lastError.message));
-              return;
-            }
-            if (response.success) {
-              resolve(response);
-            } else {
-              reject(new Error(response.error || '请求失败'));
-            }
-          });
-        });
-
-        // 处理代理请求的响应格式
-        if (response && (response as any).success && (response as any).data) {
-          const apiResponse = (response as any).data;
-          return apiResponse as ApiResponse<InvitationInfo>;
-        }
-        throw new Error('Invalid response format');
+      const token = localStorage.getItem('token');
+      if (!token) {
+        throw new Error('No authentication token');
       }
 
-      // 非扩展环境使用普通请求
-      const response = await api.get('/auth/invitation-info/');
-      return response as unknown as ApiResponse<InvitationInfo>;
-    } catch (error) {
+      if (isExtension()) {
+        const response = await proxyRequest({
+          url: '/auth/invitation-info/',
+          method: 'GET',
+          headers: {
+            'Authorization': token.startsWith('Token ') ? token : `Token ${token}`,
+            'Content-Type': 'application/json'
+          }
+        });
+        // 代理响应已经包含了处理后的数据，直接返回response.data
+        return response.data || response;
+      } else {
+        const response = await api.get('/auth/invitation-info/');
+        return response.data || response;
+      }
+    } catch (error: any) {
       throw error;
     }
   },
@@ -1238,5 +1260,266 @@ export const fetchNews = async (symbol: string, limit: number = 10, skipCache: b
     throw error
   }
 }
+
+// 会员相关API
+export const membership = {
+  // 获取会员套餐列表
+  getPlans: async (): Promise<ApiResponse<MembershipPlan[]>> => {
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        throw new Error('No authentication token');
+      }
+
+      if (isExtension()) {
+        const response = await proxyRequest({
+          url: '/auth/membership/plans/',
+          method: 'GET',
+          headers: {
+            'Authorization': token.startsWith('Token ') ? token : `Token ${token}`,
+            'Content-Type': 'application/json'
+          }
+        });
+        return response;
+      } else {
+        const response = await api.get('/auth/membership/plans/');
+        return response as any;
+      }
+    } catch (error: any) {
+      throw error;
+    }
+  },
+
+  // 创建会员订单
+  createOrder: async (planId: number, paymentMethod: string): Promise<ApiResponse<any>> => {
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        throw new Error('No authentication token');
+      }
+
+      const data = {
+        plan_id: planId,
+        payment_method: paymentMethod
+      };
+
+      if (isExtension()) {
+        const response = await proxyRequest({
+          url: '/auth/membership/orders/create/',
+          method: 'POST',
+          data,
+          headers: {
+            'Authorization': token.startsWith('Token ') ? token : `Token ${token}`,
+            'Content-Type': 'application/json'
+          }
+        });
+        return response;
+      } else {
+        const response = await api.post('/auth/membership/orders/create/', data);
+        return response as any;
+      }
+    } catch (error: any) {
+      throw error;
+    }
+  },
+
+  // 获取用户会员状态
+  getStatus: async (): Promise<ApiResponse<UserMembershipStatus>> => {
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        throw new Error('No authentication token');
+      }
+
+      if (isExtension()) {
+        const response = await proxyRequest({
+          url: '/auth/membership/status/',
+          method: 'GET',
+          headers: {
+            'Authorization': token.startsWith('Token ') ? token : `Token ${token}`,
+            'Content-Type': 'application/json'
+          }
+        });
+        // 代理响应已经包含了处理后的数据，直接返回response.data
+        return response.data || response;
+      } else {
+        const response = await api.get('/auth/membership/status/');
+        return response.data || response;
+      }
+    } catch (error: any) {
+      throw error;
+    }
+  },
+
+  // 获取用户订单列表
+  getOrders: async (): Promise<ApiResponse<MembershipOrder[]>> => {
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        throw new Error('No authentication token');
+      }
+
+      if (isExtension()) {
+        const response = await proxyRequest({
+          url: '/auth/membership/orders/',
+          method: 'GET',
+          headers: {
+            'Authorization': token.startsWith('Token ') ? token : `Token ${token}`,
+            'Content-Type': 'application/json'
+          }
+        });
+        return response;
+      } else {
+        const response = await api.get('/auth/membership/orders/');
+        return response as any;
+      }
+    } catch (error: any) {
+      throw error;
+    }
+  }
+};
+
+// 积分相关API
+export const pointsApi = {
+  // 消费积分查看高级分析
+  spendPoints: async (): Promise<ApiResponse<any>> => {
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        throw new Error('No authentication token');
+      }
+
+      if (isExtension()) {
+        const response = await proxyRequest({
+          url: '/auth/points/spend/',
+          method: 'POST',
+          headers: {
+            'Authorization': token.startsWith('Token ') ? token : `Token ${token}`,
+            'Content-Type': 'application/json'
+          }
+        });
+        // 代理响应已经包含了处理后的数据，直接返回response.data
+        return response.data || response;
+      } else {
+        const response = await api.post('/auth/points/spend/');
+        return response.data || response;
+      }
+    } catch (error: any) {
+      throw error;
+    }
+  },
+
+  // 消费积分保存图片
+  spendPointsForImage: async (): Promise<ApiResponse<any>> => {
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        throw new Error('No authentication token');
+      }
+
+      if (isExtension()) {
+        const response = await proxyRequest({
+          url: '/auth/points/spend-for-image/',
+          method: 'POST',
+          headers: {
+            'Authorization': token.startsWith('Token ') ? token : `Token ${token}`,
+            'Content-Type': 'application/json'
+          }
+        });
+        // 代理响应已经包含了处理后的数据，直接返回response.data
+        return response.data || response;
+      } else {
+        const response = await api.post('/auth/points/spend-for-image/');
+        return response.data || response;
+      }
+    } catch (error: any) {
+      throw error;
+    }
+  },
+
+  // 检查高级分析访问权限
+  checkPremiumAccess: async (): Promise<ApiResponse<any>> => {
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        throw new Error('No authentication token');
+      }
+
+      if (isExtension()) {
+        const response = await proxyRequest({
+          url: '/auth/points/check-access/',
+          method: 'GET',
+          headers: {
+            'Authorization': token.startsWith('Token ') ? token : `Token ${token}`,
+            'Content-Type': 'application/json'
+          }
+        });
+        // 代理响应已经包含了处理后的数据，直接返回response.data
+        return response.data || response;
+      } else {
+        const response = await api.get('/auth/points/check-access/');
+        return response.data || response;
+      }
+    } catch (error: any) {
+      throw error;
+    }
+  },
+
+  // 获取积分配置
+  getPointsConfig: async (): Promise<ApiResponse<any>> => {
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        throw new Error('No authentication token');
+      }
+
+      if (isExtension()) {
+        const response = await proxyRequest({
+          url: '/auth/points/config/',
+          method: 'GET',
+          headers: {
+            'Authorization': token.startsWith('Token ') ? token : `Token ${token}`,
+            'Content-Type': 'application/json'
+          }
+        });
+        // 代理响应已经包含了处理后的数据，直接返回response.data
+        return response.data || response;
+      } else {
+        const response = await api.get('/auth/points/config/');
+        return response.data || response;
+      }
+    } catch (error: any) {
+      throw error;
+    }
+  },
+
+  // 获取积分交易历史
+  getTransactions: async (): Promise<ApiResponse<PointsTransaction[]>> => {
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        throw new Error('No authentication token');
+      }
+
+      if (isExtension()) {
+        const response = await proxyRequest({
+          url: '/auth/points/transactions/',
+          method: 'GET',
+          headers: {
+            'Authorization': token.startsWith('Token ') ? token : `Token ${token}`,
+            'Content-Type': 'application/json'
+          }
+        });
+        // 代理响应已经包含了处理后的数据，直接返回response.data
+        return response.data || response;
+      } else {
+        const response = await api.get('/auth/points/transactions/');
+        return response.data || response;
+      }
+    } catch (error: any) {
+      throw error;
+    }
+  }
+};
 
 export default api

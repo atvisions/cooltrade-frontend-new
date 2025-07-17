@@ -41,10 +41,47 @@
               <!-- 用户信息 -->
               <div class="flex-1">
                 <h2 class="text-base font-semibold">{{ userInfo.email }}</h2>
-                <p class="text-gray-500 text-xs mt-1"><span v-text="t('profile.registration_time')"></span>: {{ formatDate(userInfo.created_at) }}</p>
+                <!-- 根据会员状态显示不同的时间信息 -->
+                <p v-if="membershipStatus.is_premium_active" class="text-gray-500 text-xs mt-1">
+                  <span v-text="t('membership.expires_at')"></span>: {{ formatDate(userInfo.premium_expires_at) }}
+                </p>
+                <p v-else class="text-gray-500 text-xs mt-1">
+                  <span v-text="t('profile.registration_time')"></span>: {{ formatDate(userInfo.created_at) }}
+                </p>
+                <!-- 会员状态和操作按钮 -->
+                <div class="flex items-center justify-between mt-2">
+                  <div class="flex items-center">
+                    <div v-if="membershipStatus.is_premium_active" class="flex items-center">
+                      <div class="w-2 h-2 bg-yellow-400 rounded-full mr-2"></div>
+                      <span class="text-yellow-400 text-xs font-medium">{{ t('membership.premium_member') }}</span>
+                    </div>
+                    <div v-else class="flex items-center">
+                      <div class="w-2 h-2 bg-gray-500 rounded-full mr-2"></div>
+                      <span class="text-gray-500 text-xs">{{ t('membership.regular_user') }}</span>
+                    </div>
+                  </div>
+
+                  <!-- 会员操作按钮 -->
+                  <button
+                    v-if="membershipStatus.is_premium_active"
+                    @click="showMembershipModal = true"
+                    class="px-3 py-1 bg-gradient-to-r from-blue-500 to-purple-500 text-white text-xs rounded-lg font-medium hover:from-blue-600 hover:to-purple-600 transition-all duration-200"
+                  >
+                    {{ t('membership.renew') }}
+                  </button>
+                  <button
+                    v-else
+                    @click="showMembershipModal = true"
+                    class="px-3 py-1 bg-gradient-to-r from-yellow-500 to-orange-500 text-white text-xs rounded-lg font-medium hover:from-yellow-600 hover:to-orange-600 transition-all duration-200"
+                  >
+                    {{ t('membership.upgrade') }}
+                  </button>
+                </div>
               </div>
             </div>
           </div>
+
+
 
           <!-- 功能列表 -->
           <div class="space-y-4">
@@ -67,36 +104,7 @@
               </div>
             </div>
 
-            <!-- 语言选择模态框 -->
-            <div v-if="showLanguageModal" class="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4">
-              <div class="bg-gray-900 rounded-lg w-full max-w-sm overflow-hidden">
-                <div class="p-4 border-b border-gray-800 flex justify-between items-center">
-                  <h3 class="text-lg font-medium">{{ t('profile.language_settings') }}</h3>
-                  <button @click="showLanguageModal = false" class="text-gray-400 hover:text-white">
-                    <i class="ri-close-line text-xl"></i>
-                  </button>
-                </div>
-                <div class="p-4">
-                  <div class="space-y-2">
-                    <button
-                      v-for="lang in languages"
-                      :key="lang.code"
-                      @click="selectLanguage(lang.code)"
-                      class="w-full py-3 px-4 rounded-lg flex items-center justify-between transition-colors duration-200"
-                      :class="currentLanguage === lang.code ? 'bg-primary/20 text-primary' : 'bg-gray-800 text-white hover:bg-gray-700'"
-                    >
-                      <div class="flex items-center">
-                        <span class="text-lg mr-3">{{ getLangFlag(lang.code) }}</span>
-                        <span>{{ lang.name }}</span>
-                      </div>
-                      <i v-if="currentLanguage === lang.code" class="ri-check-line text-primary"></i>
-                    </button>
-                  </div>
-                </div>
-                <!-- 移除确认按钮，用户点击语言选项后直接关闭模态框 -->
-              </div>
-            </div>
-
+            <!-- 其他功能按钮 -->
             <a
               href="https://www.cooltrade.xyz/privacy-policy/"
               target="_blank"
@@ -119,6 +127,44 @@
               <span v-text="t('auth.logout')"></span>
             </button>
           </div>
+
+          <!-- 语言选择模态框 -->
+          <div v-if="showLanguageModal" class="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4">
+            <div class="bg-gray-900 rounded-lg w-full max-w-sm overflow-hidden">
+              <div class="p-4 border-b border-gray-800 flex justify-between items-center">
+                <h3 class="text-lg font-medium">{{ t('profile.language_settings') }}</h3>
+                <button @click="showLanguageModal = false" class="text-gray-400 hover:text-white">
+                  <i class="ri-close-line text-xl"></i>
+                </button>
+              </div>
+              <div class="p-4">
+                <div class="space-y-2">
+                  <button
+                    v-for="lang in languages"
+                    :key="lang.code"
+                    @click="selectLanguage(lang.code)"
+                    class="w-full py-3 px-4 rounded-lg flex items-center justify-between transition-colors duration-200"
+                    :class="currentLanguage === lang.code ? 'bg-primary/20 text-primary' : 'bg-gray-800 text-white hover:bg-gray-700'"
+                  >
+                    <div class="flex items-center">
+                      <span class="text-lg mr-3">{{ getLangFlag(lang.code) }}</span>
+                      <span>{{ lang.name }}</span>
+                    </div>
+                    <i v-if="currentLanguage === lang.code" class="ri-check-line text-primary"></i>
+                  </button>
+                </div>
+              </div>
+              <!-- 移除确认按钮，用户点击语言选项后直接关闭模态框 -->
+            </div>
+          </div>
+
+          <!-- 会员升级弹窗 -->
+          <MembershipUpgradeModal
+            :visible="showMembershipModal"
+            :is-premium="membershipStatus.is_premium_active"
+            @close="showMembershipModal = false"
+            @success="handleMembershipSuccess"
+          />
         </template>
       </div>
     </main>
@@ -131,11 +177,13 @@
 <script setup lang="ts">
 import { ref, onMounted, computed, watch } from 'vue'
 import { useRouter } from 'vue-router'
-import api from '@/api'
+import api, { membership } from '@/api'
 import axios from 'axios'
 import { setLanguage } from '@/i18n'
 import { useEnhancedI18n } from '@/utils/i18n-helper'
 import BottomTabBar from '@/components/BottomTabBar.vue'
+import MembershipUpgradeModal from '@/components/MembershipUpgradeModal.vue'
+
 
 const router = useRouter()
 const { t, locale } = useEnhancedI18n()
@@ -145,11 +193,25 @@ const userInfo = ref({
   email: '',
   created_at: '',
   updated_at: '',
-  language: 'zh-CN'
+  language: 'zh-CN',
+  is_premium: false,
+  premium_expires_at: null as string | null
+})
+
+// 会员状态
+const membershipStatus = ref({
+  membership_status: 'regular',
+  is_premium_active: false,
+  points: 0
 })
 
 // 控制语言选择模态框的显示
 const showLanguageModal = ref(false)
+
+// 控制会员升级弹窗的显示
+const showMembershipModal = ref(false)
+
+
 
 // 当前语言
 const currentLanguage = ref(locale.value)
@@ -255,6 +317,36 @@ const formatDate = (dateString: string) => {
     minute: '2-digit'
   })
 }
+
+// 获取会员状态
+const fetchMembershipStatus = async () => {
+  if (!isLoggedIn.value) return;
+
+  try {
+    const response = await membership.getStatus();
+    if (response.status === 'success' && response.data) {
+      membershipStatus.value = {
+        membership_status: response.data.membership_status,
+        is_premium_active: response.data.is_premium_active,
+        points: response.data.points
+      };
+
+      // 同时更新userInfo中的会员相关字段
+      userInfo.value.is_premium = response.data.is_premium;
+      userInfo.value.premium_expires_at = response.data.premium_expires_at;
+    }
+  } catch (error) {
+    console.warn('[fetchMembershipStatus] 获取会员状态失败:', error);
+  }
+};
+
+// 处理会员升级成功
+const handleMembershipSuccess = async () => {
+  // 重新获取会员状态
+  await fetchMembershipStatus();
+  // 可以显示成功提示
+  console.log('会员升级成功！');
+};
 
 const fetchUserInfo = async () => {
   if (!isLoggedIn.value) return;
@@ -405,6 +497,9 @@ const setupLanguageChangeListener = () => {
 onMounted(async () => {
   // 先获取用户信息（包括从数据库获取语言设置）
   await fetchUserInfo();
+
+  // 获取会员状态
+  await fetchMembershipStatus();
 
   // 获取最新的语言设置（fetchUserInfo可能已经更新了localStorage中的language）
   const storedLang = localStorage.getItem('language') || 'en-US';
