@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>测试会员API</title>
+</head>
+<body>
+    <h1>测试会员API调用</h1>
+    <div id="results"></div>
+    
+    <script>
+        async function testMembershipAPI() {
+            const results = document.getElementById('results');
+            
+            // 获取token
+            const token = localStorage.getItem('token');
+            if (!token) {
+                results.innerHTML = '<p style="color: red;">❌ 没有找到认证token</p>';
+                return;
+            }
+            
+            results.innerHTML += '<p>✅ 找到token: ' + token.substring(0, 20) + '...</p>';
+            
+            try {
+                // 测试会员状态API
+                const response = await fetch('http://localhost:8000/api/auth/membership/status/', {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': token.startsWith('Token ') ? token : `Token ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                results.innerHTML += '<p>📡 API响应状态: ' + response.status + '</p>';
+                
+                const data = await response.json();
+                results.innerHTML += '<p>📄 API响应数据:</p>';
+                results.innerHTML += '<pre>' + JSON.stringify(data, null, 2) + '</pre>';
+                
+                if (response.ok) {
+                    results.innerHTML += '<p style="color: green;">✅ 会员状态API调用成功</p>';
+                } else {
+                    results.innerHTML += '<p style="color: red;">❌ 会员状态API调用失败</p>';
+                }
+                
+            } catch (error) {
+                results.innerHTML += '<p style="color: red;">❌ 网络错误: ' + error.message + '</p>';
+            }
+        }
+        
+        // 页面加载时执行测试
+        window.onload = testMembershipAPI;
+    </script>
+</body>
+</html>

@@ -15,7 +15,7 @@ const isDevelopment = (): boolean => {
 
 // Get base URL
 const getBaseUrl = (): string => {
-  // 直接使用生产环境API
+  // 根据环境自动选择API地址
   return getApiBaseUrl();
 }
 
@@ -691,7 +691,7 @@ export const getLatestTechnicalAnalysis = async (
     // 构建请求URL
     const endpoint = marketType === 'crypto' ? 'crypto' : marketType === 'china' ? 'china' : 'stock'
     const url = `/${endpoint}/get_report/${fullSymbol}/`
-    
+
     // 验证token
     if (!validateToken()) {
       throw new Error('Token validation failed')
@@ -721,13 +721,19 @@ export const getLatestTechnicalAnalysis = async (
       const requestData = {
         url: url,
         method: 'GET',
-        headers: headers
+        headers: headers,
+        // A股和股票报告生成需要更长时间，设置更长超时
+        timeout: marketType === 'china' || marketType === 'stock' ? 180000 : 60000
       }
 
       response = await proxyRequest(requestData)
     } else {
-      // 在非扩展环境中使用axios请求
-      response = await api.get(url, { headers })
+      // 在非扩展环境中使用axios请求，A股需要更长超时
+      const requestConfig = {
+        headers,
+        timeout: marketType === 'china' || marketType === 'stock' ? 180000 : 60000
+      }
+      response = await api.get(url, requestConfig)
     }
 
     // 检查响应状态
@@ -786,11 +792,34 @@ export const points = {
             'Content-Type': 'application/json'
           }
         });
-        // 代理响应已经包含了处理后的数据，直接返回response.data
-        return response.data || response;
+
+        // 统一返回格式处理
+        if (response && response.data) {
+          // 如果response.data存在，说明是标准格式
+          return response.data;
+        } else if (response && response.invitation_code) {
+          // 如果直接包含invitation_code，说明是直接数据格式，包装成标准格式
+          return {
+            status: 'success',
+            data: response
+          } as ApiResponse<InvitationInfo>;
+        } else {
+          return response;
+        }
       } else {
         const response = await api.get('/auth/invitation-info/');
-        return response.data || response;
+
+        // 统一返回格式处理
+        if (response && response.data) {
+          return response.data;
+        } else if (response && response.invitation_code) {
+          return {
+            status: 'success',
+            data: response
+          } as ApiResponse<InvitationInfo>;
+        } else {
+          return response;
+        }
       }
     } catch (error: any) {
       throw error;
@@ -1280,7 +1309,8 @@ export const membership = {
             'Content-Type': 'application/json'
           }
         });
-        return response;
+        // 代理响应已经包含了处理后的数据，直接返回response.data
+        return response.data || response;
       } else {
         const response = await api.get('/auth/membership/plans/');
         return response as any;
@@ -1313,7 +1343,8 @@ export const membership = {
             'Content-Type': 'application/json'
           }
         });
-        return response;
+        // 代理响应已经包含了处理后的数据，直接返回response.data
+        return response.data || response;
       } else {
         const response = await api.post('/auth/membership/orders/create/', data);
         return response as any;
@@ -1341,10 +1372,10 @@ export const membership = {
           }
         });
         // 代理响应已经包含了处理后的数据，直接返回response.data
-        return response.data || response;
+        return response.data;
       } else {
         const response = await api.get('/auth/membership/status/');
-        return response.data || response;
+        return response.data;
       }
     } catch (error: any) {
       throw error;
@@ -1368,10 +1399,67 @@ export const membership = {
             'Content-Type': 'application/json'
           }
         });
-        return response;
+        // 代理响应已经包含了处理后的数据，直接返回response.data
+        return response.data || response;
       } else {
         const response = await api.get('/auth/membership/orders/');
         return response as any;
+      }
+    } catch (error: any) {
+      throw error;
+    }
+  },
+
+  // 检查订单支付状态
+  checkOrderStatus: async (orderId: string): Promise<ApiResponse<any>> => {
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        throw new Error('No authentication token');
+      }
+
+      if (isExtension()) {
+        const response = await proxyRequest({
+          url: `/auth/membership/orders/${orderId}/status/`,
+          method: 'GET',
+          headers: {
+            'Authorization': token.startsWith('Token ') ? token : `Token ${token}`,
+            'Content-Type': 'application/json'
+          }
+        });
+        // 代理响应已经包含了处理后的数据，直接返回response.data
+        return response.data || response;
+      } else {
+        const response = await api.get(`/auth/membership/orders/${orderId}/status/`);
+        return response.data;
+      }
+    } catch (error: any) {
+      throw error;
+    }
+  },
+
+  // 重新支付订单
+  repayOrder: async (orderId: string): Promise<ApiResponse<any>> => {
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        throw new Error('No authentication token');
+      }
+
+      if (isExtension()) {
+        const response = await proxyRequest({
+          url: `/auth/membership/orders/${orderId}/repay/`,
+          method: 'POST',
+          headers: {
+            'Authorization': token.startsWith('Token ') ? token : `Token ${token}`,
+            'Content-Type': 'application/json'
+          }
+        });
+        // 代理响应已经包含了处理后的数据，直接返回response.data
+        return response.data || response;
+      } else {
+        const response = await api.post(`/auth/membership/orders/${orderId}/repay/`);
+        return response.data;
       }
     } catch (error: any) {
       throw error;
@@ -1510,11 +1598,60 @@ export const pointsApi = {
             'Content-Type': 'application/json'
           }
         });
-        // 代理响应已经包含了处理后的数据，直接返回response.data
-        return response.data || response;
+
+        console.log('插件环境下交易记录原始响应:', response);
+        console.log('响应数据类型:', typeof response);
+        console.log('响应数据结构:', response ? Object.keys(response) : 'null');
+
+        // 处理插件环境下的响应格式
+        // proxyRequest 返回的格式是 { data: actualData, status: httpStatus, ... }
+        if (response && response.data) {
+          console.log('response.data:', response.data);
+          console.log('response.data 类型:', typeof response.data);
+
+          // 检查是否是标准格式 {status: 'success', data: [...]}
+          if (response.data.status === 'success' && response.data.data) {
+            console.log('检测到标准格式，数据:', response.data.data);
+            return response.data as ApiResponse<PointsTransaction[]>;
+          }
+          // 检查是否直接是数组格式
+          else if (Array.isArray(response.data)) {
+            console.log('检测到数组格式，长度:', response.data.length);
+            return {
+              status: 'success',
+              data: response.data
+            } as ApiResponse<PointsTransaction[]>;
+          }
+          // 其他格式直接返回
+          else {
+            console.log('使用其他格式');
+            return response.data;
+          }
+        } else if (Array.isArray(response)) {
+          // 如果response直接是数组，包装成标准格式
+          console.log('response直接是数组，长度:', response.length);
+          return {
+            status: 'success',
+            data: response
+          } as ApiResponse<PointsTransaction[]>;
+        } else {
+          console.log('使用默认空数组');
+          return response || { status: 'success', data: [] };
+        }
       } else {
         const response = await api.get('/auth/points/transactions/');
-        return response.data || response;
+
+        // 统一返回格式处理
+        if (response && response.data && Array.isArray(response.data)) {
+          return response.data;
+        } else if (Array.isArray(response)) {
+          return {
+            status: 'success',
+            data: response
+          } as ApiResponse<PointsTransaction[]>;
+        } else {
+          return response;
+        }
       }
     } catch (error: any) {
       throw error;

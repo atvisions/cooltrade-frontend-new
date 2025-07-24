@@ -1,99 +1,80 @@
 <template>
-  <div class="container mx-auto px-4 py-8">
-    <div class="max-w-4xl mx-auto">
-      <!-- 页面标题 -->
-      <div class="text-center mb-12">
-        <h1 class="text-4xl font-bold mb-4 text-gray-200">
-          关于 CoolTrade
-        </h1>
-        <p class="text-xl text-gray-400">
-          了解我们的项目和技术架构
-        </p>
+  <div class="min-h-screen bg-gradient-to-br from-gray-900 via-blue-900 to-purple-900">
+    <!-- 顶部导航 -->
+    <div class="sticky top-0 z-50 bg-gray-900/80 backdrop-blur-md border-b border-gray-700/50">
+      <div class="flex items-center justify-between p-4">
+        <button @click="handleBack" class="text-white hover:text-blue-400 transition-colors">
+          <i class="ri-arrow-left-line text-xl"></i>
+        </button>
+        <h1 class="text-lg font-bold text-white">关于我们</h1>
+        <div class="w-6"></div>
       </div>
+    </div>
 
-      <!-- 项目介绍 -->
-      <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-12">
-        <div class="card bg-dark-800 border border-dark-700">
-          <h2 class="text-2xl font-semibold mb-4 text-blue-400">
-            <i class="ri-information-line mr-2"></i>
-            项目简介
-          </h2>
-          <div class="space-y-4 text-gray-300">
-            <p>
-              CoolTrade 是一个专业的加密货币分析平台，致力于为用户提供实时、准确的市场分析和交易建议。
-            </p>
-            <p>
-              我们使用最新的前端技术栈构建了这个现代化的 Web 应用，确保用户体验的流畅性和数据的实时性。
-            </p>
-            <ul class="list-disc list-inside space-y-2 text-sm">
-              <li>实时市场数据监控</li>
-              <li>专业技术分析工具</li>
-              <li>多语言支持</li>
-              <li>响应式设计</li>
-            </ul>
+    <!-- 主要内容 -->
+    <div class="p-4 space-y-6">
+      <!-- 应用介绍 -->
+      <div class="bg-gray-800/50 backdrop-blur-sm border border-gray-700/50 rounded-2xl p-6">
+        <div class="text-center mb-6">
+          <div class="w-20 h-20 bg-gradient-to-br from-blue-500 to-purple-600 rounded-2xl flex items-center justify-center mx-auto mb-4">
+            <i class="ri-line-chart-line text-3xl text-white"></i>
           </div>
+          <h2 class="text-2xl font-bold text-white mb-2">CoolTrade</h2>
+          <p class="text-gray-400">专业的加密货币分析工具</p>
         </div>
 
-        <div class="card bg-dark-800 border border-dark-700">
-          <h2 class="text-2xl font-semibold mb-4 text-green-400">
-            <i class="ri-code-line mr-2"></i>
-            技术架构
-          </h2>
-          <div class="space-y-4">
-            <div>
-              <h3 class="font-semibold text-gray-200 mb-2">前端技术</h3>
-              <div class="flex flex-wrap gap-2">
-                <span v-for="tech in frontendTech" :key="tech" 
-                      class="px-3 py-1 bg-primary-600 text-white text-xs rounded-full">
-                  {{ tech }}
-                </span>
-              </div>
+        <div class="space-y-4 text-gray-300">
+          <p class="leading-relaxed">
+            CoolTrade 是一款专为加密货币投资者设计的专业分析工具，提供实时市场数据、技术指标分析和智能投资建议。
+          </p>
+          <p class="leading-relaxed">
+            我们致力于为用户提供准确、及时的市场分析，帮助投资者做出更明智的投资决策。
+          </p>
+        </div>
+      </div>
+
+      <!-- 核心功能 -->
+      <div class="bg-gray-800/50 backdrop-blur-sm border border-gray-700/50 rounded-2xl p-6">
+        <h3 class="text-xl font-bold text-white mb-4">核心功能</h3>
+        <div class="space-y-4">
+          <div class="flex items-start space-x-3">
+            <div class="w-8 h-8 bg-blue-500/20 rounded-lg flex items-center justify-center mt-1">
+              <i class="ri-line-chart-line text-blue-400"></i>
             </div>
             <div>
-              <h3 class="font-semibold text-gray-200 mb-2">开发工具</h3>
-              <div class="flex flex-wrap gap-2">
-                <span v-for="tool in devTools" :key="tool" 
-                      class="px-3 py-1 bg-green-600 text-white text-xs rounded-full">
-                  {{ tool }}
-                </span>
-              </div>
+              <h4 class="text-white font-medium">实时技术分析</h4>
+              <p class="text-gray-400 text-sm">提供多种技术指标和图表分析工具</p>
             </div>
           </div>
-        </div>
-      </div>
 
-      <!-- 功能特性 -->
-      <div class="mb-12">
-        <h2 class="text-2xl font-bold text-center mb-8 text-gray-200">
-          核心功能
-        </h2>
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          <div v-for="feature in features" :key="feature.title"
-               class="card bg-dark-800 border border-dark-700 hover:border-blue-500 transition-colors">
-            <div class="text-center">
-              <div class="text-3xl mb-3">{{ feature.icon }}</div>
-              <h3 class="text-lg font-semibold mb-2" :class="feature.color">
-                {{ feature.title }}
-              </h3>
-              <p class="text-gray-400 text-sm">
-                {{ feature.description }}
-              </p>
+          <div class="flex items-start space-x-3">
+            <div class="w-8 h-8 bg-green-500/20 rounded-lg flex items-center justify-center mt-1">
+              <i class="ri-money-dollar-circle-line text-green-400"></i>
+            </div>
+            <div>
+              <h4 class="text-white font-medium">市场数据</h4>
+              <p class="text-gray-400 text-sm">实时价格、成交量等关键市场信息</p>
             </div>
           </div>
-        </div>
-      </div>
 
-      <!-- Project Statistics -->
-      <div class="card bg-dark-800 border border-dark-700">
-        <h2 class="text-2xl font-semibold mb-6 text-center text-gray-200">
-          Project Statistics
-        </h2>
-        <div class="grid grid-cols-2 md:grid-cols-4 gap-6 text-center">
-          <div v-for="stat in stats" :key="stat.label">
-            <div class="text-2xl font-bold mb-1" :class="stat.color">
-              {{ stat.value }}
+          <div class="flex items-start space-x-3">
+            <div class="w-8 h-8 bg-purple-500/20 rounded-lg flex items-center justify-center mt-1">
+              <i class="ri-brain-line text-purple-400"></i>
             </div>
-            <div class="text-sm text-gray-400">{{ stat.label }}</div>
+            <div>
+              <h4 class="text-white font-medium">智能分析</h4>
+              <p class="text-gray-400 text-sm">基于AI的市场趋势预测和投资建议</p>
+            </div>
+          </div>
+
+          <div class="flex items-start space-x-3">
+            <div class="w-8 h-8 bg-orange-500/20 rounded-lg flex items-center justify-center mt-1">
+              <i class="ri-vip-crown-line text-orange-400"></i>
+            </div>
+            <div>
+              <h4 class="text-white font-medium">会员服务</h4>
+              <p class="text-gray-400 text-sm">高级分析报告和专属投资策略</p>
+            </div>
           </div>
         </div>
       </div>
@@ -102,65 +83,12 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted } from 'vue'
+import { useRouter } from 'vue-router'
 
-const frontendTech = [
-  'Vue 3', 'TypeScript', 'Vite', 'TailwindCSS', 
-  'Element Plus', 'Vue Router', 'Pinia'
-]
+const router = useRouter()
 
-const devTools = [
-  'ESLint', 'Prettier', 'PostCSS', 'Autoprefixer', 
-  'Terser', 'Vue DevTools'
-]
-
-const features = [
-  {
-    icon: '📊',
-    title: '实时数据',
-    description: '获取最新的市场数据和价格信息',
-    color: 'text-blue-400'
-  },
-  {
-    icon: '📈',
-    title: '技术分析',
-    description: '专业的技术指标和图表分析',
-    color: 'text-green-400'
-  },
-  {
-    icon: '🔔',
-    title: '智能提醒',
-    description: '价格预警和重要事件通知',
-    color: 'text-yellow-400'
-  },
-  {
-    icon: '🌐',
-    title: '多语言',
-    description: '支持中文、英文、日文、韩文',
-    color: 'text-purple-400'
-  },
-  {
-    icon: '📱',
-    title: '响应式',
-    description: '完美适配桌面端和移动端',
-    color: 'text-pink-400'
-  },
-  {
-    icon: '🔒',
-    title: '安全性',
-    description: '数据加密和隐私保护',
-    color: 'text-red-400'
-  }
-]
-
-const stats = [
-  { label: '组件数量', value: '20+', color: 'text-blue-400' },
-  { label: '代码行数', value: '5K+', color: 'text-green-400' },
-  { label: '依赖包', value: '15+', color: 'text-blue-400' },
-  { label: '构建时间', value: '<30s', color: 'text-yellow-400' }
-]
-
-onMounted(() => {
-  // Component mounted
-})
+// 返回上一页
+const handleBack = () => {
+  router.back()
+}
 </script>

@@ -385,11 +385,30 @@ const fetchPointsConfig = async () => {
 const fetchTransactions = async () => {
   try {
     const response = await pointsApi.getTransactions()
-    if (response.status === 'success' && response.data) {
+    console.log('交易记录API响应:', response);
+
+    // 处理不同的响应格式
+    if (response && response.status === 'success' && Array.isArray(response.data)) {
+      // 标准格式：{status: 'success', data: [...]}
       transactions.value = response.data
+      console.log('使用标准格式，交易记录数量:', response.data.length);
+    } else if (Array.isArray(response)) {
+      // 直接数组格式：[{...}, {...}]
+      transactions.value = response
+      console.log('使用直接数组格式，交易记录数量:', response.length);
+    } else if (response && Array.isArray(response.data)) {
+      // 包装格式：{data: [...]}
+      transactions.value = response.data
+      console.log('使用包装格式，交易记录数量:', response.data.length);
+    } else {
+      console.warn('交易记录数据格式异常:', response);
+      console.warn('响应类型:', typeof response);
+      console.warn('响应结构:', Object.keys(response || {}));
+      transactions.value = []
     }
   } catch (error) {
     console.error('获取交易记录失败:', error)
+    transactions.value = []
   }
 }
 
@@ -406,8 +425,15 @@ const fetchPointsInfo = async () => {
     try {
       // 获取邀请信息
       const response = await points.getInvitationInfo();
-      if (response.status === 'success' && response.data) {
+      console.log('邀请信息API响应:', response);
+
+      // 处理不同的响应格式
+      if (response && response.status === 'success' && response.data) {
+        // 标准格式：{status: 'success', data: {...}}
         pointsInfo.value = response.data;
+      } else if (response && response.invitation_code) {
+        // 直接数据格式：{invitation_code: '...', points: ...}
+        pointsInfo.value = response as InvitationInfo;
       } else {
         console.warn('Failed to get invitation info:', response);
       }

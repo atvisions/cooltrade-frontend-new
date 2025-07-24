@@ -49,9 +49,15 @@ export const proxyRequest = async (config: AxiosRequestConfig): Promise<any> => 
     const isForceRefresh = requestUrl.includes('force_refresh=true') ||
                           (params && Object.values(params).some(v => String(v).includes('force_refresh=true')))
 
-    // Set timeout
+    // Check if A-share or stock report request (需要更长超时)
+    const isReportRequest = requestUrl.includes('/get_report/') &&
+                           (requestUrl.includes('/china/') || requestUrl.includes('/stock/'))
+
+    // Set timeout - A股和股票报告需要更长时间
     let timeoutId: number | null = null
-    const timeout = isForceRefresh ? 120000 : 30000 // Longer timeout for force refresh
+    const timeout = config.timeout ||
+                   (isReportRequest ? 180000 :
+                   (isForceRefresh ? 120000 : 30000))
 
     timeoutId = window.setTimeout(() => {
       reject(new Error(`Request timed out (${timeout/1000}s)`))
@@ -137,9 +143,16 @@ export const proxyRequest = async (config: AxiosRequestConfig): Promise<any> => 
         } else if (processedData && typeof processedData === 'object') {
           // Check if response data has the standard format
           if (processedData.status === 'success' || processedData.status === 'error' || processedData.status === 'not_found') {
+            // Already in standard format, keep as is
             processedData = processedData;
+          } else if (Array.isArray(processedData)) {
+            // If it's an array, wrap as standard format
+            processedData = {
+              status: 'success',
+              data: processedData
+            };
           } else {
-            // If not standard format, wrap as standard format
+            // If not standard format and not array, wrap as standard format
             processedData = {
               status: 'success',
               data: processedData

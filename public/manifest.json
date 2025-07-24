@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "CoolTrade - Crypto Analysis",
-  "version": "1.0.7",
+  "version": "1.0.8",
   "description": "Professional cryptocurrency market analysis tool with real-time data and technical indicators",
   "permissions": [
     "storage",
@@ -11,7 +11,9 @@
   ],
   "host_permissions": [
     "https://www.cooltrade.xyz/*",
-    "https://cooltrade.xyz/*"
+    "https://cooltrade.xyz/*",
+    "http://localhost:8000/*",
+    "http://127.0.0.1:8000/*"
   ],
   "background": {
     "service_worker": "background.js"

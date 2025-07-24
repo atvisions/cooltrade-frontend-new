@@ -1,6 +1,7 @@
 // Initialize environment variables
+// API配置 - 手动修改这里的baseApiUrl即可切换环境
 let envConfig = {
-  baseApiUrl: 'https://www.cooltrade.xyz/api',
+  baseApiUrl: 'http://localhost:8000/api',  // 手动修改这里切换API环境
   env: 'development',
   token: null
 };
@@ -232,7 +233,7 @@ async function handleApiProxyRequest(data, sendResponse) {
 
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     try {
-      const baseApiUrl = 'https://www.cooltrade.xyz/api';
+      const baseApiUrl = envConfig.baseApiUrl;
       const { url, method, headers, body, params } = data;
 
       if (attempt > 1) {
@@ -292,8 +293,13 @@ async function handleApiProxyRequest(data, sendResponse) {
       options.body = JSON.stringify(body);
     }
 
-    // Set timeout
-    const timeout = isForceRefresh ? 120000 : 60000; // 普通请求 60 秒，强制刷新 120 秒
+    // Check if A-share or stock report request (需要更长超时)
+    const isReportRequest = fullUrl.includes('/get_report/') &&
+                           (fullUrl.includes('/china/') || fullUrl.includes('/stock/'));
+
+    // Set timeout - A股和股票报告需要更长时间
+    const timeout = isReportRequest ? 180000 :
+                   (isForceRefresh ? 120000 : 60000); // A股报告 180 秒，强制刷新 120 秒，普通请求 60 秒
 
     // Create timeout Promise
     const timeoutPromise = new Promise((_, reject) => {

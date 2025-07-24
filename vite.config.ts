@@ -5,6 +5,7 @@ import { fileURLToPath, URL } from 'node:url'
 // https://vitejs.dev/config/
 export default defineConfig({
   plugins: [vue()],
+  base: './', // 确保生成相对路径，适用于Chrome扩展
   resolve: {
     alias: {
       '@': fileURLToPath(new URL('./src', import.meta.url))
@@ -13,23 +14,8 @@ export default defineConfig({
   server: {
     port: 5001,  // 修改为当前使用的端口
     host: true,
-    proxy: {
-      '/api': {
-        target: 'https://www.cooltrade.xyz',
-        changeOrigin: true,
-        secure: false,
-        rewrite: (path) => path.replace(/^\/api/, '/api'),
-        // 添加认证头转发
-        configure: (proxy, options) => {
-          proxy.on('proxyReq', (proxyReq, req, res) => {
-            // 转发认证头
-            if (req.headers.authorization) {
-              proxyReq.setHeader('Authorization', req.headers.authorization);
-            }
-          });
-        }
-      }
-    }
+    // 移除代理配置，让前端直接使用环境变量中配置的API地址
+    // 这样可以通过修改.env文件来控制API调用地址
   },
   build: {
     outDir: 'dist',

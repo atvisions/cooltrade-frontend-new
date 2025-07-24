@@ -8,6 +8,7 @@ import LoginView from '@/views/LoginView.vue'
 import RegisterView from '@/views/RegisterView.vue'
 import ProfileView from '@/views/ProfileView.vue'
 import PointsView from '@/views/PointsView.vue'
+import OrdersView from '@/views/OrdersView.vue'
 import ForgotPasswordView from '@/views/ForgotPasswordView.vue'
 import ChangePasswordView from '@/views/ChangePasswordView.vue'
 
@@ -63,6 +64,15 @@ const routes: RouteRecordRaw[] = [
     component: PointsView,
     meta: {
       title: 'CoolTrade - Points',
+      requiresAuth: true
+    }
+  },
+  {
+    path: '/orders',
+    name: 'orders',
+    component: OrdersView,
+    meta: {
+      title: 'CoolTrade - Orders',
       requiresAuth: true
     }
   },

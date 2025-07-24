@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Debug Points API</title>
+</head>
+<body>
+    <h1>Debug Points API Response</h1>
+    <button onclick="testPointsAPI()">Test Points API</button>
+    <div id="result"></div>
+
+    <script>
+        async function testPointsAPI() {
+            const resultDiv = document.getElementById('result');
+            
+            try {
+                // 模拟从你的截图中看到的响应
+                const mockResponse = {
+                    status: "success",
+                    data: [
+                        {id: 9, transaction_type: "earn", amount: 200, reason: "membership", description: "会员奖励"},
+                        {id: 8, transaction_type: "earn", amount: 200, reason: "membership", description: "会员奖励"},
+                        {id: 7, transaction_type: "earn", amount: 200, reason: "membership", description: "会员奖励"},
+                        {id: 5, transaction_type: "spend", amount: 10, reason: "premium_analysis", description: "查看高级分析"},
+                        {id: 4, transaction_type: "spend", amount: 10, reason: "premium_analysis", description: "查看高级分析"},
+                        {id: 3, transaction_type: "spend", amount: 10, reason: "premium_analysis", description: "查看高级分析"},
+                        {id: 2, transaction_type: "spend", amount: 10, reason: "premium_analysis", description: "查看高级分析"},
+                        {id: 1, transaction_type: "spend", amount: 10, reason: "premium_analysis", description: "查看高级分析"}
+                    ]
+                };
+
+                console.log('Mock API Response:', mockResponse);
+                
+                // 模拟 proxyRequest 的处理逻辑
+                let processedData = mockResponse;
+                
+                // 检查是否是标准格式
+                if (processedData.status === 'success' || processedData.status === 'error' || processedData.status === 'not_found') {
+                    console.log('Already in standard format');
+                    processedData = processedData;
+                } else {
+                    console.log('Wrapping in standard format');
+                    processedData = {
+                        status: 'success',
+                        data: processedData
+                    };
+                }
+
+                // 模拟 proxyRequest 返回的格式
+                const proxyResponse = {
+                    data: processedData,
+                    status: 200,
+                    statusText: 'OK',
+                    headers: {},
+                    config: {}
+                };
+
+                console.log('Proxy Response:', proxyResponse);
+
+                // 模拟 pointsApi.getTransactions 的处理逻辑
+                let finalResult;
+                if (proxyResponse && proxyResponse.data) {
+                    console.log('proxyResponse.data:', proxyResponse.data);
+                    console.log('proxyResponse.data type:', typeof proxyResponse.data);
+                    
+                    if (proxyResponse.data.status === 'success' && proxyResponse.data.data) {
+                        console.log('Detected standard format, data:', proxyResponse.data.data);
+                        finalResult = proxyResponse.data;
+                    } else if (Array.isArray(proxyResponse.data)) {
+                        console.log('Detected array format, length:', proxyResponse.data.length);
+                        finalResult = {
+                            status: 'success',
+                            data: proxyResponse.data
+                        };
+                    } else {
+                        console.log('Using other format');
+                        finalResult = proxyResponse.data;
+                    }
+                }
+
+                console.log('Final Result:', finalResult);
+
+                resultDiv.innerHTML = `
+                    <h2>Processing Results:</h2>
+                    <h3>Original Mock Response:</h3>
+                    <pre>${JSON.stringify(mockResponse, null, 2)}</pre>
+                    
+                    <h3>After Proxy Processing:</h3>
+                    <pre>${JSON.stringify(proxyResponse, null, 2)}</pre>
+                    
+                    <h3>Final API Result:</h3>
+                    <pre>${JSON.stringify(finalResult, null, 2)}</pre>
+                    
+                    <h3>Transactions Array:</h3>
+                    <pre>${JSON.stringify(finalResult?.data || [], null, 2)}</pre>
+                `;
+
+            } catch (error) {
+                console.error('Error:', error);
+                resultDiv.innerHTML = `<p style="color: red;">Error: ${error.message}</p>`;
+            }
+        }
+    </script>
+</body>
+</html>

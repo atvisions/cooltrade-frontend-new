@@ -50,7 +50,7 @@
                 </p>
                 <!-- 会员状态和操作按钮 -->
                 <div class="flex items-center justify-between mt-2">
-                  <div class="flex items-center">
+                  <div class="flex items-center space-x-2">
                     <div v-if="membershipStatus.is_premium_active" class="flex items-center">
                       <div class="w-2 h-2 bg-yellow-400 rounded-full mr-2"></div>
                       <span class="text-yellow-400 text-xs font-medium">{{ t('membership.premium_member') }}</span>
@@ -84,7 +84,7 @@
 
 
           <!-- 功能列表 -->
-          <div class="space-y-4">
+          <div class="space-y-4 pb-24">
             <router-link to="/change-password" class="w-full py-3 px-4 bg-gray-800 text-white rounded-lg font-medium flex items-center">
               <i class="ri-lock-password-line mr-3"></i>
               <span v-text="t('auth.change_password')"></span>
@@ -114,7 +114,21 @@
               <span v-text="t('common.privacy_policy')"></span>
               <i class="ri-external-link-line ml-auto"></i>
             </a>
-            <button class="w-full py-3 px-4 bg-gray-800 text-white rounded-lg font-medium flex items-center">
+            <!-- 我的订单 -->
+            <button
+              @click="goToOrders"
+              class="w-full py-3 px-4 bg-gray-800 text-white rounded-lg font-medium flex items-center"
+            >
+              <i class="ri-file-list-3-line mr-3"></i>
+              <span>{{ t('orders.title') }}</span>
+              <i class="ri-arrow-right-s-line ml-auto"></i>
+            </button>
+
+            <!-- 关于我们 -->
+            <button
+              @click="goToAbout"
+              class="w-full py-3 px-4 bg-gray-800 text-white rounded-lg font-medium flex items-center"
+            >
               <i class="ri-information-line mr-3"></i>
               <span v-text="t('common.about_us')"></span>
               <i class="ri-arrow-right-s-line ml-auto"></i>
@@ -323,17 +337,44 @@ const fetchMembershipStatus = async () => {
   if (!isLoggedIn.value) return;
 
   try {
+    console.log('[fetchMembershipStatus] 开始获取会员状态...');
     const response = await membership.getStatus();
+    console.log('[fetchMembershipStatus] API响应:', response);
+
+    // 检查响应格式：可能是 {status: 'success', data: {...}} 或直接是数据对象
+    let data = null;
     if (response.status === 'success' && response.data) {
+      // 包装格式（插件环境）
+      data = response.data;
+      console.log('[fetchMembershipStatus] 使用包装格式数据');
+    } else if (response.id && response.email) {
+      // 直接返回的数据对象（localhost环境）
+      data = response;
+      console.log('[fetchMembershipStatus] 使用直接数据格式');
+    } else {
+      console.warn('[fetchMembershipStatus] 未知的响应格式:', response);
+    }
+
+    if (data) {
+      console.log('[fetchMembershipStatus] 会员状态数据:', data);
+
       membershipStatus.value = {
-        membership_status: response.data.membership_status,
-        is_premium_active: response.data.is_premium_active,
-        points: response.data.points
+        membership_status: data.membership_status,
+        is_premium_active: data.is_premium_active,
+        points: data.points
       };
 
       // 同时更新userInfo中的会员相关字段
-      userInfo.value.is_premium = response.data.is_premium;
-      userInfo.value.premium_expires_at = response.data.premium_expires_at;
+      userInfo.value.is_premium = data.is_premium;
+      userInfo.value.premium_expires_at = data.premium_expires_at;
+
+      console.log('[fetchMembershipStatus] 更新后的membershipStatus:', membershipStatus.value);
+      console.log('[fetchMembershipStatus] 更新后的userInfo会员字段:', {
+        is_premium: userInfo.value.is_premium,
+        premium_expires_at: userInfo.value.premium_expires_at
+      });
+    } else {
+      console.warn('[fetchMembershipStatus] 响应格式不正确:', response);
     }
   } catch (error) {
     console.warn('[fetchMembershipStatus] 获取会员状态失败:', error);
@@ -342,62 +383,92 @@ const fetchMembershipStatus = async () => {
 
 // 处理会员升级成功
 const handleMembershipSuccess = async () => {
-  // 重新获取会员状态
-  await fetchMembershipStatus();
-  // 可以显示成功提示
-  console.log('会员升级成功！');
+  console.log('会员升级成功，强制刷新用户信息...');
+
+  try {
+    // 强制重新获取用户基本信息（不使用缓存）
+    await fetchUserInfo(true);
+
+    // 重新获取会员状态
+    await fetchMembershipStatus();
+
+    console.log('用户信息刷新完成，当前用户信息:', userInfo.value);
+    console.log('当前会员状态:', membershipStatus.value);
+  } catch (error) {
+    console.error('刷新用户信息失败:', error);
+  }
 };
 
-const fetchUserInfo = async () => {
+const fetchUserInfo = async (forceRefresh = false) => {
   if (!isLoggedIn.value) return;
 
   try {
-    // 先尝试从本地存储获取用户信息
-    const savedUserInfo = localStorage.getItem('userInfo');
-    if (savedUserInfo) {
-      try {
-        const parsedInfo = JSON.parse(savedUserInfo);
-        userInfo.value = parsedInfo;
-      } catch (e) {
-        console.warn('[fetchUserInfo] 解析本地用户信息失败:', e);
-      }
-    }
-
-    // 检查是否在扩展环境中
-    const isExtension = window.location.protocol === 'chrome-extension:';
-
-    let response;
-    if (isExtension) {
-      // 在扩展环境中，通过代理请求获取用户信息
-      try {
-        const { proxyRequest } = await import('@/api/proxy');
-        response = await proxyRequest({
-          url: '/auth/profile/',
-          method: 'GET',
-          headers: {
-            'Content-Type': 'application/json'
+    // 如果不是强制刷新，先尝试从本地存储获取用户信息
+    if (!forceRefresh) {
+      const savedUserInfo = localStorage.getItem('userInfo');
+      if (savedUserInfo) {
+        try {
+          const parsedInfo = JSON.parse(savedUserInfo);
+          // 检查本地数据是否包含会员信息，如果没有则强制刷新
+          if (!parsedInfo.hasOwnProperty('is_premium') || !parsedInfo.hasOwnProperty('premium_expires_at')) {
+            console.log('[fetchUserInfo] 本地数据缺少会员信息，强制从API获取');
+            forceRefresh = true;
+          } else {
+            userInfo.value = parsedInfo;
           }
-        });
-        console.log('[fetchUserInfo] 扩展环境下获取用户信息成功');
-      } catch (proxyError) {
-        console.warn('[fetchUserInfo] 扩展环境下获取用户信息失败:', proxyError);
-        return; // 使用本地缓存的信息
+        } catch (e) {
+          console.warn('[fetchUserInfo] 解析本地用户信息失败:', e);
+          forceRefresh = true;
+        }
+      } else {
+        forceRefresh = true;
       }
-    } else {
-      // 在网页环境中，使用普通API请求
-      response = await api.get('/auth/profile/');
     }
 
-    const data = response.data;
-    if (data?.status === 'success' && data?.data) {
-      userInfo.value = data.data;
-      // 更新本地存储
-      localStorage.setItem('userInfo', JSON.stringify(data.data));
+    // 如果需要强制刷新，从API获取最新数据
+    if (forceRefresh) {
+      console.log('[fetchUserInfo] 强制从API获取最新用户信息');
 
-      // 同步语言设置到localStorage
-      if (data.data.language) {
-        localStorage.setItem('language', data.data.language);
-        console.log(`[fetchUserInfo] 从数据库同步语言设置: ${data.data.language}`);
+      // 检查是否在扩展环境中
+      const isExtension = window.location.protocol === 'chrome-extension:';
+
+      let response;
+      if (isExtension) {
+        // 在扩展环境中，通过代理请求获取用户信息
+        try {
+          const { proxyRequest } = await import('@/api/proxy');
+          response = await proxyRequest({
+            url: '/auth/profile/?nocache=' + Date.now(),
+            method: 'GET',
+            headers: {
+              'Content-Type': 'application/json',
+              'Cache-Control': 'no-cache'
+            }
+          });
+          console.log('[fetchUserInfo] 扩展环境下获取用户信息成功');
+        } catch (proxyError) {
+          console.warn('[fetchUserInfo] 扩展环境下获取用户信息失败:', proxyError);
+          if (forceRefresh) {
+            throw proxyError; // 强制刷新时不应该忽略错误
+          }
+          return; // 使用本地缓存的信息
+        }
+      } else {
+        // 在网页环境中，使用普通API请求
+        response = await api.get('/auth/profile/');
+      }
+
+      const data = response.data;
+      if (data?.status === 'success' && data?.data) {
+        userInfo.value = data.data;
+        // 更新本地存储
+        localStorage.setItem('userInfo', JSON.stringify(data.data));
+
+        // 同步语言设置到localStorage
+        if (data.data.language) {
+          localStorage.setItem('language', data.data.language);
+          console.log(`[fetchUserInfo] 从数据库同步语言设置: ${data.data.language}`);
+        }
       }
     }
   } catch (error) {
@@ -447,6 +518,16 @@ const updateUserLanguage = async (lang: string) => {
     localStorage.setItem('userInfo', JSON.stringify(userInfo.value));
     localStorage.setItem('language', lang);
   }
+}
+
+// 导航到订单页面
+const goToOrders = () => {
+  router.push('/orders')
+}
+
+// 导航到关于我们页面
+const goToAbout = () => {
+  router.push('/about')
 }
 
 const handleLogout = () => {
