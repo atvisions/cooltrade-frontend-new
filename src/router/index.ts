@@ -11,6 +11,11 @@ import PointsView from '@/views/PointsView.vue'
 import OrdersView from '@/views/OrdersView.vue'
 import ForgotPasswordView from '@/views/ForgotPasswordView.vue'
 import ChangePasswordView from '@/views/ChangePasswordView.vue'
+import MembershipUpgradeView from '@/views/MembershipUpgradeView.vue'
+import PaymentView from '@/views/PaymentView.vue'
+import AlipayPaymentView from '@/views/AlipayPaymentView.vue'
+import PaymentSuccessView from '@/views/PaymentSuccessView.vue'
+import MyOrdersView from '@/views/MyOrdersView.vue'
 
 const routes: RouteRecordRaw[] = [
   {
@@ -91,6 +96,51 @@ const routes: RouteRecordRaw[] = [
     component: ChangePasswordView,
     meta: {
       title: 'CoolTrade - Change Password',
+      requiresAuth: true
+    }
+  },
+  {
+    path: '/membership-upgrade',
+    name: 'membership-upgrade',
+    component: MembershipUpgradeView,
+    meta: {
+      title: 'CoolTrade - Membership Upgrade',
+      requiresAuth: true
+    }
+  },
+  {
+    path: '/payment',
+    name: 'payment',
+    component: PaymentView,
+    meta: {
+      title: 'CoolTrade - Payment',
+      requiresAuth: true
+    }
+  },
+  {
+    path: '/alipay-payment',
+    name: 'alipay-payment',
+    component: AlipayPaymentView,
+    meta: {
+      title: 'CoolTrade - Alipay Payment',
+      requiresAuth: true
+    }
+  },
+  {
+    path: '/payment-success',
+    name: 'payment-success',
+    component: PaymentSuccessView,
+    meta: {
+      title: 'CoolTrade - Payment Success',
+      requiresAuth: true
+    }
+  },
+  {
+    path: '/my-orders',
+    name: 'my-orders',
+    component: MyOrdersView,
+    meta: {
+      title: 'CoolTrade - My Orders',
       requiresAuth: true
     }
   }

@@ -64,14 +64,14 @@
                   <!-- 会员操作按钮 -->
                   <button
                     v-if="membershipStatus.is_premium_active"
-                    @click="showMembershipModal = true"
+                    @click="goToMembershipUpgrade"
                     class="px-3 py-1 bg-gradient-to-r from-blue-500 to-purple-500 text-white text-xs rounded-lg font-medium hover:from-blue-600 hover:to-purple-600 transition-all duration-200"
                   >
                     {{ t('membership.renew') }}
                   </button>
                   <button
                     v-else
-                    @click="showMembershipModal = true"
+                    @click="goToMembershipUpgrade"
                     class="px-3 py-1 bg-gradient-to-r from-yellow-500 to-orange-500 text-white text-xs rounded-lg font-medium hover:from-yellow-600 hover:to-orange-600 transition-all duration-200"
                   >
                     {{ t('membership.upgrade') }}
@@ -172,13 +172,7 @@
             </div>
           </div>
 
-          <!-- 会员升级弹窗 -->
-          <MembershipUpgradeModal
-            :visible="showMembershipModal"
-            :is-premium="membershipStatus.is_premium_active"
-            @close="showMembershipModal = false"
-            @success="handleMembershipSuccess"
-          />
+
         </template>
       </div>
     </main>
@@ -196,7 +190,6 @@ import axios from 'axios'
 import { setLanguage } from '@/i18n'
 import { useEnhancedI18n } from '@/utils/i18n-helper'
 import BottomTabBar from '@/components/BottomTabBar.vue'
-import MembershipUpgradeModal from '@/components/MembershipUpgradeModal.vue'
 
 
 const router = useRouter()
@@ -222,8 +215,7 @@ const membershipStatus = ref({
 // 控制语言选择模态框的显示
 const showLanguageModal = ref(false)
 
-// 控制会员升级弹窗的显示
-const showMembershipModal = ref(false)
+
 
 
 
@@ -522,7 +514,12 @@ const updateUserLanguage = async (lang: string) => {
 
 // 导航到订单页面
 const goToOrders = () => {
-  router.push('/orders')
+  router.push({ name: 'my-orders' })
+}
+
+// 导航到会员升级页面
+const goToMembershipUpgrade = () => {
+  router.push({ name: 'membership-upgrade' })
 }
 
 // 导航到关于我们页面

@@ -1321,17 +1321,12 @@ export const membership = {
   },
 
   // 创建会员订单
-  createOrder: async (planId: number, paymentMethod: string): Promise<ApiResponse<any>> => {
+  createOrder: async (data: { plan_id: string, payment_method: string }): Promise<ApiResponse<any>> => {
     try {
       const token = localStorage.getItem('token');
       if (!token) {
         throw new Error('No authentication token');
       }
-
-      const data = {
-        plan_id: planId,
-        payment_method: paymentMethod
-      };
 
       if (isExtension()) {
         const response = await proxyRequest({
@@ -1460,6 +1455,87 @@ export const membership = {
       } else {
         const response = await api.post(`/auth/membership/orders/${orderId}/repay/`);
         return response.data;
+      }
+    } catch (error: any) {
+      throw error;
+    }
+  },
+
+  // 获取支付二维码
+  getPaymentQRCode: async (orderId: string): Promise<ApiResponse<any>> => {
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        throw new Error('No authentication token');
+      }
+
+      if (isExtension()) {
+        const response = await proxyRequest({
+          url: `/auth/membership/orders/${orderId}/qrcode/`,
+          method: 'GET',
+          headers: {
+            'Authorization': token.startsWith('Token ') ? token : `Token ${token}`,
+            'Content-Type': 'application/json'
+          }
+        });
+        return response.data || response;
+      } else {
+        const response = await api.get(`/auth/membership/orders/${orderId}/qrcode/`);
+        return response as any;
+      }
+    } catch (error: any) {
+      throw error;
+    }
+  },
+
+  // 检查支付状态
+  checkPaymentStatus: async (orderId: string): Promise<ApiResponse<any>> => {
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        throw new Error('No authentication token');
+      }
+
+      if (isExtension()) {
+        const response = await proxyRequest({
+          url: `/auth/membership/orders/${orderId}/payment-status/`,
+          method: 'GET',
+          headers: {
+            'Authorization': token.startsWith('Token ') ? token : `Token ${token}`,
+            'Content-Type': 'application/json'
+          }
+        });
+        return response.data || response;
+      } else {
+        const response = await api.get(`/auth/membership/orders/${orderId}/payment-status/`);
+        return response as any;
+      }
+    } catch (error: any) {
+      throw error;
+    }
+  },
+
+  // 取消订单
+  cancelOrder: async (orderId: string): Promise<ApiResponse<any>> => {
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        throw new Error('No authentication token');
+      }
+
+      if (isExtension()) {
+        const response = await proxyRequest({
+          url: `/auth/membership/orders/${orderId}/cancel/`,
+          method: 'POST',
+          headers: {
+            'Authorization': token.startsWith('Token ') ? token : `Token ${token}`,
+            'Content-Type': 'application/json'
+          }
+        });
+        return response.data || response;
+      } else {
+        const response = await api.post(`/auth/membership/orders/${orderId}/cancel/`);
+        return response as any;
       }
     } catch (error: any) {
       throw error;

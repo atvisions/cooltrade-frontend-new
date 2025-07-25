@@ -1,386 +1,378 @@
 <template>
-  <div v-if="visible" class="fixed inset-0 z-50 bg-[#0F172A]">
-    <div class="h-full flex flex-col max-w-[375px] mx-auto">
-      <!-- 顶部导航栏 -->
-      <div class="sticky top-0 z-50 bg-gray-900/80 backdrop-blur-md border-b border-gray-700/50">
-        <div class="flex items-center justify-between p-4">
-          <button @click="handleBack" class="text-white hover:text-blue-400 transition-colors">
-            <i class="ri-arrow-left-line text-xl"></i>
+  <div v-if="visible" class="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm">
+    <div class="h-full flex items-center justify-center p-4">
+      <div class="w-full max-w-lg bg-gray-900 rounded-2xl shadow-2xl overflow-hidden">
+        <!-- 顶部导航栏 -->
+        <div class="relative bg-gray-800 px-6 py-4 border-b border-gray-700">
+          <button
+            @click="handleBack"
+            class="absolute left-4 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-gray-700 flex items-center justify-center text-gray-300 hover:bg-gray-600 transition-colors"
+          >
+            <i class="ri-arrow-left-line text-lg"></i>
           </button>
-          <h1 class="text-lg font-bold text-white">{{ getPageTitle() }}</h1>
-          <div class="w-6"></div>
+          <h1 class="text-center text-lg font-semibold text-white">{{ getPageTitle() }}</h1>
         </div>
-      </div>
 
-      <!-- 主要内容区域 -->
-      <div class="flex-1 overflow-y-auto p-4">
-        <!-- 套餐选择 -->
-        <div v-if="currentStep === 'plans'" class="space-y-6">
-          <!-- 页面标题 -->
-          <div class="text-center space-y-2 mb-6">
-            <h2 class="text-xl font-bold text-white">{{ t('membership.select_membership_plan') }}</h2>
-            <p class="text-gray-400 text-sm">{{ t('membership.unlock_exclusive_benefits') }}</p>
-          </div>
+        <!-- 主要内容区域 -->
+        <div class="max-h-[70vh] overflow-y-auto bg-gray-900">
+          <!-- 套餐选择 -->
+          <div v-if="currentStep === 'plans'" class="p-6">
+            <!-- 页面标题 -->
+            <div class="text-center mb-6">
+              <h2 class="text-xl font-bold text-white mb-2">Select Membership Plan</h2>
+              <p class="text-gray-400 text-sm">Unlock exclusive benefits</p>
+            </div>
 
-          <div v-if="loading" class="py-8 flex flex-col items-center">
-            <div class="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-500 mb-3"></div>
-            <p class="text-gray-400 text-sm">{{ t('common.loading') }}</p>
-          </div>
+            <div v-if="loading" class="py-8 flex flex-col items-center">
+              <div class="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-500 mb-3"></div>
+              <p class="text-gray-400 text-sm">{{ t('common.loading') }}</p>
+            </div>
 
-          <div v-else-if="plans.length > 0" class="space-y-3">
-            <div
-              v-for="plan in plans"
-              :key="plan.id"
-              @click="selectPlan(plan)"
-              class="relative bg-[#1E293B] rounded-xl p-4 cursor-pointer transition-all duration-200 border"
-              :class="selectedPlan?.id === plan.id
-                ? 'border-blue-500 bg-blue-500/10'
-                : 'border-gray-700 hover:border-gray-600'"
-            >
-              <!-- 推荐标签 -->
-              <div v-if="plan.plan_type === 'yearly'" class="absolute -top-2 left-4">
-                <div class="bg-gradient-to-r from-orange-500 to-red-500 text-white text-xs font-bold px-2 py-1 rounded-full flex items-center">
-                  <i class="ri-fire-line mr-1"></i>{{ t('membership.recommended') }}
+            <div v-else-if="plans.length > 0" class="space-y-3">
+              <div
+                v-for="plan in plans"
+                :key="plan.id"
+                @click="selectPlan(plan)"
+                class="relative bg-gray-800 rounded-xl p-4 cursor-pointer transition-all duration-300 border-2 hover:bg-gray-750"
+                :class="selectedPlan?.id === plan.id
+                  ? 'border-blue-500 bg-gray-750'
+                  : 'border-gray-700 hover:border-gray-600'"
+              >
+                <!-- 推荐标签 -->
+                <div v-if="plan.plan_type === 'yearly'" class="absolute -top-2 left-4">
+                  <div class="bg-orange-500 text-white text-xs font-bold px-2 py-1 rounded-full">
+                    Recommended
+                  </div>
                 </div>
-              </div>
 
               <div class="flex items-center justify-between">
                 <!-- 左侧：图标和信息 -->
+                  <div class="flex items-center space-x-3">
+                    <div class="w-10 h-10 rounded-lg bg-blue-600 flex items-center justify-center">
+                      <i class="ri-vip-crown-line text-white text-lg"></i>
+                    </div>
+                    <div>
+                      <h3 class="text-white font-bold text-base">
+                        {{ plan.plan_type === 'monthly' ? 'Premium' : 'Premium (Yearly)' }}
+                      </h3>
+                      <p class="text-gray-400 text-sm">{{ plan.duration_days }} days</p>
+                    </div>
+                  </div>
+
+                <!-- 右侧：价格和选择 -->
+                  <div class="flex items-center space-x-3">
+                    <div class="text-right">
+                      <div class="text-xl font-bold text-white">¥{{ plan.price }}</div>
+                      <div class="text-gray-400 text-xs">{{ plan.plan_type === 'monthly' ? '/month' : '/year' }}</div>
+                      <div v-if="plan.plan_type === 'yearly'" class="text-green-400 text-xs font-medium">
+                        Save ¥{{ (20 * 12 - Number(plan.price)).toFixed(0) }}
+                      </div>
+                    </div>
+
+                    <!-- 选择圆圈 -->
+                    <div class="w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all"
+                         :class="selectedPlan?.id === plan.id
+                           ? 'border-blue-500 bg-blue-500'
+                           : 'border-gray-500'">
+                      <div v-if="selectedPlan?.id === plan.id" class="w-2 h-2 bg-white rounded-full"></div>
+                    </div>
+                  </div>
+              </div>
+            </div>
+          </div>
+
+            <!-- 选中套餐后的详细信息 -->
+            <div v-if="selectedPlan" class="mt-4 space-y-3">
+              <!-- 会员权益 -->
+              <div class="bg-gray-800 rounded-xl p-4 border border-gray-700">
+                <h3 class="text-base font-bold text-white mb-3 flex items-center">
+                  <i class="ri-vip-crown-2-line text-blue-400 mr-2"></i>
+                  Premium Benefits
+                </h3>
+                <div class="space-y-2">
+                  <div class="flex items-center space-x-2">
+                    <i class="ri-check-line text-green-400 text-sm"></i>
+                    <span class="text-gray-300 text-sm">Unlimited AI reports</span>
+                  </div>
+                  <div class="flex items-center space-x-2">
+                    <i class="ri-check-line text-green-400 text-sm"></i>
+                    <span class="text-gray-300 text-sm">Member points reward</span>
+                  </div>
+                  <div class="flex items-center space-x-2">
+                    <i class="ri-check-line text-green-400 text-sm"></i>
+                    <span class="text-gray-300 text-sm">Unlimited save reports</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- 订单详情 -->
+              <div class="bg-gray-800 rounded-xl p-4 border border-gray-700">
+                <div class="space-y-2">
+                  <div class="flex justify-between items-center">
+                    <span class="text-gray-400 text-sm">Plan</span>
+                    <span class="text-white text-sm font-medium">
+                      {{ selectedPlan.plan_type === 'monthly' ? 'Premium' : 'Premium (Yearly)' }}
+                    </span>
+                  </div>
+                  <div class="flex justify-between items-center">
+                    <span class="text-gray-400 text-sm">Duration</span>
+                    <span class="text-white text-sm">{{ selectedPlan.duration_days }} days</span>
+                  </div>
+                  <div v-if="selectedPlan.plan_type === 'yearly'" class="flex justify-between items-center">
+                    <span class="text-gray-400 text-sm">Discount</span>
+                    <span class="text-green-400 text-sm font-medium">-¥{{ (20 * 12 - Number(selectedPlan.price)).toFixed(0) }}</span>
+                  </div>
+                  <div class="border-t border-gray-600 pt-2 mt-2">
+                    <div class="flex justify-between items-center">
+                      <span class="text-white font-bold">Total</span>
+                      <span class="text-xl font-bold text-blue-400">¥{{ selectedPlan.price }}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 支付方式选择 -->
+          <div v-else-if="currentStep === 'payment'" class="p-6">
+            <!-- 选中的套餐信息 -->
+            <div v-if="selectedPlan" class="bg-gray-800 rounded-xl p-4 border border-gray-700 mb-4">
+              <div class="flex items-center justify-between">
                 <div class="flex items-center space-x-3">
-                  <div class="w-10 h-10 rounded-lg bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center">
+                  <div class="w-10 h-10 rounded-lg bg-blue-600 flex items-center justify-center">
                     <i class="ri-vip-crown-line text-white text-lg"></i>
                   </div>
                   <div>
                     <h3 class="text-white font-bold text-base">
-                      {{ plan.plan_type === 'monthly' ? t('membership.premium_member') : t('membership.premium_member_yearly') }}
+                      {{ selectedPlan.plan_type === 'monthly' ? 'Premium' : 'Premium (Yearly)' }}
                     </h3>
-                    <p class="text-gray-400 text-sm">{{ t('membership.days_validity', { days: plan.duration_days }) }}</p>
+                    <p class="text-gray-400 text-sm">{{ selectedPlan.duration_days }} days</p>
                   </div>
                 </div>
+                <div class="text-right">
+                  <div class="text-xl font-bold text-white">¥{{ selectedPlan.price }}</div>
+                  <div class="text-gray-400 text-xs">{{ selectedPlan.plan_type === 'monthly' ? '/month' : '/year' }}</div>
+                </div>
+              </div>
+            </div>
 
-                <!-- 右侧：价格和选择 -->
-                <div class="flex items-center space-x-3">
-                  <div class="text-right">
-                    <div class="text-xl font-bold text-white">¥{{ plan.price }}</div>
-                    <div class="text-gray-400 text-xs">{{ plan.plan_type === 'monthly' ? t('membership.per_month') : t('membership.per_year') }}</div>
-                    <div v-if="plan.plan_type === 'yearly'" class="text-green-400 text-xs">
-                      {{ t('membership.save_amount', { amount: (20 * 12 - Number(plan.price)).toFixed(0) }) }}
+            <!-- 支付方式 -->
+            <div>
+              <h3 class="text-white font-bold text-lg mb-3">Payment Methods</h3>
+              <div
+                @click="selectPaymentMethod('alipay')"
+                class="bg-gray-800 rounded-xl p-4 cursor-pointer transition-all duration-300 border-2"
+                :class="selectedPaymentMethod === 'alipay'
+                  ? 'border-blue-500 bg-gray-750'
+                  : 'border-gray-700 hover:border-gray-600'"
+              >
+                <div class="flex items-center justify-between">
+                  <div class="flex items-center space-x-3">
+                    <div class="w-10 h-10 rounded-lg bg-blue-600 flex items-center justify-center">
+                      <i class="ri-alipay-line text-white text-lg"></i>
+                    </div>
+                    <div>
+                      <h4 class="text-white font-bold text-base">Alipay Payment</h4>
+                      <p class="text-gray-400 text-sm">Scan QR code with Alipay</p>
+                      <div class="flex items-center space-x-2 mt-1">
+                        <span class="bg-green-600 text-white text-xs px-2 py-1 rounded-full font-medium">Recommended</span>
+                      </div>
                     </div>
                   </div>
 
                   <!-- 选择圆圈 -->
-                  <div class="w-5 h-5 rounded-full border-2 flex items-center justify-center"
-                       :class="selectedPlan?.id === plan.id
+                  <div class="w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all"
+                       :class="selectedPaymentMethod === 'alipay'
                          ? 'border-blue-500 bg-blue-500'
                          : 'border-gray-500'">
-                    <div v-if="selectedPlan?.id === plan.id" class="w-2 h-2 bg-white rounded-full"></div>
+                    <div v-if="selectedPaymentMethod === 'alipay'" class="w-2 h-2 bg-white rounded-full"></div>
                   </div>
                 </div>
               </div>
             </div>
           </div>
-
-          <!-- 选中套餐后的详细信息 -->
-          <div v-if="selectedPlan" class="space-y-3">
-            <!-- 会员权益 -->
-            <div class="bg-[#1E293B] rounded-xl p-4 border border-gray-700">
-              <h3 class="text-base font-bold text-white mb-3 flex items-center">
-                <i class="ri-vip-crown-2-line text-blue-400 mr-2"></i>
-                {{ t('membership.exclusive_benefits') }}
-              </h3>
-              <div class="space-y-2">
-                <div class="flex items-center space-x-3">
-                  <div class="w-4 h-4 bg-green-500/20 rounded-full flex items-center justify-center">
-                    <i class="ri-check-line text-green-400 text-xs"></i>
+          <!-- 支付宝支付页面 -->
+          <div v-else-if="currentStep === 'alipay'" class="p-6">
+            <!-- 订单信息 -->
+            <div v-if="currentOrder" class="bg-gray-800 rounded-xl p-4 border border-gray-700 mb-4">
+              <div class="flex justify-between items-center">
+                <div class="flex items-center space-x-4">
+                  <div class="text-center">
+                    <span class="text-gray-400 text-sm block">{{ t('membership.order_id') }}</span>
+                    <span class="text-white text-base font-mono font-bold">{{ currentOrder.order_id.slice(-8) }}</span>
                   </div>
-                  <span class="text-gray-300 text-sm">{{ t('membership.unlimited_ai_reports') }}</span>
-                </div>
-                <div class="flex items-center space-x-3">
-                  <div class="w-4 h-4 bg-green-500/20 rounded-full flex items-center justify-center">
-                    <i class="ri-check-line text-green-400 text-xs"></i>
-                  </div>
-                  <span class="text-gray-300 text-sm">{{ t('membership.member_points_reward') }}</span>
-                </div>
-                <div class="flex items-center space-x-3">
-                  <div class="w-4 h-4 bg-green-500/20 rounded-full flex items-center justify-center">
-                    <i class="ri-check-line text-green-400 text-xs"></i>
-                  </div>
-                  <span class="text-gray-300 text-sm">{{ t('membership.unlimited_save_reports') }}</span>
-                </div>
-              </div>
-            </div>
-
-            <!-- 订单详情 -->
-            <div class="bg-[#1E293B] rounded-xl p-4 border border-gray-700">
-              <h3 class="text-base font-bold text-white mb-3 flex items-center">
-                <i class="ri-bill-line text-blue-400 mr-2"></i>
-                {{ t('membership.order_details') }}
-              </h3>
-              <div class="space-y-2">
-                <div class="flex justify-between items-center">
-                  <span class="text-gray-400 text-sm">{{ t('membership.plan') }}</span>
-                  <span class="text-white text-sm font-medium">
-                    {{ selectedPlan.plan_type === 'monthly' ? t('membership.premium_member') : t('membership.premium_member_yearly') }}
-                  </span>
-                </div>
-                <div class="flex justify-between items-center">
-                  <span class="text-gray-400 text-sm">{{ t('membership.validity_period') }}</span>
-                  <span class="text-white text-sm">{{ selectedPlan.duration_days }}{{ t('membership.days') }}</span>
-                </div>
-                <div v-if="selectedPlan.plan_type === 'yearly'" class="flex justify-between items-center">
-                  <span class="text-gray-400 text-sm">{{ t('membership.discount') }}</span>
-                  <span class="text-green-400 text-sm">-¥{{ (20 * 12 - Number(selectedPlan.price)).toFixed(0) }}</span>
-                </div>
-                <div class="border-t border-gray-600 pt-2 mt-2">
-                  <div class="flex justify-between items-center">
-                    <span class="text-white font-bold">{{ t('membership.amount_payable') }}</span>
-                    <span class="text-xl font-bold text-blue-400">¥{{ selectedPlan.price }}</span>
+                  <div class="text-center">
+                    <span class="text-gray-400 text-sm block">{{ t('membership.payment_amount') }}</span>
+                    <span class="text-blue-400 text-xl font-bold">¥{{ currentOrder.amount }}</span>
                   </div>
                 </div>
               </div>
             </div>
 
-            <!-- 用户协议 -->
-            <div class="bg-[#1E293B] rounded-xl p-4 border border-gray-700">
-              <div class="flex items-start space-x-3">
-                <button
-                  @click="toggleAgreement"
-                  class="w-4 h-4 rounded border flex items-center justify-center transition-all duration-200 mt-0.5 flex-shrink-0"
-                  :class="agreementAccepted
-                    ? 'bg-blue-500 border-blue-500'
-                    : 'border-gray-500 hover:border-blue-400'"
-                >
-                  <i v-if="agreementAccepted" class="ri-check-line text-white text-xs"></i>
-                </button>
-                <div class="flex-1">
-                  <p class="text-gray-300 text-sm leading-relaxed">
-                    {{ t('membership.i_agree') }}
-                    <a href="#" class="text-blue-400 hover:text-blue-300 underline" @click.prevent="showAgreement">
-                      {{ t('membership.user_service_agreement') }}
-                    </a>
-                    {{ t('membership.and') }}
-                    <a href="#" class="text-blue-400 hover:text-blue-300 underline" @click.prevent="showPrivacyPolicy">
-                      {{ t('membership.privacy_policy_link') }}
-                    </a>
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-        <!-- 支付方式选择 -->
-        <div v-else-if="currentStep === 'payment'" class="space-y-3">
-          <!-- 选中的套餐信息 -->
-          <div v-if="selectedPlan" class="bg-[#1E293B] rounded-xl p-4 border border-gray-700">
-            <div class="flex items-center justify-between">
-              <div class="flex items-center space-x-3">
-                <div class="w-10 h-10 rounded-lg bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center">
-                  <i class="ri-vip-crown-line text-white text-lg"></i>
-                </div>
-                <div>
-                  <h3 class="text-white font-bold text-base">
-                    {{ selectedPlan.plan_type === 'monthly' ? t('membership.premium_member') : t('membership.premium_member_yearly') }}
-                  </h3>
-                  <p class="text-gray-400 text-sm">{{ t('membership.days_validity', { days: selectedPlan.duration_days }) }}</p>
-                </div>
-              </div>
-              <div class="text-right">
-                <div class="text-xl font-bold text-white">¥{{ selectedPlan.price }}</div>
-                <div class="text-gray-400 text-xs">{{ selectedPlan.plan_type === 'monthly' ? t('membership.per_month') : t('membership.per_year') }}</div>
-              </div>
-            </div>
-          </div>
-
-          <!-- 支付方式 -->
-          <div>
-            <h3 class="text-white font-bold text-base mb-3">{{ t('membership.payment_methods') }}</h3>
-            <div
-              @click="selectPaymentMethod('alipay')"
-              class="bg-[#1E293B] rounded-xl p-4 cursor-pointer transition-all duration-200 border"
-              :class="selectedPaymentMethod === 'alipay'
-                ? 'border-blue-500 bg-blue-500/10'
-                : 'border-gray-700 hover:border-gray-600'"
-            >
-              <div class="flex items-center justify-between">
-                <div class="flex items-center space-x-3">
-                  <div class="w-10 h-10 rounded-lg bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center">
-                    <i class="ri-alipay-line text-white text-lg"></i>
+            <!-- 二维码区域 -->
+            <div class="text-center">
+              <div class="bg-white rounded-2xl p-6 mx-auto inline-block border border-gray-300">
+                <div class="w-40 h-40 mx-auto">
+                  <div v-if="qrCodeLoading" class="w-full h-full flex items-center justify-center">
+                    <div class="text-center">
+                      <div class="inline-block animate-spin rounded-full h-6 w-6 border-b-2 border-blue-500 mb-2"></div>
+                      <p class="text-gray-600 text-sm">{{ t('membership.generating') }}</p>
+                    </div>
                   </div>
-                  <div>
-                    <h4 class="text-white font-bold text-base">{{ t('membership.alipay_payment') }}</h4>
-                    <p class="text-gray-400 text-sm">{{ t('membership.alipay_description') }}</p>
-                    <div class="flex items-center space-x-2 mt-1">
-                      <span class="bg-green-500/20 text-green-400 text-xs px-2 py-1 rounded-full">{{ t('membership.recommended') }}</span>
-                      <span class="bg-blue-500/20 text-blue-400 text-xs px-2 py-1 rounded-full">{{ t('membership.instant_arrival') }}</span>
+                  <div v-else-if="qrCodeUrl" class="w-full h-full flex flex-col items-center justify-center">
+                    <img
+                      :src="qrCodeUrl"
+                      alt="Alipay QR Code"
+                      class="w-full h-full object-contain rounded-lg"
+                      @load="console.log('二维码图片加载成功:', qrCodeUrl)"
+                      @error="console.error('二维码图片加载失败:', qrCodeUrl, $event)"
+                    />
+                  </div>
+                  <div v-else class="w-full h-full flex items-center justify-center">
+                    <div class="text-center">
+                      <i class="ri-error-warning-line text-4xl text-red-400 mb-2"></i>
+                      <p class="text-red-400 text-sm">{{ t('membership.qr_code_failed') }}</p>
                     </div>
                   </div>
                 </div>
+                <p class="text-sm text-gray-500 mt-3 font-medium">{{ t('membership.qr_code_expires') }}</p>
+              </div>
 
-                <!-- 选择圆圈 -->
-                <div class="w-5 h-5 rounded-full border-2 flex items-center justify-center"
-                     :class="selectedPaymentMethod === 'alipay'
-                       ? 'border-blue-500 bg-blue-500'
-                       : 'border-gray-500'">
-                  <div v-if="selectedPaymentMethod === 'alipay'" class="w-2 h-2 bg-white rounded-full"></div>
-                </div>
+              <!-- 支付说明 -->
+              <div class="mt-4">
+                <h4 class="text-lg font-bold text-white mb-1">{{ t('membership.use_alipay_scan') }}</h4>
+                <p class="text-gray-400 text-sm">{{ t('membership.open_alipay_scan') }}</p>
               </div>
             </div>
-          </div>
-        </div>
-        <!-- 支付宝支付页面 -->
-        <div v-else-if="currentStep === 'alipay'" class="space-y-3">
-          <!-- 订单信息 -->
-          <div v-if="currentOrder" class="bg-[#1E293B] rounded-xl p-3 border border-gray-700">
-            <div class="flex justify-between items-center">
-              <div class="flex items-center space-x-4">
-                <div>
-                  <span class="text-gray-400 text-xs">{{ t('membership.order_id') }}</span>
-                  <span class="text-white text-sm font-mono ml-2">{{ currentOrder.order_id.slice(-8) }}</span>
+
+            <!-- 支付状态检测 -->
+            <div class="bg-gray-800 border border-gray-700 rounded-xl p-3 mt-4">
+              <div class="flex items-center">
+                <div class="w-5 h-5 bg-blue-600 rounded-full flex items-center justify-center mr-3">
+                  <div class="w-2 h-2 bg-white rounded-full animate-pulse"></div>
                 </div>
                 <div>
-                  <span class="text-gray-400 text-xs">{{ t('membership.payment_amount') }}</span>
-                  <span class="text-blue-400 text-lg font-bold ml-2">¥{{ currentOrder.amount }}</span>
+                  <p class="text-white text-sm font-medium">{{ t('membership.checking_payment_status') }}</p>
+                  <p class="text-gray-400 text-xs">{{ t('membership.auto_activate_after_payment') }}</p>
                 </div>
               </div>
             </div>
           </div>
 
-          <!-- 二维码区域 -->
-          <div class="text-center">
-            <div class="bg-white rounded-xl p-4 mx-auto inline-block">
-              <div class="w-40 h-40 mx-auto">
-                <div v-if="qrCodeLoading" class="w-full h-full flex items-center justify-center">
-                  <div class="text-center">
-                    <div class="inline-block animate-spin rounded-full h-6 w-6 border-b-2 border-blue-500 mb-2"></div>
-                    <p class="text-gray-600 text-xs">{{ t('membership.generating') }}</p>
-                  </div>
-                </div>
-                <div v-else-if="qrCodeUrl" class="w-full h-full flex flex-col items-center justify-center">
-                  <img
-                    :src="qrCodeUrl"
-                    alt="Alipay QR Code"
-                    class="w-full h-full object-contain"
-                    @load="console.log('二维码图片加载成功:', qrCodeUrl)"
-                    @error="console.error('二维码图片加载失败:', qrCodeUrl, $event)"
-                  />
-                </div>
-                <div v-else class="w-full h-full flex items-center justify-center">
-                  <div class="text-center">
-                    <i class="ri-error-warning-line text-4xl text-red-400 mb-2"></i>
-                    <p class="text-red-400 text-xs">{{ t('membership.qr_code_failed') }}</p>
-                  </div>
-                </div>
+          <!-- 支付成功页面 -->
+          <div v-else-if="currentStep === 'success'" class="p-6 text-center">
+            <!-- 成功图标 -->
+            <div class="flex justify-center mb-4">
+              <div class="w-16 h-16 bg-green-600 rounded-full flex items-center justify-center">
+                <i class="ri-check-line text-white text-2xl"></i>
               </div>
-              <p class="text-xs text-gray-500 mt-2">{{ t('membership.qr_code_expires') }}</p>
             </div>
 
-            <!-- 支付说明 -->
-            <div class="mt-3">
-              <h4 class="text-base font-bold text-white mb-1">{{ t('membership.use_alipay_scan') }}</h4>
-              <p class="text-gray-400 text-xs">{{ t('membership.open_alipay_scan') }}</p>
+            <!-- 成功信息 -->
+            <div class="mb-4">
+              <h3 class="text-xl font-bold text-white mb-1">{{ t('membership.payment_success_title') }}</h3>
+              <p class="text-gray-400 text-sm">{{ t('membership.payment_success_message') }}</p>
             </div>
-          </div>
 
-          <!-- 支付状态检测 -->
-          <div class="bg-[#1E293B] border border-gray-700 rounded-xl p-3">
-            <div class="flex items-center">
-              <div class="w-5 h-5 bg-blue-500/20 rounded-full flex items-center justify-center mr-3">
-                <div class="w-2 h-2 bg-blue-400 rounded-full animate-pulse"></div>
+            <!-- 会员信息 -->
+            <div v-if="currentOrder" class="bg-gray-800 rounded-xl p-4 border border-gray-700 mb-4">
+              <div class="space-y-2">
+                <div class="flex justify-between items-center">
+                  <span class="text-gray-400 text-sm">{{ t('membership.activate_plan') }}</span>
+                  <span class="text-white font-medium text-sm">{{ currentOrder.plan?.name }}</span>
+                </div>
+                <div class="flex justify-between items-center">
+                  <span class="text-gray-400 text-sm">{{ t('membership.payment_amount') }}</span>
+                  <span class="text-green-400 font-bold text-base">¥{{ currentOrder.amount }}</span>
+                </div>
+                <div class="flex justify-between items-center">
+                  <span class="text-gray-400 text-sm">{{ t('membership.bonus_points') }}</span>
+                  <span class="text-yellow-400 font-bold text-sm">+{{ Math.floor(currentOrder.amount * 10) }} {{ t('membership.points_unit') }}</span>
+                </div>
               </div>
-              <div>
-                <p class="text-blue-400 text-sm font-medium">{{ t('membership.checking_payment_status') }}</p>
-                <p class="text-gray-400 text-xs">{{ t('membership.auto_activate_after_payment') }}</p>
+            </div>
+
+            <!-- 倒计时提示 -->
+            <div class="bg-gray-800 border border-gray-700 rounded-xl p-3">
+              <div class="flex items-center justify-center space-x-2">
+                <i class="ri-time-line text-blue-400"></i>
+                <span class="text-gray-300 font-medium text-sm">{{ t('membership.countdown_redirect', { seconds: countdown }) }}</span>
               </div>
             </div>
           </div>
         </div>
 
-        <!-- 支付成功页面 -->
-        <div v-else-if="currentStep === 'success'" class="space-y-6 text-center">
-          <!-- 成功图标 -->
-          <div class="flex justify-center">
-            <div class="w-20 h-20 bg-gradient-to-br from-green-500 to-emerald-500 rounded-full flex items-center justify-center">
-              <i class="ri-check-line text-white text-3xl"></i>
-            </div>
-          </div>
-
-          <!-- 成功信息 -->
-          <div class="space-y-3">
-            <h3 class="text-2xl font-bold text-white">{{ t('membership.payment_success_title') }}</h3>
-            <p class="text-gray-400">{{ t('membership.payment_success_message') }}</p>
-          </div>
-
-          <!-- 会员信息 -->
-          <div v-if="currentOrder" class="bg-[#1E293B] rounded-xl p-4 border border-gray-700">
-            <div class="space-y-3">
-              <div class="flex justify-between items-center">
-                <span class="text-gray-400">{{ t('membership.activate_plan') }}</span>
-                <span class="text-white font-medium">{{ currentOrder.plan?.name }}</span>
-              </div>
-              <div class="flex justify-between items-center">
-                <span class="text-gray-400">{{ t('membership.payment_amount') }}</span>
-                <span class="text-green-400 font-bold">¥{{ currentOrder.amount }}</span>
-              </div>
-              <div class="flex justify-between items-center">
-                <span class="text-gray-400">{{ t('membership.bonus_points') }}</span>
-                <span class="text-yellow-400 font-bold">+{{ Math.floor(currentOrder.amount * 10) }} {{ t('membership.points_unit') }}</span>
+        <!-- 底部固定按钮区域 -->
+        <div class="p-6 border-t border-gray-700 bg-gray-900">
+          <!-- 用户协议 (仅在套餐选择页面显示) -->
+          <div v-if="currentStep === 'plans' && selectedPlan" class="mb-4">
+            <div class="flex items-start space-x-3">
+              <button
+                @click="toggleAgreement"
+                class="w-4 h-4 rounded border-2 flex items-center justify-center transition-all duration-200 mt-0.5 flex-shrink-0"
+                :class="agreementAccepted
+                  ? 'bg-blue-500 border-blue-500'
+                  : 'border-gray-500 hover:border-blue-400'"
+              >
+                <i v-if="agreementAccepted" class="ri-check-line text-white text-xs"></i>
+              </button>
+              <div class="flex-1">
+                <p class="text-gray-300 text-xs leading-relaxed">
+                  {{ t('membership.i_agree') }}
+                  <a href="#" class="text-blue-400 hover:text-blue-300 underline font-medium" @click.prevent="showAgreement">
+                    {{ t('membership.user_service_agreement') }}
+                  </a>
+                  {{ t('membership.and') }}
+                  <a href="#" class="text-blue-400 hover:text-blue-300 underline font-medium" @click.prevent="showPrivacyPolicy">
+                    {{ t('membership.privacy_policy_link') }}
+                  </a>
+                </p>
               </div>
             </div>
           </div>
 
-          <!-- 倒计时提示 -->
-          <div class="bg-blue-500/10 border border-blue-500/30 rounded-xl p-4">
-            <div class="flex items-center justify-center space-x-2">
-              <i class="ri-time-line text-blue-400"></i>
-              <span class="text-blue-400">{{ t('membership.countdown_redirect', { seconds: countdown }) }}</span>
+          <!-- 套餐选择页面按钮 -->
+          <button
+            v-if="currentStep === 'plans'"
+            @click="canProceedToPayment ? proceedToPayment() : null"
+            :disabled="!canProceedToPayment"
+            class="w-full py-3 rounded-xl font-semibold text-base transition-all duration-300"
+            :class="canProceedToPayment
+              ? 'bg-blue-600 text-white hover:bg-blue-700'
+              : 'bg-gray-700 text-gray-400 cursor-not-allowed'"
+          >
+            <span v-if="!selectedPlan">Please select a plan</span>
+            <span v-else-if="!agreementAccepted">Please agree to terms</span>
+            <span v-else>Continue</span>
+          </button>
+
+          <!-- 支付方式选择页面按钮 -->
+          <button
+            v-else-if="currentStep === 'payment'"
+            @click="selectedPaymentMethod ? createOrder() : null"
+            :disabled="!selectedPaymentMethod || creatingOrder"
+            class="w-full py-3 rounded-xl font-semibold text-base transition-all duration-300"
+            :class="selectedPaymentMethod && !creatingOrder
+              ? 'bg-blue-600 text-white hover:bg-blue-700'
+              : 'bg-gray-700 text-gray-400 cursor-not-allowed'"
+          >
+            <div v-if="creatingOrder" class="flex items-center justify-center">
+              <div class="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+              {{ t('membership.creating_order') }}
             </div>
-          </div>
+            <span v-else-if="selectedPaymentMethod">Confirm Payment</span>
+            <span v-else>Select payment method</span>
+          </button>
+
+          <!-- 支付成功页面按钮 -->
+          <button
+            v-else-if="currentStep === 'success'"
+            @click="goToProfile"
+            class="w-full py-3 rounded-xl font-semibold text-base transition-all duration-300 bg-green-600 text-white hover:bg-green-700"
+          >
+            {{ t('membership.go_to_profile') }}
+          </button>
         </div>
-      </div>
-
-      <!-- 底部固定按钮区域 -->
-      <div class="p-4 border-t border-gray-800 bg-[#0F172A]">
-        <!-- 套餐选择页面按钮 -->
-        <button
-          v-if="currentStep === 'plans'"
-          @click="canProceedToPayment ? proceedToPayment() : null"
-          :disabled="!canProceedToPayment"
-          class="w-full py-3 rounded-xl font-medium transition-all duration-300"
-          :class="canProceedToPayment
-            ? 'bg-blue-500 text-white hover:bg-blue-600'
-            : 'bg-gray-700 text-gray-400 cursor-not-allowed'"
-        >
-          <span v-if="!selectedPlan">{{ t('membership.please_select_plan') }}</span>
-          <span v-else-if="!agreementAccepted">{{ t('membership.please_agree_terms') }}</span>
-          <span v-else>{{ t('membership.activate_now') }}</span>
-        </button>
-
-        <!-- 支付方式选择页面按钮 -->
-        <button
-          v-else-if="currentStep === 'payment'"
-          @click="selectedPaymentMethod ? createOrder() : null"
-          :disabled="!selectedPaymentMethod || creatingOrder"
-          class="w-full py-3 rounded-xl font-medium transition-all duration-300"
-          :class="selectedPaymentMethod && !creatingOrder
-            ? 'bg-blue-500 text-white hover:bg-blue-600'
-            : 'bg-gray-700 text-gray-400 cursor-not-allowed'"
-        >
-          <div v-if="creatingOrder" class="flex items-center justify-center">
-            <div class="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-            {{ t('membership.creating_order') }}
-          </div>
-          <span v-else-if="selectedPaymentMethod">{{ t('membership.confirm_payment') }}</span>
-          <span v-else>{{ t('membership.please_select_payment_method') }}</span>
-        </button>
-
-        <!-- 支付成功页面按钮 -->
-        <button
-          v-else-if="currentStep === 'success'"
-          @click="goToProfile"
-          class="w-full py-3 rounded-xl font-medium transition-all duration-300 bg-blue-500 text-white hover:bg-blue-600"
-        >
-          {{ t('membership.go_to_profile') }}
-        </button>
       </div>
     </div>
   </div>

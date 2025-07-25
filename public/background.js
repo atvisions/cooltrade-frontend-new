@@ -1,8 +1,12 @@
 // Initialize environment variables
 // API配置 - 手动修改这里的baseApiUrl即可切换环境
 let envConfig = {
-  baseApiUrl: 'http://localhost:8000/api',  // 手动修改这里切换API环境
-  env: 'development',
+  // 本地开发环境
+  // baseApiUrl: 'http://localhost:8000/api',
+
+  // 生产环境
+  baseApiUrl: 'https://cooltrade.xyz/api',  // 手动修改这里切换API环境
+  env: 'production',
   token: null
 };
 
